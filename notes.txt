@@ -1,0 +1,75 @@
+
+________________________________________
+SOLVED
+
+2022-04-14
+Bevy geht vielleicht gut, wenn man es vom Git clont.
+Aber wie nutzt man es als crate in einem eigenen Git?
+Bei mir kennt es dann kein ..default()
++                           ^^^^^^^ not found in this scope
+Es geht mit      ..Default::default()    Aber da fehlt was im  Cargo.toml???
+Ha! There is a commit about enabling that default shorthand
+The v0.6.1 I used in my project is not the latest I use with the example %-)
+
+2022-04-15
+Beim WASM build läuft es zwar gut, zu sehen sind aber nur schräglinien. Mac-Problem?
+Ok if it is a 2D/3D application
+
+2022-04-16
+How to update the clone (0.6.0 to 0.7.0)?
+git reset --hard origin/latest
+
+________________________________________
+PROBLEMS
+
+
+
+
+________________________________________
+BUILD
+
+% cd ../OSMeta
+OSMeta % cargo run
+cargo run
+
+Any Bevy app can be deployed to the web by running the following commands:
+cargo build [--release] --target wasm32-unknown-unknown
+wasm-bindgen                        --out-dir OUTPUT_DIR  --target web [BUILD_]TARGET_DIR
+wasm-bindgen --out-name wasm_osmeta --out-dir wasm/target --target web target/wasm32-unknown-unknown/release/osmeta.wasm
+
+build EXAMPLES:
+cargo build --example headless_wasm --target wasm32-unknown-unknown --no-default-features
+wasm-bindgen --out-dir examples/wasm/target --target web target/wasm32-unknown-unknown/debug/examples/headless_wasm.wasm
+
+FROM: https://github.com/bevyengine/bevy/tree/latest/examples#wasm
+
+
+If you are using a released version of bevy, you need to make sure you are viewing the correct version of the examples!
+  Latest release:                https://github.com/bevyengine/bevy/tree/latest/examples
+  Specific version, such as 0.4: https://github.com/bevyengine/bevy/tree/v0.4.0/examples
+
+Update the clone:  git reset --hard origin/latest
+
+
+________________________________________
+TODO / DOING /DONE
+
+* Mal ein paar examples probieren:
+  + bevy % cargo run --release --example rect
+* Examples als eigenes Git-Project build-en
+* Native und wasm
+* bevy-book lesen
+* git für OSMeta
+* Inline "data:" scheint eigebaut zu sein: https://raw.githubusercontent.com/bevyengine/bevy/31bd4ecbbc81521340991a82f8f725cce7bdf79b/assets/models/SimpleSkin/SimpleSkin.gltf
+* bevy_svg: Load and draw SVG-files in 2D and 3D -- https://github.com/Weasy666/bevy_svg
+* Probiere die WASM-Beispiele: https://github.com/bevyengine/bevy/tree/latest/examples#wasm
+* https://github.com/bevyengine/bevy/blob/main/examples/shader/shader_instancing.rs
+
+* Engine-API definieren und realisieren für bevy und rend3 und ...
+* README für OSMeta mit: Warum, Historie, Ziele, Wege, Tools, ...
+    AssertLoad, WebXR,
+
+* Frage, ob er mithelfen will: https://linuxrocks.online/@friend/108136609425833717
+
+
+________________________________________

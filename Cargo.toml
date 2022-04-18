@@ -1,0 +1,7 @@
+[package]
+name = "osmeta" # OSMeta ???  `#[warn(non_snake_case)]` on by default
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bevy = "0.7.0"

@@ -1,2 +1,2 @@
 # OSMeta
-OSM "Metaverse"
+ OSM Metaverse
