@@ -3,11 +3,18 @@ use bevy::render::mesh::Indices;
 use bevy::render::mesh::PrimitiveTopology;
 use bevy::diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin};
 
+// use bevy::app::ScheduleRunnerSettings;
+// use bevy::utils::Duration;
+// use bevy::core::FixedTimestep;
+
+
 fn main() {
     App::new()
+    //  .insert_resource(ScheduleRunnerSettings::run_loop(Duration::from_secs_f64( 1.0 / 20.0, )))  // no different
+    //  .with_run_criteria(FixedTimestep::step( (1.0/60.0) as f64))
         .insert_resource(Msaa { samples: 4 })
-        .add_plugins(DefaultPlugins)
 
+        .add_plugins(DefaultPlugins)
         // Show Framerate in Console
         // .add_plugin(LogDiagnosticsPlugin::default())
         .add_plugin(FrameTimeDiagnosticsPlugin::default())
@@ -62,28 +69,30 @@ fn _create_tree() -> Mesh {
     //  |/ |
     //  0--1
 
+    let w = 2.0
+    let h = 6.0
     let positions = vec![
     /*       x    y    z  */
-    /*0:*/ [-3.,	0.,	 0. ],
-    /*1:*/ [ 3.,  0.,  0. ],
-    /*2:*/ [-3.,  6.,  0. ],
-    /*3:*/ [ 3.,  6.,  0. ],
-    /*4:*/ [ 0.,  0., -3. ],
-    /*5:*/ [ 0.,  0.,  3. ],
-    /*6:*/ [ 0.,  6., -3. ],
-    /*7:*/ [ 0.,  6.,  3. ],
+    /*0:*/ [-w.,	0.,	 0. ],
+    /*1:*/ [ w.,  0.,  0. ],
+    /*2:*/ [-w.,  h.,  0. ],
+    /*3:*/ [ w.,  h.,  0. ],
+    /*4:*/ [ 0.,  0.,  w. ],
+    /*5:*/ [ 0.,  0., -w. ],
+    /*6:*/ [ 0.,  h.,  w. ],
+    /*7:*/ [ 0.,  h., -w. ],
     ];
 
     let uvs = vec![
     /*       u   v  is related to  x  y in this case  */
-    /*3:*/ [ 1., 1. ],
-    /*2:*/ [ 0., 1. ],
-    /*1:*/ [ 1., 0. ],
-    /*0:*/ [ 0., 0. ],
-    /*3:*/ [ 1., 1. ],
-    /*2:*/ [ 0., 1. ],
-    /*1:*/ [ 1., 0. ],
-    /*0:*/ [ 0., 0. ],
+    /*0:*/ [ 1., 1. ],
+    /*1:*/ [ 0., 1. ],
+    /*2:*/ [ 1., 0. ],
+    /*3:*/ [ 0., 0. ],
+    /*4:*/ [ 1., 1. ],
+    /*5:*/ [ 0., 1. ],
+    /*6:*/ [ 1., 0. ],
+    /*7:*/ [ 0., 0. ],
     ];
 
     let indices = vec![
@@ -94,26 +103,29 @@ fn _create_tree() -> Mesh {
     ];
 
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-
-
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-    // TODO: Crossing squares are not supported? Issue? no fallback by ATTRIBUTE_NORMAL? (ok, see: loader.js)
-    //sh.duplicate_vertices(); // ERROR bevy_pbr::material: Mesh is missing requested attribute: Vertex_Normal (MeshVertexAttributeId(1), pipeline type: Some("bevy_pbr::material::MaterialPipeline<bevy_pbr::pbr_material::StandardMaterial>"))
-    //sh.compute_flat_normals(); // thread 'TaskPool (0)' panicked at 'assertion failed: `(left == right)`  //   left: `8`,  //  right: `6`: MeshVertexAttributeId(1) has a different vertex count (6) than other attributes (8) in this mesh.', /Users/karlos/.cargo/registry/src/github.com-1ecc6299db9ec823/bevy_render-0.7.0/src/mesh/mesh/mod.rs:208:17
+    mesh.set_indices(Some(Indices::U32(indices)));
+    // pub fn compute_flat_normals(&mut self)   Panics if Indices are set  ==>>  NOT set !!! todo: issue?
+
+    /**** THIS (MORE VERTICES)
+    // compute only works with duplicate!
+    mesh.duplicate_vertices();   // ERROR bevy_pbr::material: Mesh is missing requested attribute: Vertex_Normal (MeshVertexAttributeId(1), pipeline type: Some("bevy_pbr::material::MaterialPipeline<bevy_pbr::pbr_material::StandardMaterial>"))
+    mesh.compute_flat_normals(); // thread 'TaskPool (0)' panicked at 'assertion failed: `(left == right)`  //   left: `8`,  //  right: `6`: MeshVertexAttributeId(1) has a different vertex count (6) than other attributes (8) in this mesh.', /Users/karlos/.cargo/registry/src/github.com-1ecc6299db9ec823/bevy_render-0.7.0/src/mesh/mesh/mod.rs:208:17
+    OR THAT: ****/
+
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![
         [0.0, 0.0, 1.0],
         [0.0, 0.0, 1.0],
         [0.0, 0.0, 1.0],
         [0.0, 0.0, 1.0],
-        [0.0, 0.0, 1.0], // ?????
-        [0.0, 0.0, 1.0],
-        [0.0, 0.0, 1.0],
-        [0.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
     ]);
-    mesh.set_indices(Some(Indices::U32(indices)));
-    mesh
 
+    mesh
 }
 
 
@@ -138,11 +150,32 @@ fn setup(
     });
 
 
+
+
     // tree(s)
     let texture_handle = asset_server.load("arbaro_tree_broad_leaved.png");
 
-    for n in 0..10 {   // ein mal Quad 10000 war ok
-        //  mesh: meshes.add(create_tree()),
+    for n in 0..1000 {   // ein mal Quad 10000 war ok.  10000 macht 13 FPS statt <=30.  Äh!! Nur die sichtbaren zählen?!
+
+        commands.spawn_bundle(PbrBundle {
+            mesh: meshes.add(_create_tree()),
+            material: materials.add(
+                StandardMaterial {
+                    base_color_texture: Some(texture_handle.clone() ),
+                    alpha_mode: bevy::pbr::AlphaMode::Mask(0.5), // Opaque, Mask(0.5), Blend,
+
+                    double_sided: true, // needed to have both sides equal lighted
+                    cull_mode: None,  // No cull of the back side.  Default is: Some(bevy::render::render_resource::Face::Back),
+                    ..default()
+                }
+            ),
+            transform: Transform::from_xyz(0.0, 0.0, -n as f32),
+            ..default()
+        })
+        .insert(Movable)
+        ;
+
+        /******
         let size = 3.0;
 
         // 1st side
@@ -188,7 +221,10 @@ fn setup(
         .insert(Movable)
         ;
 
+        ******/
+
     }
+
 
 
 

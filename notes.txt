@@ -19,11 +19,44 @@ Ok if it is a 2D/3D application
 How to update the clone (0.6.0 to 0.7.0)?
 git reset --hard origin/latest
 
+2022-04-19
+Die Baumrückseite fehlt trotz double_sided: true
+Es fehlte cull_mode: None,  // No cull of the back side.
+Und was macht dann double_sided? // needed to have both sides equal lighted
+
+2022-0423
+Beim eignen create_tree stimmt die Beleuchtung nicht. Normals falsch? Wie sind die bei Quad? Auch nicht anders.
+Aber bei 90 Grad müssen die Normals schon anders sein. Diesmal war das Rum-Probieren erfolgreich.
+UND
+Quad-Native ist der Baum ok, WASM auf der Rückseite blass (was mit double_sided?)
+Mit den richtigen Normals geht das schon.
+
+2022-0423
+Bei meinem Baum gehen duplicate_vertices() sh.compute_flat_normals() nicht
+// pub fn compute_flat_normals(&mut self)   Panics if Indices are set  ==>>  NOT set !!! todo: issue?
+// compute only works with duplicate!
+mesh.duplicate_vertices();   // ERROR bevy_pbr::material: Mesh is missing requested attribute: Vertex_Normal (MeshVertexAttributeId(1), pipeline type: Some("bevy_pbr::material::MaterialPipeline<bevy_pbr::pbr_material::StandardMaterial>"))
+mesh.compute_flat_normals(); // thread 'TaskPool (0)' panicked at 'assertion failed: `(left == right)`  //   left: `8`,  //  right: `6`: MeshVertexAttributeId(1) has a different vertex count (6) than other attributes (8) in this mesh.', /Users/karlos/.cargo/registry/src/github.com-1ecc6299db9ec823/bevy_render-0.7.0/src/mesh/mesh/mod.rs:208:17
+
+
+
 ________________________________________
 PROBLEMS
 
 
+Bei WASM sind die Schatten der Bäume nicht Alpha-Durchsichtig.  In Discord... (auch bei wgpu?)
 
+Läuft nicht auf dem iPhone/iPad? Wie ist es bei mac-Safari? Auch nicht! Kein Ground/Baum und nur 12 FPS
+
+Es sind ohne Last nur 30 FPS. Limit 60 aufheben, wie? Bisher durch Quellcode-Ändern von rend3/wgpu
+
+Mozilla: (<30 FPS)
+- WEBGL_debug_renderer_info is deprecated in Firefox and will be removed. Please use RENDERER.
+- WebGL warning: getSyncParameter: ClientWaitSync must return TIMEOUT_EXPIRED until control has returned to the user agent's main loop. (only warns once)
+Mac-Safari:
+- kein Ground/Baum und nur 12 FPS    ::OK but 2D only?:: https://niklasei.github.io/bevy_game_template/
+Chrome: (40 FPS)
+- 4 mal:  wasm_osmeta.js:1449 The AudioContext was not allowed to start. It must be resumed (or created) after a user gesture on the page.
 
 ________________________________________
 BUILD
