@@ -83,6 +83,8 @@ If you are using a released version of bevy, you need to make sure you are viewi
 
 Update the clone:  git reset --hard origin/latest
 
+To get more info for compiler/runtime errors, set (temporary) an environment variable:
+export RUST_BACKTRACE=1
 
 ________________________________________
 TODO / DOING /DONE
@@ -98,11 +100,40 @@ TODO / DOING /DONE
 * Probiere die WASM-Beispiele: https://github.com/bevyengine/bevy/tree/latest/examples#wasm
 * https://github.com/bevyengine/bevy/blob/main/examples/shader/shader_instancing.rs
 
+* Nach "merge" nachtesten: https://github.com/bevyengine/bevy/pull/3987
 * Engine-API definieren und realisieren für bevy und rend3 und ...
 * README für OSMeta mit: Warum, Historie, Ziele, Wege, Tools, ...
     AssertLoad, WebXR,
 
 * Frage, ob er mithelfen will: https://linuxrocks.online/@friend/108136609425833717
-
+* Hexa-Tiles. Look also: bevy--bevy_ecs_tilemap-main
 
 ________________________________________
+thirdroom
+ThreeJS GLB
+welcome additional web or native clients
+Matrix (/Element, habe ich)
+Somenone kommented: There is A-Frame. I add: There is Hubs. Isn't it alike?
+
+https://github.com/matrix-org/thirdroom
+https://github.com/matrix-org/thirdroom/discussions/20
+
+I was looking for an Open-Sourcd Federated Metaverse, hat the idea but did not know one.
+WebAssembly to add interactivity -  I told you!
+
+
+#########################
+
+Unabhängigkeit des o2w vom renderer am Beispiel bevy
+
+pbr_tile > material_tile&textures&materials > renderer_bevy > bevy
+Ob man auf das Texturladen warten muß, steck im renderer_*
+
+pbr_tile<T> für den Typ/Instanz des Renderers zum durchreichen an renderer_*
+Color auch per <C>???
+
+Nach dem O2W::new gibt es:
+- load_pbr
+- wait_texture_load ggf. als dummy
+- textures_loaded vielleicht?
+- get_texture damit renderer_* die tile bauen kann
