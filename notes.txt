@@ -89,6 +89,7 @@ export RUST_BACKTRACE=1
 ________________________________________
 TODO / DOING /DONE
 
+* Benutze statt println!! das: /Users/karlos/Public/bevy/examples/app/logs.rs
 * Mal ein paar examples probieren:
   + bevy % cargo run --release --example rect
 * Examples als eigenes Git-Project build-en
@@ -107,6 +108,7 @@ TODO / DOING /DONE
 
 * Frage, ob er mithelfen will: https://linuxrocks.online/@friend/108136609425833717
 * Hexa-Tiles. Look also: bevy--bevy_ecs_tilemap-main
+* Use as render framework: https://github.com/leetvr/hotham
 
 ________________________________________
 thirdroom

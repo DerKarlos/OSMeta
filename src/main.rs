@@ -26,7 +26,10 @@ fn main() {
     //  .insert_resource(ScheduleRunnerSettings::run_loop(Duration::from_secs_f64( 1.0 / 20.0, )))  // no different
     //  .with_run_criteria(FixedTimestep::step( (1.0/60.0) as f64))
         .insert_resource(Msaa { samples: 4 })
-
+        .insert_resource(WindowDescriptor {
+            present_mode: bevy::window::PresentMode::Fifo, // Not that usefull???: Immediate: 16-18, Mailbox:14.5, Fifo:14.x
+            ..default()
+        })
         .add_plugins(DefaultPlugins)
         // Show Framerate in Console
         // .add_plugin(LogDiagnosticsPlugin::default())
@@ -89,7 +92,7 @@ fn setup(
     commands.spawn_bundle(create_ui(&asset_server)).insert(StatsText);
 
     // OpenStreetMap !!!
-    let _osm2world = OSM2World::new( &mut commands, &mut meshes );
+    let _osm2world = OSM2World::new( &mut commands, &mut meshes, &mut materials );
 
     //// light ////
     // Shadows do not work correct on my Macbook Air native, but in the browser it is ok.

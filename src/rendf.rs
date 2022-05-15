@@ -15,6 +15,7 @@ use bevy::diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin};
 // This was not easy to find out!:
 pub type Renderer<'a, 'r> = bevy::prelude::Commands<'a, 'r>;
 pub type Rendere_<'a>     = bevy::prelude::ResMut<'a, Assets<Mesh>>;
+pub type Rendere3<'a>     = bevy::prelude::ResMut<'a, Assets<StandardMaterial>>;
 
 pub type Color          = bevy::prelude::Color;
 //b type MaterialHandle = bevy::asset::Handle<dyn bevy::pbr::prelude::Material<ExtractedAsset = Type, PreparedAsset = Type, Param = Type>>;
@@ -89,11 +90,12 @@ impl Object {
         vertex_positions: Vec<Position>,
         uv_positions: Vec<Uv>,
         index_data: Vec<u32>,
-    //  material_handle: rend3::types::MaterialHandle, // rend3_routine::pbr::PbrMaterial,
+        material_handle: Handle<StandardMaterial>, // rend3::types::MaterialHandle, // rend3_routine::pbr::PbrMaterial,
         cull: bool,
         _nr: usize,
-        commands: &mut rendf::Renderer,
-        meshes:   &mut rendf::Rendere_,
+        commands:  &mut rendf::Renderer,
+        meshes:    &mut rendf::Rendere_,
+        materials: &mut rendf::Rendere3,
     ) -> Object {
         // logs(format!("{}# Object - poss: {:?}  indices: {:?}", _nr, vertex_positions.len(), index_data.len() ));
 
@@ -119,6 +121,7 @@ impl Object {
         // commands.
         commands.spawn_bundle(PbrBundle {
             mesh: meshes.add(mesh),
+            material: material_handle,
             ..default()
         });
 
@@ -173,11 +176,26 @@ pub fn pbr_material(
     transparency: u8,
   //textures: &mut Textures,
     renderer: &Renderer,
-) // -> MaterialHandle
+    materials: &mut Rendere3,
+) -> Handle<StandardMaterial>
 {
 
-    /*
+
     // Add PBR material with all defaults
+    let mut material = StandardMaterial {
+        // base_color_texture: Some(texture_handle.clone() ),
+        // alpha_mode: bevy::pbr::AlphaMode::Mask(0.5), // Opaque, Mask(0.5), Blend,
+        // double_sided: true, // needed to have both sides equal lighted
+        // cull_mode: None,  // No cull of the back side.  Default is: Some(bevy::render::render_resource::Face::Back),
+        ..default()
+    };
+
+    if let Some(color) = color {
+        // println!("## create_object color: {:?}",         color);
+        material.base_color = color;
+    }
+
+    /*
     let mut material = rend3_routine::pbr::PbrMaterial {
         ..rend3_routine::pbr::PbrMaterial::default()
     };
@@ -250,6 +268,9 @@ pub fn pbr_material(
 
     renderer.add_material(material) // return
     */
+
+    materials.add(material) // return handle
+
 }
 
 
@@ -262,8 +283,9 @@ pub struct OSM2World {
 
 impl OSM2World {
 
-    pub fn new( commands: &mut Commands,
-                meshes:   &mut ResMut<Assets<Mesh>>,
+    pub fn new( commands:  &mut Commands,
+                meshes:    &mut ResMut<Assets<Mesh>>,
+                materials: &mut ResMut<Assets<StandardMaterial>>,
     ) -> OSM2World {
 
         // let _bytes = load_pbr_bytes( "../rend3/assets/4402/2828.o2w.pbf".to_string() ); // "../rend3/assets/{}/{}.o2w.pbf"
@@ -271,7 +293,7 @@ impl OSM2World {
         let mut cars = Cars::new();
 
         let mut pbf_tile = PbfTile::new(4402, 2828);
-        pbf_tile.load( commands, meshes, &mut textures, &mut cars );
+        pbf_tile.load( commands, meshes, materials, &mut textures, &mut cars );
 
         OSM2World{}
     }
