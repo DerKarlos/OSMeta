@@ -154,7 +154,7 @@ impl MaterialObject {
             &self.orm,
             &self.nor,
             self.transp,
-        // textures,
+            textures,
             renderer,
         );
 

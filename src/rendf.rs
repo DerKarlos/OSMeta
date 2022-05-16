@@ -1,19 +1,20 @@
 use std::fs::read;
 
 use crate::pbftile::*;
-use crate::textures::*;
-use crate::cars::*;
 use crate::rendf;
+use crate::cars::*;
+use crate::textures::*;
 
 use bevy::prelude::*;
 use bevy::render::mesh::Indices;
 use bevy::render::mesh::PrimitiveTopology;
 
 // This was not easy to find out!:
-pub type Renderer<'a, 'w, 's, 'x, 'y> = (
+pub type Renderer<'a, 'w, 's, 'x, 'y, 'z> = (
     &'a mut bevy::prelude::Commands<'w, 's>,
     &'a mut bevy::prelude::ResMut<'x, Assets<Mesh>>,
     &'a mut bevy::prelude::ResMut<'y, Assets<StandardMaterial>>,
+    &'a     bevy::prelude::Res   <'z, AssetServer>,
 );
 
 pub type Color          = bevy::prelude::Color;
@@ -92,7 +93,7 @@ impl Object {
         material_handle: Handle<StandardMaterial>,
         cull: bool,
         _nr: usize,
-        (commands,meshes,materials):  &mut rendf::Renderer,
+        (commands,meshes,_materials, _asset_server):  &mut rendf::Renderer,
     ) -> Object {
         // logs(format!("{}# Object - poss: {:?}  indices: {:?}", _nr, vertex_positions.len(), index_data.len() ));
 
@@ -171,8 +172,8 @@ pub fn pbr_material(
     orm: &str,
     nor: &str,
     transparency: u8,
-  //textures: &mut Textures,
-    (commands,_meshes,materials): &mut Renderer,
+    _textures: &mut Textures,
+    (_commands,_meshes,materials,asset_server): &mut Renderer,
 ) -> Handle<StandardMaterial>
 {
 
@@ -191,51 +192,38 @@ pub fn pbr_material(
         material.base_color = color;
     }
 
-    /*
-    let mut material = rend3_routine::pbr::PbrMaterial {
-        ..rend3_routine::pbr::PbrMaterial::default()
-    };
 
-    let mut color_value = glam::Vec4::ONE;
-    if let Some(color) = color {
-        //println!("{} create_object color: {:?}",self._nr,color);
-        color_value = glam::Vec4::new(
-            color.r as f32 / 255.,
-            color.g as f32 / 255.,
-            color.b as f32 / 255.,
-            color.a as f32 / 255.,
-        );
-        material.albedo = rend3_routine::pbr::AlbedoComponent::Value(color_value);
-    }
-
-    if !url.is_empty() { // url.len() > 0_usize {
-        let texture = textures.get(url);
-        //terial.albedo = rend3_routine::pbr::AlbedoComponent::TextureVertex {texture: texture, srgb: false,};
-        if color_value == glam::Vec4::ONE {
-            material.albedo = rend3_routine::pbr::AlbedoComponent::Texture(texture);
-        } else {
-            material.albedo = rend3_routine::pbr::AlbedoComponent::TextureValue {
-                texture,
-                value: color_value,
-            };
-        }
+    if !url.is_empty()
+    && !url.starts_with("data:")
+    && !url.ends_with(".svg") { // url.len() > 0_usize 
+        let texture_handle = asset_server.load(&format!("../../o2w/{}", url)); // Enum bevy::render::texture::ImageFormat
+        material.base_color_texture = Some(texture_handle.clone() );
+      //alpha_mode: bevy::pbr::AlphaMode::Mask(0.5), // Opaque, Mask(0.5), Blend,
+      //double_sided: true, // needed to have both sides equal lighted
+      //cull_mode: None,  // No cull of the back side.  Default is: Some(bevy::render::render_resource::Face::Back),
 
         if !orm.is_empty() {
-            let texture = textures.get(orm);
-            material.aomr_textures = rend3_routine::pbr::AoMRTextures::Combined { texture: Some(texture) };
-            material.ao_factor = Some(1.0);
-            material.metallic_factor = Some(1.0);
-            material.roughness_factor = Some(-2.0);
+            let texture_handle = asset_server.load(&format!("../../o2w/{}", orm)); // Enum bevy::render::texture::ImageFormat
+            material.metallic_roughness_texture = Some(texture_handle.clone() ); // occlusion_texture ???
+          //material.ao_factor = Some(1.0);
+          //material.metallic_factor = Some(1.0);
+          //material.roughness_factor = Some(-2.0);
         }
 
-        // https://doc.babylonjs.com/divingDeeper/materials/using/masterPBR
-
         if !nor.is_empty() {
-            let texture = textures.get(nor);
-            material.normal = rend3_routine::pbr::NormalTexture::Tricomponent(texture, NormalTextureYDirection::Down);
+            let texture_handle = asset_server.load(&format!("../../o2w/{}", nor)); // Enum bevy::render::texture::ImageFormat
+            material.normal_map_texture = Some(texture_handle.clone() );
             // O2W needs Down, not Up
             // Tricomponent because in Gimp all 3 have values, Up because Down causes light colors on the shadow side
         }
+
+    }
+
+    /*
+
+    if !url.is_empty() { // url.len() > 0_usize {
+
+        ....
 
         // Todo??? dis.len
 
@@ -279,9 +267,10 @@ pub struct OSM2World {
 
 impl OSM2World {
 
-    pub fn new( commands:  &mut Commands,
-                meshes:    &mut ResMut<Assets<Mesh>>,
-                materials: &mut ResMut<Assets<StandardMaterial>>,
+    pub fn new( commands:     &mut Commands,
+                meshes:       &mut ResMut<Assets<Mesh>>,
+                materials:    &mut ResMut<Assets<StandardMaterial>>,
+                asset_server: &    Res<AssetServer>,
     ) -> OSM2World {
 
         // let _bytes = load_pbr_bytes( "../rend3/assets/4402/2828.o2w.pbf".to_string() ); // "../rend3/assets/{}/{}.o2w.pbf"
@@ -289,7 +278,7 @@ impl OSM2World {
         let mut cars = Cars::new();
 
         let mut pbf_tile = PbfTile::new(4402, 2828);
-        pbf_tile.load( &mut (commands, meshes, materials), &mut textures, &mut cars );
+        pbf_tile.load( &mut (commands, meshes, materials, asset_server), &mut textures, &mut cars );
 
         OSM2World{}
     }

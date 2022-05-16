@@ -25,7 +25,7 @@ image = { version = "0.23", default-features = false, features = ["png", "jpeg",
 pollster = "0.2"
 futures = "0.3.21"
 
-bevy = "0.7.0"
+bevy = { version = "0.7.0", features = ["jpeg"] }
 
 bytemuck = "1.9.1"
 
@@ -35,3 +35,7 @@ usvg = { version = "0.15.0", default-features=false, features=["text"] }
 resvg = "0.15.0"
 tiny-skia = "0.5.1"
 base64 = "0.13.0"
+
+
+#[features]
+#jpeg = ["bevy_internal/jpeg"]

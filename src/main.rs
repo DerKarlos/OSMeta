@@ -9,8 +9,9 @@ mod instance_parameter;
 mod materialobject;
 mod o2w_utils;
 mod print;
-mod textures;
 mod cars;
+mod textures;
+
 
 fn main() {
 
@@ -44,7 +45,7 @@ struct StatsText;
 /// set up a simple 3D scene
 fn setup(
     mut commands: Commands,
-  //asset_server: Res<AssetServer>,
+    asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
@@ -54,7 +55,7 @@ fn setup(
     //commands.spawn_bundle(create_ui(&asset_server)).insert(StatsText);
 
     // OpenStreetMap !!!
-    let _osm2world = OSM2World::new( &mut commands, &mut meshes, &mut materials );
+    let _osm2world = OSM2World::new( &mut commands, &mut meshes, &mut materials, &asset_server );
 
     //// light ////
     // Shadows do not work correct on my Macbook Air native, but in the browser it is ok.
@@ -75,7 +76,12 @@ fn setup(
     //// camera ////
     let x = 100.;
     commands.spawn_bundle(PerspectiveCameraBundle {
-        transform: Transform::from_xyz(-8.0*x, 10.0*x, 20.0*x).looking_at(Vec3::ZERO, Vec3::Y),
+
+
+      //[-1450.028, 4.807, -0758.637],        [00000.000, 1.719,  0000.000], // 6: Agropolis auf Straße
+        transform: Transform::from_xyz(-1450.028    , 4.807+5.0, -0758.637    )
+                 .looking_at(Vec3::new(-1450.028-1.0, 4.807+5.0, -0758.637+1.0), Vec3::Y),
+      //transform: Transform::from_xyz(-8.0*x   ,10.0*x,    20.0*x).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
 }
