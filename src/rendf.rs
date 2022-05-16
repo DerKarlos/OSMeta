@@ -1,6 +1,4 @@
-use glam::{DVec2, Mat3A, Mat4, UVec2, Vec2, Vec3A};
-use std::{collections::HashMap, future::Future, hash::BuildHasher, sync::Arc, fs::read, time::Duration};
-use reqwest::Client;
+use std::fs::read;
 
 use crate::pbftile::*;
 use crate::textures::*;
@@ -10,12 +8,13 @@ use crate::rendf;
 use bevy::prelude::*;
 use bevy::render::mesh::Indices;
 use bevy::render::mesh::PrimitiveTopology;
-use bevy::diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin};
 
 // This was not easy to find out!:
-pub type Renderer<'a, 'r> = bevy::prelude::Commands<'a, 'r>;
-pub type Rendere_<'a>     = bevy::prelude::ResMut<'a, Assets<Mesh>>;
-pub type Rendere3<'a>     = bevy::prelude::ResMut<'a, Assets<StandardMaterial>>;
+pub type Renderer<'a, 'w, 's, 'x, 'y> = (
+    &'a mut bevy::prelude::Commands<'w, 's>,
+    &'a mut bevy::prelude::ResMut<'x, Assets<Mesh>>,
+    &'a mut bevy::prelude::ResMut<'y, Assets<StandardMaterial>>,
+);
 
 pub type Color          = bevy::prelude::Color;
 //b type MaterialHandle = bevy::asset::Handle<dyn bevy::pbr::prelude::Material<ExtractedAsset = Type, PreparedAsset = Type, Param = Type>>;
@@ -90,12 +89,10 @@ impl Object {
         vertex_positions: Vec<Position>,
         uv_positions: Vec<Uv>,
         index_data: Vec<u32>,
-        material_handle: Handle<StandardMaterial>, // rend3::types::MaterialHandle, // rend3_routine::pbr::PbrMaterial,
+        material_handle: Handle<StandardMaterial>,
         cull: bool,
         _nr: usize,
-        commands:  &mut rendf::Renderer,
-        meshes:    &mut rendf::Rendere_,
-        materials: &mut rendf::Rendere3,
+        (commands,meshes,materials):  &mut rendf::Renderer,
     ) -> Object {
         // logs(format!("{}# Object - poss: {:?}  indices: {:?}", _nr, vertex_positions.len(), index_data.len() ));
 
@@ -175,8 +172,7 @@ pub fn pbr_material(
     nor: &str,
     transparency: u8,
   //textures: &mut Textures,
-    renderer: &Renderer,
-    materials: &mut Rendere3,
+    (commands,_meshes,materials): &mut Renderer,
 ) -> Handle<StandardMaterial>
 {
 
@@ -293,7 +289,7 @@ impl OSM2World {
         let mut cars = Cars::new();
 
         let mut pbf_tile = PbfTile::new(4402, 2828);
-        pbf_tile.load( commands, meshes, materials, &mut textures, &mut cars );
+        pbf_tile.load( &mut (commands, meshes, materials), &mut textures, &mut cars );
 
         OSM2World{}
     }

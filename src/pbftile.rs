@@ -66,7 +66,7 @@ impl PbfTile {
         }
     }
 
-    pub fn load(&mut self, renderer: &mut rendf::Renderer, rendere_: &mut rendf::Rendere_, rendere3: &mut rendf::Rendere3, textures: &mut Textures, cars: &mut Cars) -> ViewTile {
+    pub fn load(&mut self, renderer: &mut rendf::Renderer, textures: &mut Textures, cars: &mut Cars) -> ViewTile {
         logs(format!("  loading OSM tile: {} (takes some seconds or up to 3 minutes)", self.pbf_url));
 
         let bytes = rendf::load_pbr_bytes(self.pbf_url.clone());
@@ -166,14 +166,14 @@ impl PbfTile {
         textures.load(renderer);
 
         // next "step"
-        self.tile_objects(renderer, rendere_, rendere3, textures, cars);
+        self.tile_objects(renderer, textures, cars);
 
         cars.instantiate(renderer);
 
         view_tile // return
     }
 
-    fn tile_objects(&mut self, renderer: &mut rendf::Renderer, rendere_: &mut rendf::Rendere_, rendere3: &mut rendf::Rendere3, textures: &mut Textures, cars: &mut Cars) {
+    fn tile_objects(&mut self, renderer: &mut rendf::Renderer, textures: &mut Textures, cars: &mut Cars) {
         // println!("tile_objects");
 
         /////// objects //////////////////
@@ -182,7 +182,7 @@ impl PbfTile {
         /////// material_objects //////////////////
         //let shadow_objects =
         //  &pbf_tile.create_objects(&mut loaded, renderer: &rend3::Renderer);
-        self.create_objects(renderer, rendere_, rendere3, textures);
+        self.create_objects(renderer, textures);
 
         log(""); // new line after "......"
     }
@@ -762,7 +762,7 @@ impl PbfTile {
     } // proccess_extrusion_geometry
 
 
-    fn create_objects(&mut self, renderer: &mut rendf::Renderer, rendere_: &mut rendf::Rendere_, rendere3: &mut rendf::Rendere3, textures: &mut Textures) {
+    fn create_objects(&mut self, renderer: &mut rendf::Renderer, textures: &mut Textures) {
         let mut _positions: usize = 0;
         let mut _indices: usize = 0;
       //let mut _test = 0;
@@ -774,7 +774,7 @@ impl PbfTile {
 
             _test += 1;
             //if _test-1 == 999999999 {continue}
-            material_object.create_object(textures, renderer, rendere_, rendere3, index);
+            material_object.create_object(textures, renderer, index);
 
             let (positions, indices) = material_object.get_lens();
             _positions += positions;

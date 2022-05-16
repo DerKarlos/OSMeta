@@ -146,8 +146,8 @@ impl MaterialObject {
 
 
 
-    ////  finish  ///     for bevy, Renderer2 is needed
-    pub fn create_object(&mut self, textures: &mut Textures, renderer: &mut rendf::Renderer, rendere_: &mut rendf::Rendere_, rendere3: &mut rendf::Rendere3, _test_index: usize) {
+    ////  finish
+    pub fn create_object(&mut self, textures: &mut Textures, renderer: &mut rendf::Renderer, _test_index: usize) {
         let material_handle = rendf::pbr_material(
             self.color,
             &self.url,
@@ -156,7 +156,6 @@ impl MaterialObject {
             self.transp,
         // textures,
             renderer,
-            rendere3,
         );
 
         // let texture = material_handle.
@@ -185,8 +184,6 @@ impl MaterialObject {
                 self.cull,
                 _test_index,
                 renderer,
-                rendere_,
-                rendere3,
             ); // todo: no clone or "delete"
             self.object = Some(object);
         } else {

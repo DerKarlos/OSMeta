@@ -1,12 +1,4 @@
 use bevy::prelude::*;
-use bevy::render::mesh::Indices;
-use bevy::render::mesh::PrimitiveTopology;
-use bevy::diagnostic::{Diagnostics, FrameTimeDiagnosticsPlugin};
-
-//e bevy::app::ScheduleRunnerSettings;
-//e bevy::utils::Duration;
-//e bevy::core::FixedTimestep;
-
 use rendf::*;
 
 mod rendf;
@@ -33,12 +25,12 @@ fn main() {
         .add_plugins(DefaultPlugins)
         // Show Framerate in Console
         // .add_plugin(LogDiagnosticsPlugin::default())
-        .add_plugin(FrameTimeDiagnosticsPlugin::default())
+    //  .add_plugin(FrameTimeDiagnosticsPlugin::default())
 
         .add_startup_system(setup)
 
         .add_system(movement)
-        .add_system(ui_system)
+    //  .add_system(ui_system)
         .run();
 }
 
@@ -49,47 +41,17 @@ struct Movable;
 struct StatsText;
 
 
-fn create_ui(asset_server: &Res<AssetServer>) -> TextBundle {
-    //
-    TextBundle {
-        text: Text {
-            sections: vec![
-                TextSection {
-                    value: "".to_string(),
-                    style: TextStyle {
-                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                        font_size: 40.0,
-                        color: bevy::prelude::Color::rgb(0.0, 1.0, 1.0),
-                    },
-                },
-            ],
-            ..default()
-        },
-        style: Style {
-            position_type: PositionType::Absolute,
-            position: Rect {
-                top: Val::Px(5.0),
-                left: Val::Px(5.0),
-                ..default()
-            },
-            ..default()
-        },
-        ..default()
-    }
-
-}
-
 /// set up a simple 3D scene
 fn setup(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
+  //asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
 
     // UI with FPS
-    commands.spawn_bundle(UiCameraBundle::default());
-    commands.spawn_bundle(create_ui(&asset_server)).insert(StatsText);
+    //commands.spawn_bundle(UiCameraBundle::default());
+    //commands.spawn_bundle(create_ui(&asset_server)).insert(StatsText);
 
     // OpenStreetMap !!!
     let _osm2world = OSM2World::new( &mut commands, &mut meshes, &mut materials );
@@ -133,18 +95,4 @@ fn movement(
         let scale = transform.scale.x * (1.-0.02*time.delta_seconds());  // just for fun
         transform.scale = Vec3::new(scale,scale,scale);
     }
-}
-
-
-fn ui_system(
-    diagnostics: Res<Diagnostics>,
-    mut query: Query<&mut Text, With<StatsText>>,
-) {
-    let mut text = query.single_mut();
-
-    if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
-        if let Some(average) = fps.average() {
-            text.sections[0].value = format!("FPS: {:.2}", average);
-        }
-    };
 }
