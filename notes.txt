@@ -109,9 +109,10 @@ TODO / DOING /DONE
 * Frage, ob er mithelfen will: https://linuxrocks.online/@friend/108136609425833717
 * Hexa-Tiles. Look also: bevy--bevy_ecs_tilemap-main
 * Use as render framework: https://github.com/leetvr/hotham
+* A tiny, cross-platform (including wasm), persistent key value store: https://github.com/johanhelsing/bevy_pkv
 
 ________________________________________
-thirdroom
+thirdroom:
 ThreeJS GLB
 welcome additional web or native clients
 Matrix (/Element, habe ich)
@@ -139,3 +140,22 @@ Nach dem O2W::new gibt es:
 - wait_texture_load ggf. als dummy
 - textures_loaded vielleicht?
 - get_texture damit renderer_* die tile bauen kann
+
+
+
+**********************************
+Unofficial Bevy Cheat Book  4. Bevy Asset Management  4.5 Track Loading Progress
+https://bevy-cheatbook.github.io/assets/ready.html
+
+POLL!: you can poll it from the AssetServer - I hate polling. Is bevy ONLY polling? No callback at event?
+
+COMPLETE?: more complete code example
+
+I had to add:
+- use bevy::prelude::*;
+- App::new() with the usual adds&inits AND:
+- .add_system(check_assets_ready) to get the system running and cyclically polling
+- .init_resource::<AssetsLoading>()  !!! This was NOT part of my knowledge !!! Found it in the examples after quite a while
+- #[derive(Default)]  before  struct AssetsLoading(Vec<HandleUntyped>);
+If commands.remove_resource is used, the Vec<HandleUntyped> gets empty which causes a runtime error :-(
+If check_assets_ready is used before the Vec is filed: runtime error :-(

@@ -147,13 +147,20 @@ impl MaterialObject {
 
 
     ////  finish
-    pub fn create_object(&mut self, textures: &mut Textures, renderer: &mut rendf::Renderer, _test_index: usize) {
+    pub fn create_object(&mut self, textures: &mut Textures, renderer: &mut rendf::Renderer, _test_index: usize) -> bool {
+
+        if self.positions.is_empty() {
+            logs(format!("--- No positions for material {:?}", _test_index));
+            return false
+        }
+
         let material_handle = rendf::pbr_material(
             self.color,
             &self.url,
             &self.orm,
             &self.nor,
             self.transp,
+            self.cull, // some renderer need it at the material, some at the mesh
             textures,
             renderer,
         );
@@ -175,20 +182,17 @@ impl MaterialObject {
         }
 
         // create a CPU-Object
-        if !self.positions.is_empty() {
-            let object = rendf::Object::new(
-                self.positions.clone(),
-                self.uvs.clone(),
-                self.indices.clone(),
-                material_handle,
-                self.cull,
-                _test_index,
-                renderer,
-            ); // todo: no clone or "delete"
-            self.object = Some(object);
-        } else {
-            logs(format!("--- No positions for material {:?}", _test_index));
-        }
+        let object = rendf::Object::new(
+            self.positions.clone(),
+            self.uvs.clone(),
+            self.indices.clone(),
+            material_handle,
+            self.cull, // some renderer need it at the material, some at the mesh
+            _test_index,
+            renderer,
+        ); // todo: no clone or "delete"
+        self.object = Some(object);
+        true
 
         //self.positions.clear(); todo
         //self.indices.clear();

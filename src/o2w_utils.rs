@@ -86,19 +86,19 @@ pub fn models_path(model: &str) -> String {
 pub fn logs(text: String) {
     use log::info;
     info!("{}", text);
-    println!("{}", text);
+    //println!("{}", text);
 }
 
 pub fn log(text: &str) {
     use log::info;
     info!("{}", text);
-    println!("{}", text);
+    //println!("{}", text);
 }
 
 pub fn logn(value: f32) {
     use log::info;
     info!("{}", value);
-    println!("{}", value);
+    //println!("{}", value);
 }
 
 pub struct LogFps {

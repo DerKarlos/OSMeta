@@ -8,7 +8,8 @@ use crate::materialobject::*;
 use crate::o2w_utils::*;
 use crate::print::*;
 use crate::rendf;
-use crate::cars::*;
+use crate::rendf::*;
+//use crate::cars::*;
 use crate::textures::*;
 
 
@@ -20,6 +21,7 @@ use rand::prelude::*;
 pub struct PbfTile {
     _load_state: i32,
     pbf_url: String,
+    start_pos: Vec3,
 
     coords2d: Vec<i64>,
     coords3d: Vec<i64>,
@@ -38,7 +40,7 @@ pub struct PbfTile {
 }
 
 impl PbfTile {
-    pub fn new(x: i32, y: i32) -> PbfTile {
+    pub fn new(x: i32, y: i32, start_pos: Vec3) -> PbfTile {
         // logs(format!("  PbfTile OSM tile: {}/{}", x, y));
 
         let mut material_map = Vec::<Vec::<usize>>::new(); // NO! vec![..]
@@ -49,6 +51,7 @@ impl PbfTile {
             _load_state: 0,
 
             pbf_url: pbf_tile_path(x, y),
+            start_pos,
             coords2d: Vec::new(),
             coords3d: Vec::new(),
             pbf_materials: Vec::new(),
@@ -155,20 +158,21 @@ impl PbfTile {
         // println!("159 material_map: {:?}", self.material_map);
 
         logs(format!( // !!! CPU->GPU ist faster with --release  why???
-            "  Tile loaded. Bytes:{}  materials: {}  textures: {}>{}  osm-objects: {}.\n  Loading all textures in CPU and GPU (that will take some secounds)",
+            "Tile loaded. Bytes:{}  materials: {}  textures: {}>{}  osm-objects: {}.",
             bytes.len(),
             self.material_objects.len(),
             &textures.adds,
             &textures.len(),
             self.objects.len(),
         ));
+        logs(format!("Loading all textures in CPU and GPU (that will take some secounds)"));
 
         textures.load(renderer);
 
         // next "step"
         self.tile_objects(renderer, textures, cars);
 
-        cars.instantiate(renderer);
+        //cars.instantiate(renderer);
 
         view_tile // return
     }
@@ -266,7 +270,8 @@ impl PbfTile {
         object: &WorldObject,
         instance_parameter: &InstanceParameter,
         cars: &mut Cars,
-    ) {
+    )
+    {
         //println!("object: {:?}", object);
 
         // if _obejct_index > 2000 {return;} //ddd
@@ -373,6 +378,18 @@ impl PbfTile {
         let pbf_material_index = triangle_geometry.get_material() as usize;
         let pbf_material = &self.pbf_materials[pbf_material_index].clone(); // CLONE!
         let texture_layers = &pbf_material.get_textureLayer();
+
+        if vertices.len() > 0 {
+            let vertice = vertices[0];  // vertices: &[u64],
+            let first_pos = ScenePos::new(
+                self.coords3d[vertice as usize * 3    ] as f32,
+                self.coords3d[vertice as usize * 3 + 1] as f32,
+               -self.coords3d[vertice as usize * 3 + 2] as f32,
+            ) / 1000.0; // 1000: mm to meter
+            let distance = first_pos.distance(self.start_pos);
+            //println!("{:?} {:?} {:?} {:?} {:?} ",vertices,vertice,first_pos,self.start_pos,distance);
+            if distance > 10000.0 {return};
+        }
 
         let mut next_text_coords: usize = 0; // start index of the next set of UV-values
 
@@ -513,7 +530,7 @@ impl PbfTile {
             if instance_geometry.get_resourceIdentifier() == "car" {
                 instance_parameter.pos_offset.x += 0.0; //this.pos.x;
                 instance_parameter.pos_offset.z += 0.0; //this.pos.z;
-                cars.add(instance_parameter.pos_offset, instance_parameter.direction);
+                //cars.add(instance_parameter.pos_offset, instance_parameter.direction);
                 continue; // drawn
             }
 
@@ -766,6 +783,7 @@ impl PbfTile {
         let mut _positions: usize = 0;
         let mut _indices: usize = 0;
       //let mut _test = 0;
+        let mut full_count = 0;
         for (mut _test, (index, material_object)) in self.material_objects.iter_mut().enumerate().enumerate() {
       //for (        index, material_object)  in self.material_objects.iter_mut().enumerate() {
             // (liefert) yields references
@@ -774,12 +792,14 @@ impl PbfTile {
 
             _test += 1;
             //if _test-1 == 999999999 {continue}
-            material_object.create_object(textures, renderer, index);
+            let full = material_object.create_object(textures, renderer, index);
+            if full {full_count += 1};
 
             let (positions, indices) = material_object.get_lens();
             _positions += positions;
             _indices   += indices;
         }
+        logs(format!("  full objects: {}", full_count));
 
         //logs(format!("Positions:{:?} Indices:{:?}", _positions, _indices));
     } // create_objects

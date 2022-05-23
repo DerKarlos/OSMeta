@@ -2,18 +2,20 @@ use std::fs::read;
 
 use crate::pbftile::*;
 use crate::rendf;
-use crate::cars::*;
+//use crate::cars::*;
 use crate::textures::*;
 
 use bevy::prelude::*;
 use bevy::render::mesh::Indices;
 use bevy::render::mesh::PrimitiveTopology;
 
+
 // This was not easy to find out!:
-pub type Renderer<'a, 'w, 's, 'x, 'y, 'z> = (
+pub type Renderer<'a, 's, 't, 'w, 'x, 'y, 'z> = (
     &'a mut bevy::prelude::Commands<'w, 's>,
-    &'a mut bevy::prelude::ResMut<'x, Assets<Mesh>>,
-    &'a mut bevy::prelude::ResMut<'y, Assets<StandardMaterial>>,
+    &'a mut bevy::prelude::ResMut<'t, Assets<Mesh>>,
+    &'a mut bevy::prelude::ResMut<'x, Assets<StandardMaterial>>,
+    &'a mut bevy::prelude::ResMut<'y, AssetsLoading>,
     &'a     bevy::prelude::Res   <'z, AssetServer>,
 );
 
@@ -22,6 +24,7 @@ pub type Color          = bevy::prelude::Color;
 pub type Position       = [f32;3];
 pub type Uv             = [f32;2];
 
+pub type Cars           = bool; // dummy
 
 // color: bevy::prelude::Color::rgb(0.0, 1.0, 1.0),
 pub fn shape_color(r: f32, g: f32, b: f32, a: f32) -> Color {
@@ -50,6 +53,8 @@ pub fn shape_uv(u: f32, v: f32) -> Uv {
 }
 
 
+#[derive(Default)]
+pub struct AssetsLoading(Vec<HandleUntyped>);
 
 pub static LOCAL: bool = true;
 
@@ -91,9 +96,9 @@ impl Object {
         uv_positions: Vec<Uv>,
         index_data: Vec<u32>,
         material_handle: Handle<StandardMaterial>,
-        cull: bool,
+        _cull: bool,
         _nr: usize,
-        (commands,meshes,_materials, _asset_server):  &mut rendf::Renderer,
+        (commands,meshes,_materials, _loading, _asset_server):  &mut rendf::Renderer,
     ) -> Object {
         // logs(format!("{}# Object - poss: {:?}  indices: {:?}", _nr, vertex_positions.len(), index_data.len() ));
 
@@ -169,21 +174,31 @@ pub fn pbr_material(
     //
     color: Option<Color>,
     url: &str,
-    orm: &str,
-    nor: &str,
+    _orm: &str,
+    _nor: &str,
     transparency: u8,
+    cull: bool,
     _textures: &mut Textures,
-    (_commands,_meshes,materials,asset_server): &mut Renderer,
+    (_commands,_meshes,materials,loading,asset_server): &mut Renderer,
 ) -> Handle<StandardMaterial>
 {
 
+    // None: No cull of the back sides.  Default is cull/hide back sides: Some(bevy::render::render_resource::Face::Back),
+    let cull_mode = if cull {None} else {Some(bevy::render::render_resource::Face::Back)};
+
+    // if transparency<3 {logn(transparency as f32)};
+    let alpha_mode =
+    match transparency {
+        1 => bevy::pbr::AlphaMode::Blend,      // 1: TRUE,   windows!  (analog)
+        2 => bevy::pbr::AlphaMode::Mask(0.5),  // 2: BINARY, trees (not analog)
+        _ => bevy::pbr::AlphaMode::Opaque,     // 0, 3.. no tramsparency    // 3: FALSE   "undurchsichtig"
+    };
 
     // Add PBR material with all defaults
     let mut material = StandardMaterial {
-        // base_color_texture: Some(texture_handle.clone() ),
-        // alpha_mode: bevy::pbr::AlphaMode::Mask(0.5), // Opaque, Mask(0.5), Blend,
-        // double_sided: true, // needed to have both sides equal lighted
-        // cull_mode: None,  // No cull of the back side.  Default is: Some(bevy::render::render_resource::Face::Back),
+        alpha_mode,   //: bevy::pbr::AlphaMode::Mask(0.5), // Opaque, Mask(0.5), Blend,
+        double_sided: true, // needed to have both sides equal lighted
+        cull_mode: cull_mode,
         ..default()
     };
 
@@ -192,16 +207,15 @@ pub fn pbr_material(
         material.base_color = color;
     }
 
-
     if !url.is_empty()
     && !url.starts_with("data:")
-    && !url.ends_with(".svg") { // url.len() > 0_usize 
+    && !url.ends_with(".svg") { // url.len() > 0_usize
         let texture_handle = asset_server.load(&format!("../../o2w/{}", url)); // Enum bevy::render::texture::ImageFormat
         material.base_color_texture = Some(texture_handle.clone() );
-      //alpha_mode: bevy::pbr::AlphaMode::Mask(0.5), // Opaque, Mask(0.5), Blend,
-      //double_sided: true, // needed to have both sides equal lighted
-      //cull_mode: None,  // No cull of the back side.  Default is: Some(bevy::render::render_resource::Face::Back),
 
+        loading.0.push(texture_handle.clone_untyped());
+
+        /*
         if !orm.is_empty() {
             let texture_handle = asset_server.load(&format!("../../o2w/{}", orm)); // Enum bevy::render::texture::ImageFormat
             material.metallic_roughness_texture = Some(texture_handle.clone() ); // occlusion_texture ???
@@ -216,6 +230,7 @@ pub fn pbr_material(
             // O2W needs Down, not Up
             // Tricomponent because in Gimp all 3 have values, Up because Down causes light colors on the shadow side
         }
+        */
 
     }
 
@@ -258,8 +273,35 @@ pub fn pbr_material(
 }
 
 
+pub fn check_assets_ready(
+    mut _commands: Commands,
+    server: Res<AssetServer>,
+    loading: Res<AssetsLoading>
+) {
+    use bevy::asset::LoadState;
 
+    if loading.0.len()<=0 {return;};
 
+    match server.get_group_load_state(loading.0.iter().map(|h| h.id)) {
+        LoadState::Failed => {
+            println!("ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+            // one of our assets had an error
+        }
+        LoadState::Loaded => {
+            println!("all assets are now ready ########################################################");
+
+            // this might be a good place to transition into your in-game state
+
+            // remove the resource to drop the tracking handles
+            // commands.remove_resource::<AssetsLoading>();
+            // (note: if you don't have any other handles to the assets
+            // elsewhere, they will get unloaded after this)
+        }
+        _ => {
+            // NotLoaded/Loading: not fully ready yet
+        }
+    }
+}
 
 
 pub struct OSM2World {
@@ -270,15 +312,20 @@ impl OSM2World {
     pub fn new( commands:     &mut Commands,
                 meshes:       &mut ResMut<Assets<Mesh>>,
                 materials:    &mut ResMut<Assets<StandardMaterial>>,
+                loading:      &mut ResMut<AssetsLoading>,
                 asset_server: &    Res<AssetServer>,
+                start_pos:    Vec3,
     ) -> OSM2World {
+
+        let test: bevy::prelude::Handle<Font> = asset_server.load("fonts/FiraSans-Bold.ttf");
+        loading.0.push(test.clone_untyped());
 
         // let _bytes = load_pbr_bytes( "../rend3/assets/4402/2828.o2w.pbf".to_string() ); // "../rend3/assets/{}/{}.o2w.pbf"
         let mut textures = Textures::new();
-        let mut cars = Cars::new();
+        let mut cars = true; // Cars::new();
 
-        let mut pbf_tile = PbfTile::new(4402, 2828);
-        pbf_tile.load( &mut (commands, meshes, materials, asset_server), &mut textures, &mut cars );
+        let mut pbf_tile = PbfTile::new(4402, 2828, start_pos);
+        pbf_tile.load( &mut (commands, meshes, materials, loading, asset_server), &mut textures, &mut cars );
 
         OSM2World{}
     }
