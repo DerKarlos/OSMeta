@@ -1,14 +1,14 @@
-use std::error::Error;
-use std::{path::Path, sync::Arc};
-use glam::{Mat4, Vec3};
+//use std::error::Error;
+//use std::{path::Path, sync::Arc};
+//use glam::{Mat4, Vec3};
 
 //use rend3::Renderer;
 //use rend3::types::MaterialHandle;
 //use rend3_gltf::instance_loaded_scene;
 //use rend3_gltf::GltfSceneInstance;
-use crate::rendf;
+//use crate::rendf;
 
-use crate::o2w_utils::*;
+use super::utils::*;
 
 
 pub struct Cars {
@@ -18,8 +18,8 @@ pub struct Cars {
     //material_handles: Vec<MaterialHandle>,
     //material_ids: Vec<u8>,
     //material_rand: Vec<u8>,
-    positions: Vec<ScenePos>,
-    directions: Vec<f32>,
+    _positions: Vec<ScenePos>,
+    _directions: Vec<f32>,
     //instances: Vec<GltfSceneInstance>,
 }
 
@@ -36,13 +36,13 @@ impl Cars {
             //material_handles: Vec::new(),
             //material_ids: Vec::new(),
             //material_rand: Vec::new(),
-            positions: Vec::new(),
-            directions: Vec::new(),
+            _positions: Vec::new(),
+            _directions: Vec::new(),
             //instances: Vec::new(),
         }
     }
 
-    fn clone_car(&mut self, r: f32, g: f32, b: f32, material_id: u8, renderer: &rendf::Renderer) -> u8 {
+    fn _clone_car(&mut self, _r: f32, _g: f32, _b: f32, _material_id: u8, _renderer: &super::Renderer) -> u8 {
 
         /*
         // PBR material with all defaults except a single color.
@@ -60,11 +60,11 @@ impl Cars {
     }
 
 
-    pub fn load(&mut self, renderer: &rendf::Renderer) {
+    pub fn _load(&mut self, _renderer: &super::Renderer) {
         //println!("Cars load");
 
         //t path = Path::new("/Users/karlos/Public/rend3/examples/car/car2.glb");
-        let car_path = models_path("car2.glb");
+        let _car_path = models_path("car2.glb");
 
         /*
         let path = Path::new( &car_path);
@@ -99,16 +99,16 @@ impl Cars {
     }
 
 
-    pub fn add(&mut self, pos: ScenePos, direction: f32)
+    pub fn _add(&mut self, pos: ScenePos, direction: f32)
     {
         if rand::random::<f32>() < 0.6 { // good luck: add new car to draw ist  todo: parameter
-            self.positions.push(pos);
-            self.directions.push(direction);
+            self._positions.push(pos);
+            self._directions.push(direction);
         }
     }
 
 
-    pub fn instantiate(&mut self, renderer: &rendf::Renderer)
+    pub fn _instantiate(&mut self, _renderer: &super::Renderer)
     {
         /*
         // println!("cars instantiate {}",self.positions.len() );

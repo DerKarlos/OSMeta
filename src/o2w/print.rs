@@ -1,15 +1,17 @@
 // pub fn don't need to be used
 #![allow(dead_code)]
 
-use crate::frontend::*;
-//use crate::o2w_utils::*;
+use super::frontend::*;
+use super::utils::PRINT_INDEX;
 
 pub fn print_materials(pbf_materials: &[Material], limit: u8) {
     if limit == 0 {
         return;
     };
     for (index, material) in pbf_materials.iter().enumerate() {
-        print_material(index, material, limit);
+        if index <= PRINT_INDEX {
+            print_material(index, material, limit);
+        }
     }
 }
 
@@ -17,31 +19,33 @@ pub fn print_material(index: usize, material: &Material, limit: u8) {
     println!(
         "   material: #{} rgb[{:?},{:?},{:?}] {} {} {}",
         index,
-        material.get_baseColorR(),
-        material.get_baseColorG(),
-        material.get_baseColorB(),
-        match material.get_transparency() {
-            Material_Transparency::TRUE => "transparency:Cutout",
-            Material_Transparency::BINARY => "transparency:BINARY",
+        material.baseColorR(),
+        material.baseColorG(),
+        material.baseColorB(),
+        match material.transparency() {
+            material::Transparency::TRUE => "transparency:Cutout",
+            material::Transparency::BINARY => "transparency:BINARY",
             _ => "",
         },
-        if material.get_castShadow() { "castShadow" } else { "" },
-        if material.get_doubleSided() { "doulbeSide" } else { "" },
+        if material.castShadow() { "castShadow" } else { "" },
+        if material.doubleSided() { "doulbeSide" } else { "" },
     );
 
-    print_texture_layers(material.get_textureLayer(), limit - 1);
+    print_texture_layers(&material.textureLayer, limit - 1);
 }
 
-pub fn print_texture_layers(texture_layers: &[Material_TextureLayer], limit: u8) {
+pub fn print_texture_layers(texture_layers: &Vec<material::TextureLayer>, limit: u8) {
     if limit == 0 {
         return;
     };
     for (index, texture_layer) in texture_layers.iter().enumerate() {
-        print_texture_layer(index, texture_layer, limit);
+        if index <= PRINT_INDEX {
+            print_texture_layer(index, texture_layer, limit);
+        }
     }
 }
 
-pub fn print_texture_layer(index: usize, texture_layer: &Material_TextureLayer, _limit: u8) {
+pub fn print_texture_layer(index: usize, texture_layer: &material::TextureLayer, _limit: u8) {
     //    normalTextureURI: ::protobuf::SingularField<::std::string::String>,
     //    displacementTextureURI: ::protobuf::SingularField<::std::string::String>,
     //    emissiveTextureURI: ::protobuf::SingularField<::std::string::String>,
@@ -50,17 +54,16 @@ pub fn print_texture_layer(index: usize, texture_layer: &Material_TextureLayer, 
     //    colorable: ::std::option::Option<bool>,
     //    texCoordFunction: ::std::option::Option<Material_TextureLayer_TexCoordFunction>,
 
-    let mut base = texture_layer.get_baseColorTextureURI().to_string();
+    let width = texture_layer.textureWidth().to_string();
+    let height = texture_layer.textureHeight().to_string();
+    let mut base = texture_layer.baseColorTextureURI().to_string(); // to_string includes clone/copy ???
     base.truncate(80);
-    let mut orm = texture_layer.get_ormTextureURI().to_string();
+    let mut orm: String = texture_layer.ormTextureURI().to_string(); // why not in 1 line ???
     orm.truncate(80);
-    let width = texture_layer.get_textureWidth().to_string();
-    let height = texture_layer.get_textureHeight().to_string();
 
     println!(
         "   `  textureLayer: #{} width/height:{}/{} baseColor:{} orm:{}",
-        index, width, height, base, orm,
-    );
+        index, width, height, base, orm );
 }
 
 fn trim_uri(uri: &mut String) -> String {

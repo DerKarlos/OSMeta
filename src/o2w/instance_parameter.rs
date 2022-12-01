@@ -1,5 +1,5 @@
-use crate::frontend::*;
-use crate::o2w_utils::*;
+use super::frontend::*;
+use super::utils::*;
 
 /**
  * structure for parameters of one instance

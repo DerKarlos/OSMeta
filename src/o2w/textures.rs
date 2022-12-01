@@ -1,5 +1,5 @@
 use std::*;
-use crate::rendf;
+//use crate::rendf;
 
 //// Texture-Handler ////
 pub struct Textures {
@@ -26,7 +26,7 @@ impl Textures {
     }
 
 
-    pub fn load(&mut self, _renderer: &rendf::Renderer) {
+    pub fn load(&mut self, _renderer: &super::Renderer) {
         // println!("textures LOAD");
         eprintln!("\n");
     }

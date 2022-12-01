@@ -106,6 +106,7 @@ TODO / DOING /DONE
 * README für OSMeta mit: Warum, Historie, Ziele, Wege, Tools, ...
     AssertLoad, WebXR,
 
+* Discord Ku95: Terrain rendering plugin for Bevy
 * Frage, ob er mithelfen will: https://linuxrocks.online/@friend/108136609425833717
 * Hexa-Tiles. Look also: bevy--bevy_ecs_tilemap-main
 * Use as render framework: https://github.com/leetvr/hotham
@@ -159,3 +160,10 @@ I had to add:
 - #[derive(Default)]  before  struct AssetsLoading(Vec<HandleUntyped>);
 If commands.remove_resource is used, the Vec<HandleUntyped> gets empty which causes a runtime error :-(
 If check_assets_ready is used before the Vec is filed: runtime error :-(
+
+
+++++++++++++++++++++++++++++
+
+gltf scheint neben BaseColor und Normal in einer Datei "Metallic_Roughness" in Green_Blue zu haben (Aus der Stadt von ThirdRoom)
+
+AoMRTextures Combined: ao/m/r_texture:  Texture with Ambient Occlusion in R, Metallic in G, and Roughness in B

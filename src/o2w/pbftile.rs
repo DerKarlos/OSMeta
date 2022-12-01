@@ -1,20 +1,17 @@
-// project uses
-use glam::{Vec2, Vec3};
-
-use crate::frontend::*;
-use crate::viewtile::*;
-use crate::instance_parameter::*;
-use crate::materialobject::*;
-use crate::o2w_utils::*;
-use crate::print::*;
-use crate::rendf;
-use crate::rendf::*;
-//use crate::cars::*;
-use crate::textures::*;
-
-
 // extern and system uses
-use rand::prelude::*;
+use glam::{Vec2, Vec3};
+//use protobuf::EnumOrUnknown;
+use rand::prelude::*;  // random
+
+// module uses
+use super::frontend::*;
+use super::viewtile::*;
+use super::instance_parameter::*;
+use super::materialobject::*;
+use super::utils::*;
+use super::textures::*;
+use super::cars::*;
+use super::print::*;
 
 
 //#[derive(Debug)]
@@ -69,19 +66,19 @@ impl PbfTile {
         }
     }
 
-    pub fn load(&mut self, renderer: &mut rendf::Renderer, textures: &mut Textures, cars: &mut Cars) -> ViewTile {
+    pub fn load(&mut self, renderer: &mut super::Renderer, textures: &mut Textures, cars: &mut Cars) -> ViewTile {
         logs(format!("  loading OSM tile: {} (takes some seconds or up to 3 minutes)", self.pbf_url));
 
-        let bytes = rendf::load_pbr_bytes(self.pbf_url.clone());
-        let mut tile: Tile = protobuf::Message::parse_from_bytes(&bytes).unwrap();
+        let bytes = super::load_pbr_bytes(self.pbf_url.clone());
+        let tile: Tile = protobuf::Message::parse_from_bytes(&bytes).unwrap();
 
-        self.coords2d = tile.take_vector2dBlock().take_coords().to_vec();
-        self.coords3d = tile.take_vector3dBlock().take_coords().to_vec();
-        self.pbf_materials = tile.take_materialBlock().take_materials().to_vec();
-        self.shapes = tile.take_shapeBlock().take_shapes().to_vec();
-        self.models = tile.take_modelBlock().take_models().to_vec();
-        self.objects = tile.take_objects().to_vec();
-        self.strings = tile.take_stringBlock().take_strings().to_vec();
+        self.coords2d = tile.vector2dBlock.coords.to_vec();
+        self.coords3d = tile.vector3dBlock.coords.to_vec();
+        self.pbf_materials = tile.materialBlock.materials.to_vec();
+        self.shapes = tile.shapeBlock.shapes.to_vec();
+        self.models = tile.modelBlock.models.to_vec();
+        self.objects = tile.objects.to_vec();
+        self.strings = tile.stringBlock.strings.to_vec();
 
         for (string_index, string) in self.strings.iter().enumerate() {
             match string.as_str() {
@@ -100,26 +97,17 @@ impl PbfTile {
             // println!("PBR material {}", pbf_material_index);
 
             //// check for textures and prepare loading ////
-            let texture_layers = pbf_material.get_textureLayer();
+            let texture_layers = &pbf_material.textureLayer;
 
             if !texture_layers.is_empty() {
                 let texture_layer = &texture_layers[0];
 
-                let url = texture_layer.get_baseColorTextureURI().to_string();
-                let orm = texture_layer.get_ormTextureURI().to_string();
-                let nor = texture_layer.get_normalTextureURI().to_string();
+                if let Some(url) = texture_layer.baseColorTextureURI.clone() { textures.add(url); }
+                if let Some(url) = texture_layer.ormTextureURI.clone()       { textures.add(url); }
+                if let Some(url) = texture_layer.normalTextureURI.clone()    { textures.add(url); }
 
                 // println!("{}#4 url: {}  orm: {}  nor:{}", pbf_material_index, url, orm, nor);
 
-                if !url.is_empty() {
-                    textures.add(url);
-                }
-                if !orm.is_empty() {
-                    textures.add(orm);
-                }
-                if !nor.is_empty() {
-                    textures.add(nor);
-                }
             };
 
             //// Create first MaterialObject. May have a Texture ////
@@ -130,21 +118,9 @@ impl PbfTile {
             if texture_layers.len() > 1 {
                 let texture_layer = &texture_layers[1];
 
-                let url = texture_layer.get_baseColorTextureURI().to_string();
-                let orm = texture_layer.get_ormTextureURI().to_string();
-                let nor = texture_layer.get_normalTextureURI().to_string();
-
-                // println!("{}#4 url: {}  orm: {}  nor:{}", pbf_material_index, url, orm, nor);
-
-                if !url.is_empty() {
-                    textures.add(url);
-                }
-                if !orm.is_empty() {
-                    textures.add(orm);
-                }
-                if !nor.is_empty() {
-                    textures.add(nor);
-                }
+                if let Some(url) = texture_layer.baseColorTextureURI.clone() { textures.add(url); }
+                if let Some(url) = texture_layer.ormTextureURI.clone()       { textures.add(url); }
+                if let Some(url) = texture_layer.normalTextureURI.clone()    { textures.add(url); }
 
                 //// Create second MaterialObject. Will have a Texture ////
                 let material_object = MaterialObject::new(pbf_material, pbf_material_index, 1);
@@ -155,7 +131,7 @@ impl PbfTile {
             };
         }
 
-        // println!("159 material_map: {:?}", self.material_map);
+        // println!("134 material_map: {:?}", self.material_map);
 
         logs(format!( // !!! CPU->GPU ist faster with --release  why???
             "Tile loaded. Bytes:{}  materials: {}  textures: {}>{}  osm-objects: {}.",
@@ -177,7 +153,7 @@ impl PbfTile {
         view_tile // return
     }
 
-    fn tile_objects(&mut self, renderer: &mut rendf::Renderer, textures: &mut Textures, cars: &mut Cars) {
+    fn tile_objects(&mut self, renderer: &mut super::Renderer, textures: &mut Textures, cars: &mut Cars) {
         // println!("tile_objects");
 
         /////// objects //////////////////
@@ -200,7 +176,12 @@ impl PbfTile {
             //&& obejct_index != 11722 {continue}
             //if obejct_index != 8 {continue}
 
-            let _osm_id = object.get_osmId();
+            let osm_id =
+            if let Some(id) = object.osmId.clone() { 
+                id
+            } else {
+                "".to_string()
+            };
 
             //if object.get_osmId() != "w336274097" {continue}   // w336274097 = Radständer
 
@@ -208,10 +189,10 @@ impl PbfTile {
 
             if
             //true ||
-            _osm_id ==  "w42082584"  ||  // !!
-                _osm_id == "w797605537"  ||
-                _osm_id == "w797605530"  ||
-                _osm_id == "w797605524"
+                osm_id ==  "w42082584"  ||  // !!
+                osm_id == "w797605537"  ||
+                osm_id == "w797605530"  ||
+                osm_id == "w797605524"
             {
                 /****
                 let tn = object.get_typeName() as usize;
@@ -235,7 +216,7 @@ impl PbfTile {
                     println!("   eg material: #{}={:?}", mi, m );
                 }
                 ****/
-                let igs = object.get_instanceGeometries();
+                let igs = &object.instanceGeometries;
                 for g in igs.iter() {
                     println!("   instance: {:?}", g);
                 }
@@ -246,17 +227,26 @@ impl PbfTile {
             // log(&self.strings[ object.get_typeName() as usize ]);
 
             // 0=indefinite .. 4=near
-            let max_lod = object.get_maxLod(); // n1788460026 = 2 ????
-            if max_lod < 4 {
-                continue;
+            if let Some(max) = object.maxLod.clone() {  // n1788460026 = 2 ????
+                if max < 4 {
+                    continue;
+                }    
             }
+//            let max_lod = object.maxLod.unwrap(); // n1788460026 = 2 ????
+//            if max_lod < 4 {
+//                continue;
+//            }
 
             //println!("{} id: {}", obejct_index, object.get_osmId());
 
+            let mut type_name_index = 0;
+            if let Some(index) = object.typeName {
+                type_name_index = index
+            }
             self.proccess_object(
                 obejct_index,
                 object,
-                &InstanceParameter::nop(object.get_osmId(), object.get_typeName()),
+                &InstanceParameter::nop(&osm_id, type_name_index),
                 cars,
             );
         } // objects
@@ -278,17 +268,17 @@ impl PbfTile {
 
         //let mut _test = 0;
 
-        for triangle_geometry in object.get_triangleGeometries().to_vec().iter() {
+        for triangle_geometry in object.triangleGeometries.to_vec().iter() {
             self.proccess_triangle_geometry(triangle_geometry, instance_parameter, _obejct_index);
         }
 
-        for instance_geometry in object.get_instanceGeometries().to_vec().iter() {
+        for instance_geometry in object.instanceGeometries.to_vec().iter() {
             //println!("instance_geometry");
             self.proccess_instance_geometry(instance_geometry, instance_parameter, cars);
         }
 
         //  in list.iter() for line {  // looks more readable
-        for extrusion_geometry in object.get_extrusionGeometries().to_vec().iter() {
+        for extrusion_geometry in object.extrusionGeometries.to_vec().iter() {
             //println!("{} extrusion {:?}",_obejct_index,object.get_osmId());
             self.proccess_extrusion_geometry(extrusion_geometry, instance_parameter);
         }
@@ -299,7 +289,7 @@ impl PbfTile {
 
     fn calc_positions(
         &mut self,
-        vertices: &[u64],
+        vertices: &Vec<u64>,
         instance_parameter: &InstanceParameter,
     ) -> Vec<ScenePos>
     {
@@ -331,18 +321,18 @@ impl PbfTile {
 
 
 
-    fn calc_uvdummies(&mut self, count: usize) -> Vec<rendf::Uv> {
-        let mut uvs: Vec<rendf::Uv> = Vec::new();
+    fn calc_uvdummies(&mut self, count: usize) -> Vec<super::Uv> {
+        let mut uvs: Vec<super::Uv> = Vec::new();
         for _number in 0..(count as u32) {
-            uvs.push(rendf::shape_uv(0.0, 0.0)); //Vec2::new(0.0, 0.0));
+            uvs.push(super::shape_uv(0.0, 0.0)); //Vec2::new(0.0, 0.0));
         }
         uvs // return
     }
 
-    fn calc_uvs(&mut self, tex_coords: &[u64], count: usize) -> Vec<rendf::Uv> {
-        let mut uvs: Vec<rendf::Uv> = Vec::new();
+    fn calc_uvs(&mut self, tex_coords: &[u64], count: usize) -> Vec<super::Uv> {
+        let mut uvs: Vec<super::Uv> = Vec::new();
         for tex_coord in tex_coords.iter().take(count) {  //  OR: layer-renderer
-            uvs.push(rendf::shape_uv(
+            uvs.push(super::shape_uv(
                 self.coords2d[*tex_coord as usize * 2    ] as f32 / 1000.0,
                 self.coords2d[*tex_coord as usize * 2 + 1] as f32 / -1000.0, // 1000: mm to meter
             ));
@@ -350,14 +340,14 @@ impl PbfTile {
         uvs // return
     }
 
-    fn calc_vertices_uvs(&mut self, vertices: &[u64], texture_layer: &Material_TextureLayer) -> Vec<rendf::Uv> {
+    fn calc_vertices_uvs(&mut self, vertices: &[u64], texture_layer: &material::TextureLayer) -> Vec<super::Uv> {
 
-        let width  = texture_layer.get_textureWidth()  as f32 / 1000.0; // 1000: mm to meter
-        let height = texture_layer.get_textureHeight() as f32 / 1000.0;
+        let width  = texture_layer.textureWidth()  as f32 / 1000.0; // 1000: mm to meter
+        let height = texture_layer.textureHeight() as f32 / 1000.0;
 
-        let mut uvs: Vec<rendf::Uv> = Vec::new();
+        let mut uvs: Vec<super::Uv> = Vec::new();
         for vertice in vertices.iter() {
-            uvs.push(rendf::shape_uv(
+            uvs.push(super::shape_uv(
                 // width/height the texture shall be used in meter, independend of the pixsel size.
                 self.coords3d[*vertice as usize * 3    ] as f32 / 1000.0 / width, // 1000: mm to meter / pixsel = [1]
                 self.coords3d[*vertice as usize * 3 + 2] as f32 / 1000.0 / height,
@@ -374,10 +364,10 @@ impl PbfTile {
         instance_parameter: &InstanceParameter,
         _obejct_index: usize,
     ) {
-        let vertices = triangle_geometry.get_vertices(); // 3 = face
-        let pbf_material_index = triangle_geometry.get_material() as usize;
+        let vertices = &triangle_geometry.vertices; // 3 = face
+        let pbf_material_index = triangle_geometry.material.unwrap() as usize;
         let pbf_material = &self.pbf_materials[pbf_material_index].clone(); // CLONE!
-        let texture_layers = &pbf_material.get_textureLayer();
+        let texture_layers = &pbf_material.textureLayer;
 
         if vertices.len() > 0 {
             let vertice = vertices[0];  // vertices: &[u64],
@@ -397,9 +387,10 @@ impl PbfTile {
         {
             // tile-material does not use textures: onyl DUMMY - UV/texturCoords
 
-            let positions = self.calc_positions(vertices, instance_parameter);
+            let positions = self.calc_positions(&vertices, instance_parameter);
             let mut uvs = self.calc_uvdummies(vertices.len());
             let material_objects_index0 = self.material_map[0][pbf_material_index];
+            // println!("texture empty: {},{}",material_objects_index0,pbf_material_index);
             let material_object0 = &mut self.material_objects[material_objects_index0];
             material_object0.push_object(
                 &positions,
@@ -411,25 +402,31 @@ impl PbfTile {
                 // one set of XYZ vertices UV texture coordinates and per texture
                 // println!("tex/mat {}/{}",texture_index,pbf_material_index);
 
-                let positions = self.calc_positions(vertices, instance_parameter);
+                let positions = self.calc_positions(&vertices, instance_parameter);
 
-                let mut xz_to_uv =
-                    texture_layer.get_texCoordFunction() == Material_TextureLayer_TexCoordFunction::GLOBAL_X_Z;
-                if !xz_to_uv && triangle_geometry.get_texCoords().len() < vertices.len() {
+                let mut xz_to_uv = false;
+
+                if let Some(tcf_box) = texture_layer.texCoordFunction {                                 // println!("tcf: {:#?}",tcf_box);
+                    if tcf_box.unwrap() ==  material::texture_layer::TexCoordFunction::GLOBAL_X_Z {     // ??? TexCoordFunction is pub !!!
+                        xz_to_uv = true;                                                                // println!("true");
+                }   }
+
+                if !xz_to_uv && triangle_geometry.texCoords.len() < vertices.len() {
                     xz_to_uv = true;
                 }
 
                 let mut uvs =
                 if xz_to_uv {
-                    self.calc_vertices_uvs(vertices, texture_layer)
+                    self.calc_vertices_uvs(&vertices, texture_layer)
                 } else {
-                    let tex_coords = triangle_geometry.get_texCoords(); // -> &[u64]
+                    let tex_coords = &triangle_geometry.texCoords; // -> &[u64]
                     let int_slice = &tex_coords[next_text_coords..];
                     next_text_coords += vertices.len();
                     self.calc_uvs( int_slice, vertices.len() )
                 };
 
                 let material_objects_index = self.material_map[texture_index][pbf_material_index];
+                // println!("texture index: {},{},{}",material_objects_index,texture_index,pbf_material_index);
                 let material_object = &mut self.material_objects[material_objects_index];
                 material_object.push_object(
                     &positions,
@@ -476,9 +473,7 @@ impl PbfTile {
 
         //println!("instance_geometry {:?}",instance_geometry);
 
-        let model = &self.models.to_vec()[instance_geometry.get_model() as usize]; // why does .to_vec() prevent that error? Is it a hidden "copy"?
-
-        let count = instance_geometry.get_position().len() / 3;
+        let count = instance_geometry.position.len() / 3;
         for position_index in 0..count {
             //    if position_index > 2000 && position_index % 1000 == 0 {
             //        println!("instance_geometry {}/{}", position_index,count);
@@ -527,12 +522,17 @@ impl PbfTile {
 
             /******** car & ani *************/
 
-            if instance_geometry.get_resourceIdentifier() == "car" {
-                instance_parameter.pos_offset.x += 0.0; //this.pos.x;
-                instance_parameter.pos_offset.z += 0.0; //this.pos.z;
-                //cars.add(instance_parameter.pos_offset, instance_parameter.direction);
-                continue; // drawn
+            if let Some(rid) = instance_geometry.resourceIdentifier.clone() {
+                if  rid == "car" {
+                    instance_parameter.pos_offset.x += 0.0; //this.pos.x;
+                    instance_parameter.pos_offset.z += 0.0; //this.pos.z;
+                    //cars.add(instance_parameter.pos_offset, instance_parameter.direction);
+                    continue; // drawn
+                }
             }
+            
+//            if instance_geometry.resourceIdentifier.unwrap() == "car" {
+//            }
 
             /******** ani ************* /
 
@@ -547,6 +547,9 @@ impl PbfTile {
             // triangleGeometries is an array of structures,
             // each structure with parameters and arrays of parameters for models to be placed
 
+            //println!("t1: {:#?}",instance_geometry.model);
+            let model = &self.models.to_vec()[instance_geometry.model.unwrap() as usize]; // why does .to_vec() prevent that error? Is it a hidden "copy"?
+
             //println!("iii instance_parameter {:?}",instance_parameter);
             self.proccess_object(position_index, model, &instance_parameter, cars);
         }
@@ -559,26 +562,32 @@ impl PbfTile {
     ) {
         //println!("extrusion_geometry {} - {:?}", instance_parameter.osm_id ,extrusion_geometry);
 
-        let shape_index = extrusion_geometry.get_shape();
-        let scales = extrusion_geometry.get_scaleFactors(); // 1/1000
-        let path_indices = extrusion_geometry.get_path(); // path-3d-indices und path-ScenePos
-        let material_index = extrusion_geometry.get_material();
-        let start = extrusion_geometry.get_startCap();
-        let end = extrusion_geometry.get_endCap();
+        let shape_index = extrusion_geometry.shape.unwrap();
+        let scales = &extrusion_geometry.scaleFactors; // 1/1000
+        let path_indices = &extrusion_geometry.path; // path-3d-indices und path-ScenePos
+        let material_index = extrusion_geometry.material.unwrap();
         let coords3d_offset = self.coords3d.len() as u64 / 3;
 
+        let mut start = false;
+        if let Some(g_start) = extrusion_geometry.startCap {
+            start = g_start;
+        }
+        let mut end = false;
+        if let Some(g_end) = extrusion_geometry.endCap {
+            end = g_end;
+        }
 
         // calculate shape 2D Points, still im mm!
         let pbf_shape = &self.shapes[shape_index as usize];
 
-        let field_type = pbf_shape.get_field_type(); // Option<Shape_ShapeType> CIRCLE = 1,POLYGON = 2,POLYLINE = 3,
-        let parameters = pbf_shape.get_parameters(); // Vec<i64>
+        let field_type = pbf_shape.type_.unwrap().unwrap(); // Option<Shape_ShapeType> CIRCLE = 1,POLYGON = 2,POLYLINE = 3,
+        let parameters = &pbf_shape.parameters; // Vec<i64>
 
         //// calculate shape as Vec3 points (not ScenePos) ////
         let mut shape_points = Vec::new();
         //println!("field_type {:?}",field_type);
         match field_type {
-            Shape_ShapeType::CIRCLE => {
+            shape::ShapeType::CIRCLE => {
                 let center = parameters[0];
                 let radius = parameters[1] as f32;
 
@@ -618,7 +627,7 @@ impl PbfTile {
                     ));
                     i += 2;
                 }
-                if field_type == Shape_ShapeType::POLYGON {
+                if field_type == shape::ShapeType::POLYGON {
                     shape_points.push(shape_points[0]); // Add the first vertex also as the last to close the volume
                 }
             }
@@ -646,7 +655,7 @@ impl PbfTile {
 
         // calculate up vextors
         let mut up_vectors = Vec::<Vec3>::new();
-        let up_vector_indices = extrusion_geometry.get_upVectors();
+        let up_vector_indices = &extrusion_geometry.upVectors;
         if up_vector_indices.len() != path_indices.len() {
             for _ in 0..path_indices.len() {
                 up_vectors.push(ScenePos::new(0., 0., 1.));
@@ -767,8 +776,8 @@ impl PbfTile {
 
         let mut triangle_geometry = TriangleGeometry::new();
         triangle_geometry.set_material(material_index);
-        triangle_geometry.set_vertices(extrusion_vertices);
-        triangle_geometry.set_texCoords(Vec::<u64>::new());
+        triangle_geometry.vertices = extrusion_vertices;
+        triangle_geometry.texCoords = Vec::<u64>::new(); // default anyway???   pub vertices: ::std::vec::Vec<u64>,
 
       //self.proccess_extrusion_triangle_geometry(&triangle_geometry, &extrusion_coords3d, instance_parameter, 0);
       //self.proccess_extrusion_triangle_geometry(&triangle_geometry, &extrusion_coords3d, instance_parameter, 1);
@@ -779,7 +788,7 @@ impl PbfTile {
     } // proccess_extrusion_geometry
 
 
-    fn create_objects(&mut self, renderer: &mut rendf::Renderer, textures: &mut Textures) {
+    fn create_objects(&mut self, renderer: &mut super::Renderer, textures: &mut Textures) {
         let mut _positions: usize = 0;
         let mut _indices: usize = 0;
       //let mut _test = 0;

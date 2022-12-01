@@ -1,3 +1,4 @@
+// o2w utils.rs
 // pub fn don't need to be used
 #![allow(dead_code)]
 
@@ -13,6 +14,7 @@ pub static AMBIENT_LIGHT: f32 = 0.7; // 0.02  0.7 ohne schatten: 1.0 ist schon v
 pub static LOCAL: bool = true;
 
 pub static PRINT_LIMIT: u8 = 0;
+pub static PRINT_INDEX: usize = 5;
 
 pub fn rad(degr: f32) -> f32 {
     degr / 180. * PI

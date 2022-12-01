@@ -8,35 +8,51 @@ edition = "2021"
 
 [dependencies]
 
-rand   = {version = "0.7", features = ["wasm-bindgen"] }
-glam = "0.20.0"
-protobuf = "2.24.1"
+## d   = {version = "0.8.5", features = ["wasm-bindgen"] }
+rand   = {version = "0.8" }
+glam = "0.22"
+protobuf = "3.2"
 log = "0.4"
 
 ## [dev-dependencies]
-anyhow = "1.0.4"
-ron = "0.7.0"
+anyhow = "1.0"
+ron = "0.8"
 serde = { version = "1", features = ["derive"] }
 
+wgpu =  "0.14"
 
 ##async:
 reqwest = { version = "0.11", features = ["blocking"] }
-image = { version = "0.23", default-features = false, features = ["png", "jpeg", "tiff"]}
+image = { version = "0.24", default-features = false, features = ["png", "jpeg", "tiff"]}
 pollster = "0.2"
-futures = "0.3.21"
+futures = "0.3"
 
-bevy = { version = "0.7.0", features = ["jpeg"] }
+bevy = { version = "0.9", features = ["jpeg"] }
 bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" }
-#bevy_flycam = "*"
 
-bytemuck = "1.9.1"
+bytemuck = "1.12.3"
 
 # S V G / data
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-usvg = { version = "0.15.0", default-features=false, features=["text"] }
-resvg = "0.15.0"
-tiny-skia = "0.5.1"
-base64 = "0.13.0"
+usvg = { version = "0.27", default-features=false, features=["text"] }
+resvg = "0.27"
+tiny-skia = "0.8"
+base64 = "0.13"
+
+[[example]]
+name = "test"
+path = "examples/test.rs"
+
+[[example]]
+name = "o2w0"
+path = "examples/o2w0.rs"
+
+[[example]]
+name = "trees0"
+path = "examples/trees0.rs"
+
+## [package.metadata.example.hello_world]
+## hidden = true
 
 
 #[features]

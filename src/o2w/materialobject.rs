@@ -1,9 +1,9 @@
 // project uses
-use crate::frontend::Material;
-use crate::o2w_utils::*;
-use crate::rendf;
+use super::frontend::Material;
+use super::utils::*;
+//use crate::rendf;
 
-use crate::textures::*;
+use super::textures::*;
 //e crate::pbftile::*;
 //e crate::frontend::Material_TextureLayer;
 
@@ -20,16 +20,16 @@ use std::*;
 
 //#[derive(Debug)]
 pub struct MaterialObject {
-    positions: Vec<rendf::Position>, // For bevy an array is needed:  positions: Vec<[f32;3]>,
-    uvs: Vec<rendf::Uv>, // For bevy an array is needed:  uvs: Vec<[f32;2]>,
+    positions: Vec<super::Position>, // For bevy an array is needed:  positions: Vec<[f32;3]>,
+    uvs: Vec<super::Uv>, // For bevy an array is needed:  uvs: Vec<[f32;2]>,
     indices: Vec<u32>,
     url: String, // ??? option or >0 ???
     orm: String,
     nor: String,
     transp: u8,           // get_transparency
-    color: Option<rendf::Color>, // rgb alpha
+    color: Option<super::Color>, // rgb alpha
     cull: bool, //  model.cull = Cull::Back; //??? crulle/hide:  None(all there?)  Front Back FrontAndBack(all gone!)
-    object: Option<rendf::Object>, // model: Option<Model>,
+    object: Option<super::Object>, // model: Option<Model>,
     _pbf_material_index: usize,  // debug output only
 }
 
@@ -42,24 +42,24 @@ impl MaterialObject {
 
 
     pub fn new(pbf_material: &Material, _pbf_material_index: usize, texture_layer_index: usize) -> MaterialObject {
-        let cull = pbf_material.get_doubleSided(); // false = Cull::None  true = Cull::Back
+        let cull = pbf_material.doubleSided(); // false = Cull::None  true = Cull::Back
 
         // color: bevy::prelude::Color::rgb(0.0, 1.0, 1.0),
-        let mut color: Option<rendf::Color> = Some(rendf::shape_color(
-            pbf_material.get_baseColorR() as f32,
-            pbf_material.get_baseColorG() as f32,
-            pbf_material.get_baseColorB() as f32,
+        let mut color: Option<super::Color> = Some(super::shape_color(
+            pbf_material.baseColorR() as f32,
+            pbf_material.baseColorG() as f32,
+            pbf_material.baseColorB() as f32,
             255.0,
         ));
 
         //println!("{} MaterialObject color: {:?}",_pbf_material_index,color);
 
-        let mut url = "".to_string();
+        let mut url = "".to_string(); // tested;ok ääää
         let mut orm = "".to_string();
         let mut nor = "".to_string();
         let mut transp = 0;
 
-        let texture_layers = pbf_material.get_textureLayer();
+        let texture_layers = &pbf_material.textureLayer;
 
         /***** TEST ONLY: check if unsupported textures are used
         if texture_layers.len() > 1 {
@@ -81,15 +81,15 @@ impl MaterialObject {
         if texture_layers.len() > texture_layer_index {
             let texture_layer = &texture_layers[texture_layer_index];
 
-            if !texture_layer.get_colorable() {
+            if !texture_layer.colorable() {
                 color = None;
             };
 
-            url = texture_layer.get_baseColorTextureURI().to_string();
-            orm = texture_layer.get_ormTextureURI().to_string();
-            nor = texture_layer.get_normalTextureURI().to_string();
+            url = texture_layer.baseColorTextureURI().to_string();
+            orm = texture_layer.ormTextureURI().to_string();
+            nor = texture_layer.normalTextureURI().to_string();
 
-            transp = pbf_material.get_transparency() as u8;
+            transp = pbf_material.transparency() as u8;
             if texture_layer_index > 0 {
                 transp = 1
             }; // 1: used by windows etc.! (analog)
@@ -118,7 +118,7 @@ impl MaterialObject {
 
     pub fn push_object(&mut self,
         positions: &Vec<ScenePos>, // in meter
-        uvs: &mut Vec<rendf::Uv>,
+        uvs: &mut Vec<super::Uv>,
         _merge: bool, // todo
     ) {
 
@@ -129,7 +129,7 @@ impl MaterialObject {
 
             self.indices.push(self.positions.len() as u32);
             // Positions
-            self.positions.push( rendf::shape_position(
+            self.positions.push( super::shape_position(
                 /**/  position.x,
                 /**/  position.y,
                 /**/ -position.z, // +PBF => -Z ???
@@ -147,14 +147,14 @@ impl MaterialObject {
 
 
     ////  finish
-    pub fn create_object(&mut self, textures: &mut Textures, renderer: &mut rendf::Renderer, _test_index: usize) -> bool {
+    pub fn create_object(&mut self, textures: &mut Textures, renderer: &mut super::Renderer, _test_index: usize) -> bool {
 
         if self.positions.is_empty() {
             logs(format!("--- No positions for material {:?}", _test_index));
             return false
         }
 
-        let material_handle = rendf::pbr_material(
+        let material_handle = super::pbr_material(
             self.color,
             &self.url,
             &self.orm,
@@ -182,7 +182,7 @@ impl MaterialObject {
         }
 
         // create a CPU-Object
-        let object = rendf::Object::new(
+        let object = super::Object::new(
             self.positions.clone(),
             self.uvs.clone(),
             self.indices.clone(),
