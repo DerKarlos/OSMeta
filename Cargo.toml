@@ -4,8 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 
-
-
 [dependencies]
 
 ## d   = {version = "0.8.5", features = ["wasm-bindgen"] }
@@ -28,9 +26,10 @@ pollster = "0.2"
 futures = "0.3"
 
 bevy = { version = "0.9", features = ["jpeg"] }
+## control:
 bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" }
 
-bytemuck = "1.12.3"
+bytemuck = "1.12"
 
 # S V G / data
 [target.'cfg(target_arch = "x86_64")'.dependencies]
@@ -38,6 +37,8 @@ usvg = { version = "0.27", default-features=false, features=["text"] }
 resvg = "0.27"
 tiny-skia = "0.8"
 base64 = "0.13"
+
+
 
 [[example]]
 name = "test"
@@ -50,9 +51,6 @@ path = "examples/o2w0.rs"
 [[example]]
 name = "trees0"
 path = "examples/trees0.rs"
-
-## [package.metadata.example.hello_world]
-## hidden = true
 
 
 #[features]

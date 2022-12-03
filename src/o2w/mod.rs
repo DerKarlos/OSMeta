@@ -1,6 +1,11 @@
 // rendf.rs => 02w/mod.rs
 
-use std::fs::read;
+// This file is an adapter/wrapper to bevy for the other Rust sources in ths module.
+// There are other wrappers for the Crate rend3 and tree-d
+// There are some data types, variing for different renderer,
+// the main class of the module and some helpers
+// Important is the fn pbr_material to create a bevy material form tile data
+// and the "class" Object to show 3D meshes in the GPU
 
 mod pbftile;
 mod viewtile;
@@ -12,18 +17,19 @@ mod textures;
 mod frontend;
 mod cars;
 
-
-//use crate::rendf;
-use pbftile::*;
-use textures::*;
-use cars::*;
+use std::fs::read;
 
 use bevy::prelude::*;
 use bevy::render::mesh::Indices;
 use bevy::render::mesh::PrimitiveTopology;
 
+use pbftile::*;
+use textures::*;
+use cars::*;
+
 
 // This was not easy to find out!:
+// A tubble(?) with all needed renderer variables ot draw an 3D object
 pub type Renderer<'a, 's, 't, 'w, 'x, 'y, 'z> = (
     &'a mut bevy::prelude::Commands<'w, 's>,
     &'a mut bevy::prelude::ResMut<'t, Assets<Mesh>>,
@@ -31,12 +37,14 @@ pub type Renderer<'a, 's, 't, 'w, 'x, 'y, 'z> = (
     &'a     bevy::prelude::Res   <'z, AssetServer>,
 );
 
+// Some data types, variing for different renderer,
 pub type Color          = bevy::prelude::Color;
 //b type MaterialHandle = bevy::asset::Handle<dyn bevy::pbr::prelude::Material<ExtractedAsset = Type, PreparedAsset = Type, Param = Type>>;
 pub type Position       = [f32;3];
 pub type Uv             = [f32;2];
 
-//pub type Cars           = bool; // dummy
+
+//// Some helper functions ////
 
 // color: bevy::prelude::Color::rgb(0.0, 1.0, 1.0),
 pub fn shape_color(r: f32, g: f32, b: f32, a: f32) -> Color {
@@ -65,6 +73,7 @@ pub fn shape_uv(u: f32, v: f32) -> Uv {
 }
 
 
+// Get the 3D-vector tile and material textures local - or from a web-api
 pub static LOCAL: bool = true;
 
 
@@ -95,6 +104,7 @@ pub fn load_pbr_bytes(pbf_url: String) -> Vec<u8> {
 
 // bevy system: When a asset loading/changing or unloading is done, this system runs
 // It just checks, what happend and may print it in the log. May be more is needed ??
+// Not used, does not work?
 pub fn _fixup_images(
     mut ev_asset: EventReader<AssetEvent<Image>>,
     mut assets: ResMut<Assets<Image>>,
@@ -121,9 +131,9 @@ pub fn _fixup_images(
 
 // ----------------------------------------------------------------------
 
-
+// A "class" Object to show 3D meshes in the GPU
 pub struct Object {
-//  object_handle: Option<rend3::types::ObjectHandle>,
+    //  object_handle: Option<rend3::types::ObjectHandle>,
 }
 
 impl Object {
@@ -145,7 +155,7 @@ impl Object {
 
         // create and NO return a instance:
         let this = Object {
-        // object_handle: None
+            // object_handle: None
         };
 
 
@@ -165,7 +175,7 @@ impl Object {
         });
 
 
-        /*
+        /* OLD rend3 code
         let mesh_builder = rend3::types::MeshBuilder::new(
             vertex_positions,
             rend3::types::Handedness::Right, // PBF data is ::Right not ::Left
@@ -205,12 +215,9 @@ impl Object {
 } // MaterialObject
 
 
-pub fn _load_texture(
-    uri: String,
-    asset_server: &    Res<AssetServer>,
-) -> Handle<Image>
-{
-        asset_server.load(&format!("../../o2w{}", uri)) // "../../o2w/{}"
+// To preload main teextures: not used
+pub fn load_texture( uri:String, asset_server: &Res<AssetServer> ) -> Handle<Image>{
+        asset_server.load(&format!("../../o2w/{}", uri)) // "../../o2w/{}"
 }
 
 pub fn pbr_material(
@@ -225,7 +232,6 @@ pub fn pbr_material(
     (_commands,_meshes,materials,asset_server): &mut Renderer,
 ) -> Handle<StandardMaterial>
 {
-
     // None: No cull of the back sides.  Default is cull/hide back sides: Some(bevy::render::render_resource::Face::Back),
     let cull_mode    = if cull {None} else {Some(bevy::render::render_resource::Face::Back)};
     let double_sided = if cull {true} else {false};
@@ -253,17 +259,15 @@ pub fn pbr_material(
     }
 
     if !url.is_empty()
-    //  url == "textures/RoofingTiles010_Color.jpg"
     && !url.starts_with("data:")
     && !url.ends_with(".svg") { // url.len() > 0_usize
         // println!("material _url: {:?}",url);
-        let texture_handle = asset_server.load(&format!("../../o2w/{}", url)); // "../../o2w/{}" // Enum bevy::render::texture::ImageFormat
+        let texture_handle = load_texture(url.to_string(), asset_server);
         material.base_color_texture = Some(texture_handle.clone() );
 
-        /*
         if !_orm.is_empty() {
             //println!("orm: {}",_orm);
-            let texture_handle = asset_server.load(&format!("../../o2w/{}", _orm)); // Enum bevy::render::texture::ImageFormat
+            let texture_handle = load_texture(_orm.to_string(), asset_server);
             material.metallic_roughness_texture = Some(texture_handle.clone() ); // metallic-Green and roughness-Blue. Not occlusion-Red  ???
             material.metallic    = 1.0; // dielectric (0.0, non-metal) or conductor (1.0, metal). needed???
             material.reflectance = 0.5; // Specular intensity for non-metals. The default is 0.5, or 4% reflectance.
@@ -276,16 +280,16 @@ pub fn pbr_material(
         }
 
         if !_nor.is_empty() {
-            let texture_handle = asset_server.load(&format!("../../o2w/{}", _nor)); // Enum bevy::render::texture::ImageFormat
+            //println!("nor {}",_nor);
+            let texture_handle = load_texture(_nor.to_string(), asset_server);
             material.normal_map_texture = Some(texture_handle.clone() );
             // O2W needs Down, not Up
             // Tricomponent because in Gimp all 3 have values, Up because Down causes light colors on the shadow side
         }
-        */
 
         // println!("material: {:#?}", material);
 
-/*
+/* OLD rend3 code
 
 StandardMaterial
 {
@@ -326,7 +330,7 @@ StandardMaterial
 
     }
 
-    /*
+    /*  OLD rend3 code
 
     if !url.is_empty() { // url.len() > 0_usize {
 
@@ -384,11 +388,6 @@ impl OSM2World {
 
         let mut pbf_tile = PbfTile::new(4402, 2828, start_pos);
         pbf_tile.load( &mut (commands, meshes, materials, asset_server), &mut textures, &mut cars );
-
-        // let _texture_handle: Handle<Image> = _load_texture("textures/Ground003_Color.jpg".to_string(), asset_server );
-        // Ground003_Normal.jpg
-        // Ground003_ORM.jpg
-        // Ground003_Displacement.jpg
 
         OSM2World{}
     }
