@@ -1,10 +1,11 @@
 // main_o2w1.rs = main_osm1.rs
 
+mod fly_control;
 mod o2w;
 
 use bevy::prelude::*;
 use o2w::*;  //use rendf::*;
-use bevy_flycam::{FlyCam, MovementSettings, NoCameraPlayerPlugin };  // PlayerPlugin
+use fly_control::{FlyCam, MovementSettings, NoCameraPlayerPlugin };  // PlayerPlugin
 //e bevy::render::render_resource::SamplerDescriptor;
 //e bevy::render::texture::ImageSettings;
 
