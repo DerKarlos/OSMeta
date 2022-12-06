@@ -113,9 +113,9 @@ fn setup(
 
     //// camera ////
     let camera = Camera3dBundle { // Agropolis auf Straße
-        transform: Transform::from_xyz(-1450.028, 4.807, -0758.637)
-            .looking_at(Vec3::new(-1450.028-1.0, 4.807+7.8, -0758.637+1.0), Vec3::Y),
-        ..Default::default()
+        transform: Transform::from_xyz(  -1450.028,      4.807,     -0758.637    )
+            .looking_at(Vec3::new(-1450.028-0.0, 4.807+0.0, -0758.637-1.0), Vec3::Y),
+        ..Default::default()             //          -1.0          +7.8             -1.0
     };
     // add plugin
     commands.spawn(camera).insert(FlyCam);

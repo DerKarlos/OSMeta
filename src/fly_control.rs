@@ -95,14 +95,17 @@ fn player_move(
             for key in keys.get_pressed() {
                 match window.cursor_grab_mode() {
                     CursorGrabMode::None => (),
-                    _ => match key {
-                        KeyCode::W => velocity += forward,
-                        KeyCode::S => velocity -= forward,
-                        KeyCode::A => velocity -= right,
-                        KeyCode::D => velocity += right,
-                        KeyCode::Space  => { settings.calc_speed(transform.translation.y); velocity += Vec3::Y },
-                        KeyCode::LShift => { settings.calc_speed(transform.translation.y); velocity -= Vec3::Y },
-                        _ => (),
+                    _ => {
+                        //println!("key: {:?}",key);
+                        match key {
+                            KeyCode::W | KeyCode::Up    => velocity += forward,
+                            KeyCode::S | KeyCode::Down  => velocity -= forward,
+                            KeyCode::A | KeyCode::Left  => velocity -= right,
+                            KeyCode::D | KeyCode::Right => velocity += right,
+                            KeyCode::Equals | KeyCode::Plus  | KeyCode::Space  => { settings.calc_speed(transform.translation.y); velocity += Vec3::Y },
+                            KeyCode::Key3   | KeyCode::Minus | KeyCode::LShift => { settings.calc_speed(transform.translation.y); velocity -= Vec3::Y },
+                            _ => (),
+                        }
                     },
                 }
             }

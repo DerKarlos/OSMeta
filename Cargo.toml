@@ -26,8 +26,8 @@ pollster = "0.2"
 futures = "0.3"
 
 bevy = { version = "0.9", features = ["jpeg"] }
-## control:
-## bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" }
+## control, used in examples:
+bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" }
 
 bytemuck = "1.12"
 
