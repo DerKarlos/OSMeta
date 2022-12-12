@@ -65,6 +65,7 @@ fn initial_grab_cursor(mut windows: ResMut<Windows>) {
     }
 }
 
+/*
 /// Spawns the `Camera3dBundle` to be controlled
 fn setup_player(mut commands: Commands) {
     commands.spawn((
@@ -75,6 +76,7 @@ fn setup_player(mut commands: Commands) {
         FlyCam,
     ));
 }
+*/
 
 
 /// Handles keyboard input and movement
@@ -82,37 +84,74 @@ fn player_move(
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
     windows: Res<Windows>,
+    mut state: ResMut<InputState>,
     mut settings: ResMut<MovementSettings>,
     mut query: Query<&mut Transform, With<FlyCam>>,
 ) {
     if let Some(window) = windows.get_primary() {
         for mut transform in query.iter_mut() {
             let mut velocity = Vec3::ZERO;
+            let mut position = None;
+            let mut rotation =Vec3::ZERO;
             let local_z = transform.local_z();
-            let forward = -Vec3::new(local_z.x, 0., local_z.z);
-            let right = Vec3::new(local_z.z, 0., -local_z.x);
+            let forward = -Vec3::new(   local_z.x, 0.,    local_z.z);
+            let right   =  Vec3::new(local_z.z, 0., -local_z.x);
 
             for key in keys.get_pressed() {
                 match window.cursor_grab_mode() {
                     CursorGrabMode::None => (),
                     _ => {
-                        //println!("key: {:?}",key);
+                        // println!("key: {:?}",key);
                         match key {
                             KeyCode::W | KeyCode::Up    => velocity += forward,
                             KeyCode::S | KeyCode::Down  => velocity -= forward,
-                            KeyCode::A | KeyCode::Left  => velocity -= right,
-                            KeyCode::D | KeyCode::Right => velocity += right,
-                            KeyCode::Equals | KeyCode::Plus  | KeyCode::Space  => { settings.calc_speed(transform.translation.y); velocity += Vec3::Y },
-                            KeyCode::Key3   | KeyCode::Minus | KeyCode::LShift => { settings.calc_speed(transform.translation.y); velocity -= Vec3::Y },
+                            KeyCode::A | KeyCode::Left  => velocity -=   right,
+                            KeyCode::D | KeyCode::Right => velocity +=   right,
+                            KeyCode::Space  | KeyCode::Plus  | KeyCode::Equals => { settings.calc_speed(transform.translation.y); velocity += Vec3::Y }, // Equals is # on the German keyboard
+                            KeyCode::LShift | KeyCode::Minus                   => { settings.calc_speed(transform.translation.y); velocity -= Vec3::Y },
+
+                            KeyCode::Key4 => {
+                                position = Some(Vec3::new(-1450.028, 001.6, -758.637 ));  // y:001.6 ?  rad: 65.0
+                                rotation =      Vec3::new(-0010.000, 121.0, -000.000 );
+                            },
+
                             _ => (),
                         }
                     },
                 }
             }
 
+
+/*
+        document.cookie = "OSM2World_GeoView_Digit1=48.56583701046516 13.453166231638868 1.6 -32 -12 547. 23;samesite=strict"; // 1 default uni?
+        document.cookie = "OSM2World_GeoView_Digit2=48.57203151991611 13.456722845073253 1.6 -63 -6. 77.1 23;samesite=strict"; // 2 center
+        document.cookie = "OSM2World_GeoView_Digit3=48.56439632980203 13.430698929491165 1.6 -68 -0. 35.7 23;samesite=strict"; // 3 cars
+        document.cookie = "OSM2World_GeoView_Digit4=48.56725450000000 13.453000000000000 1.6 -30 -10 375. 23;samesite=strict"; // 4 F4
+        document.cookie = "OSM2World_GeoView_Digit5=48.52713530972139 13.415167708626935 1.6 182 -25 1377 23;samesite=strict"; // 5 wood
+
+        document.cookie = "OSM2World_GeoView_Digit6=48.56690610000000 13.448879100000000 1.6 121 -10 65.0 23;samesite=strict"; // 6 windows
+
+        document.cookie = "OSM2World_GeoView_Digit7=48.57739134741593 13.423744066161506 1.6 -44 -21 116. 23;samesite=strict"; // 7 solar
+        document.cookie = "OSM2World_GeoView_Digit8=48.59397502885877 13.389369883128929 97. 120 -10 0.50 23;samesite=strict"; // 8 crane
+        document.cookie = "OSM2World_GeoView_Digit9=48.59158409512967 12.701907495407475 1.6 63. -3. 705. 23;samesite=strict"; // 9 wind
+*/
+
+
             velocity = velocity.normalize_or_zero();
 
-            transform.translation += velocity * time.delta_seconds() * settings.speed
+            transform.translation += velocity * time.delta_seconds() * settings.speed;
+
+            if let Some(new_position) = position {
+                let mut delta_state = state.as_mut();
+                delta_state.yaw   = (rotation.y).to_radians();  // -90?  up/down
+                delta_state.pitch = (rotation.x).to_radians();  // +90?  right/left
+                transform.translation = new_position;
+                // Order is important to prevent unintended roll
+                transform.rotation
+                    = Quat::from_axis_angle(Vec3::Y, delta_state.yaw  )  // beta?   mouse y: up/down
+                    * Quat::from_axis_angle(Vec3::X, delta_state.pitch); // alpha?  mouse x: right/left
+
+            }
         }
     } else {
         warn!("Primary window not found for `player_move`!");
@@ -135,19 +174,18 @@ fn player_look(
                     CursorGrabMode::None => (),
                     _ => {
                         // Using smallest of height or width ensures equal vertical and horizontal sensitivity
-                        let window_scale = window.height().min(window.width());
-                        delta_state.pitch -=
-                            (settings.sensitivity * ev.delta.y * window_scale).to_radians();
-                        delta_state.yaw -=
-                            (settings.sensitivity * ev.delta.x * window_scale).to_radians();
+                        let window_scale   = window.height().min(window.width());
+                        delta_state.pitch -= (settings.sensitivity * ev.delta.y * window_scale).to_radians(); // mouse y: up/down
+                        delta_state.yaw   -= (settings.sensitivity * ev.delta.x * window_scale).to_radians(); // mouse x: right/left
                     }
                 }
 
                 delta_state.pitch = delta_state.pitch.clamp(-1.54, 1.54);
 
                 // Order is important to prevent unintended roll
-                transform.rotation = Quat::from_axis_angle(Vec3::Y, delta_state.yaw)
-                    * Quat::from_axis_angle(Vec3::X, delta_state.pitch);
+                transform.rotation
+                    = Quat::from_axis_angle(Vec3::Y, delta_state.yaw  )  // beta?   mouse y: up/down
+                    * Quat::from_axis_angle(Vec3::X, delta_state.pitch); // alpha?  mouse x: right/left
             }
         }
     } else {
@@ -165,6 +203,7 @@ fn cursor_grab(keys: Res<Input<KeyCode>>, mut windows: ResMut<Windows>) {
     }
 }
 
+/*
 /// Contains everything needed to add first-person fly camera behavior to your game
 pub struct PlayerPlugin;
 impl Plugin for PlayerPlugin {
@@ -178,6 +217,7 @@ impl Plugin for PlayerPlugin {
             .add_system(cursor_grab);
     }
 }
+*/
 
 /// Same as [`PlayerPlugin`] but does not spawn a camera
 pub struct NoCameraPlayerPlugin;

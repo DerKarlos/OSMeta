@@ -7,15 +7,24 @@
 // Important is the fn pbr_material to create a bevy material form tile data
 // and the "class" Object to show 3D meshes in the GPU
 
-mod pbftile;
-mod viewtile;
-mod instance_parameter;
-mod materialobject;
-mod utils;
-mod print;
-mod textures;
-mod frontend;
-mod cars;
+// Todo ? Remane module to "map" ?
+// pub(crate) mod viewer;     // canvas handler
+// mod osmscene;   // In TypeScript it manages all the tile loading. Place on Earth, shown in 3D. There could be more than one to teleport to.
+// mod geopos;     // Position on Earth
+// mod geoview;    // Position and viewangles
+// mod cameraview; // geoview plus camera settings
+
+// Todo ? Move in an extra sub-module "osm2world" ?
+mod frontend;   // read the binary PBF file and greate Rust structs
+mod pbftile;    // Main
+mod instance_parameter; // nomen est omen
+mod materialobject; // An mesh with geometry and material
+mod textures;   // handle the textures for the material
+mod cars;       // read car.glm and instantiate cars of different color, size and position
+mod viewtile;   // a (sub-) square of the pbftile with all its material-objects
+mod utils;      // nomen est omen
+mod print;      // Debug outputs. Todo? use print trait ?
+
 
 use std::fs::read;
 
@@ -23,9 +32,12 @@ use bevy::prelude::*;
 use bevy::render::mesh::Indices;
 use bevy::render::mesh::PrimitiveTopology;
 
+// pub use viewer::*;
 use pbftile::*;
 use textures::*;
 use cars::*;
+//use geopos::*;
+//use geoview::*;
 
 
 // This was not easy to find out!:

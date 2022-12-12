@@ -4,6 +4,7 @@ mod fly_control;
 mod o2w;
 
 use bevy::prelude::*;
+// use crate::o2w::viewer::*;
 use o2w::*;  //use rendf::*;
 use fly_control::{FlyCam, MovementSettings, NoCameraPlayerPlugin };  // PlayerPlugin
 //e bevy::render::render_resource::SamplerDescriptor;
@@ -114,26 +115,37 @@ fn setup(
     //// camera ////
     let camera = Camera3dBundle { // Agropolis auf Straße
         transform: Transform::from_xyz(  -1450.028,      4.807,     -0758.637    )
-            .looking_at(Vec3::new(-1450.028-0.0, 4.807+0.0, -0758.637-1.0), Vec3::Y),
+            .looking_at(Vec3::new(-1450.028-0.0, 4.807+0.0, -0758.637-1.0), Vec3::Y)
+            .with_scale(Vec3::new(1.,1.,1.))
+            ,
         ..Default::default()             //          -1.0          +7.8             -1.0
     };
     // add plugin
     commands.spawn(camera).insert(FlyCam);
 
-    /*
-    //// camera ////
-    let x = 100.;
-    let camera = PerspectiveCameraBundle {
-        // pub transform/global_transform:: Transform,
-        // pub translation: Vec3,
-        //[-1450.028, 4.807, -0758.637],        [00000.000, 1.719,  0000.000], // 6: Agropolis auf Straße
-        transform: Transform::from_xyz(-1450.028    , 4.807+8.0, -0758.637  )
-                 .looking_at(Vec3::new(-1450.028-1.0, 4.807+7.8, -0758.637+1.0), Vec3::Y),
-        //ansform: Transform::from_xyz(-8.0*x   ,10.0*x,    20.0*x).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    };
-    commands.spawn_bundle(camera);
-    */
+    // camera.transform.with_scale(Vec3::new(1.,1.,1.));
+
+    // Create the OSM2World-viewer
+//  let mut viewer = Viewer::new(
+    // . camera,
+    /*  {   // Options: todo? Structure ?
+            control: true, // shall the O2W default control be used?
+            shadow: 1, // 0: off 1:1024 2:2048 4:4096 8:8192       ??????? water makes mesh invisible BJS? !!!!!!
+            water: 1,  // 0: no waves 300ms, no reflection, 1: only skydome 310ms, 2: all shadow caster 420ms
+            fpsMin: +5, // +15!! schrauben
+            //selected: ObjectSelected, //null, //Function, // = this.defaultObjectSelected.bind(this);
+            // xrMode: 0, // -1:off  0:auto (default)  1:on  2:WebAR
+            // distanceMax: 1111,
+            // viewRings:0,
+            //cars: 0.99,
+        } */
+//  );
+
+    //var geoPos = new OSM2WORLD.GeoPos(48.591941, 12.703934); // wind
+    //var geoPos = new OSM2WORLD.GeoPos(48.572044, 13.458089); // passau=default
+    //var geoView = new OSM2WORLD.GeoView(geoPos /*default: geoPos, 1.8, -90.8, -15.8, 500.8*/ ); // hejght, compas, up/down, distance
+//  viewer.set_geo_view(None); // geoView // finds or creates a new Scene at this place on Earth and sets the camera view
+
 
     // OpenStreetMap !!!
     let _osm2world = OSM2World::new(
