@@ -1,5 +1,9 @@
 // geoview.ts
 
+// mod super::fly_control;
+
+//use bevy::prelude::*;
+
 use super::osmscene::*;
 use super::geopos::*;
 use super::cameraview::*;
@@ -9,7 +13,6 @@ use super::utils::{
     DEFAULT_RADIUS,
     DEFAULT_HEIGHT,
     DEFAULT_FOV,
-    rad
 };
 
 /**
@@ -28,7 +31,7 @@ use super::utils::{
  * The geo position will be checked if it is in range of an existing OsmScenes.
  * Or a new OsmScene will be created.
  */
-#[derive(Debug,Clone,Copy)]
+#[derive(Default, Debug,Clone,Copy)]
 pub struct GeoView {
     pub geo_pos: GeoPos,
     pub height: f32,
@@ -51,7 +54,7 @@ impl GeoView {
      */
 
      
-    pub fn new(geo_pos: GeoPos) -> GeoView {
+    pub fn default(geo_pos: GeoPos) -> GeoView {
         GeoView{
             geo_pos, //GeoPos::new(),
             height: DEFAULT_HEIGHT,
@@ -68,16 +71,17 @@ impl GeoView {
      * @return a new camera view
      */
     pub fn to_camera_view(&self, osm_scene: &OsmScene) -> CameraView {
+
         let mut scene_pos = self.geo_pos.calc_scene_pos(osm_scene); //.subtract(osmScene.loadCenter);
         scene_pos.y = self.height;
 
         //return
         CameraView{
             scene_pos,
-            alpha: (self.dir  - 90.).to_radians(), //  API dir  0 degrees = nord        becomes BJS alpha -90 rad = nord
-            beta:  (self.view + 90.).to_radians(), // API view 0 degrees = horizontal  becomes BJS beta  +90 rad = horizontal
+            alpha: (self.dir ), // - 90.).to_radians(), // API dir  0 degrees = nord        becomes BJS alpha -90 rad = nord
+            beta:  (self.view), // + 90.).to_radians(), // API view 0 degrees = horizontal  becomes BJS beta  +90 rad = horizontal
             radius: self.radius,
-            fov: (self.fov).to_radians()
+            fov: (self.fov)     // .to_radians() // ???
         }
     }
 
@@ -89,7 +93,7 @@ impl GeoView {
      * @param id  "name" of the cookie
      */
 
-    fn store_cookie(&self, id: String) {
+    fn _store_cookie(&self, id: String) {
 
         //                                      id la lo he di vi ra fo
         let cookie = format!("OSM2World_GeoView_{}={} {} {} {} {} {} {};samesite=strict",  // {:.2}

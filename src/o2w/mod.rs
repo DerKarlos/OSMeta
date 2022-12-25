@@ -8,7 +8,6 @@
 // and the "class" Object to show 3D meshes in the GPU
 
 // Todo ? Remane module to "map" ?
-// pub(crate) mod viewer;     // canvas handler
 // mod osmscene;   // In TypeScript it manages all the tile loading. Place on Earth, shown in 3D. There could be more than one to teleport to.
 // mod geopos;     // Position on Earth
 // mod geoview;    // Position and viewangles
@@ -32,12 +31,17 @@ use bevy::prelude::*;
 use bevy::render::mesh::Indices;
 use bevy::render::mesh::PrimitiveTopology;
 
+// Todo ? Move in an extra sub-module "osm2world" ?
 // pub use viewer::*;
+//use geopos::*;
+//use geoview::*;
+//pub(crate) mod viewer;     // canvas handler
+
 use pbftile::*;
 use textures::*;
 use cars::*;
-//use geopos::*;
-//use geoview::*;
+
+
 
 
 // This was not easy to find out!:
@@ -50,7 +54,7 @@ pub type Renderer<'a, 's, 't, 'w, 'x, 'y, 'z> = (
 );
 
 // Some data types, variing for different renderer,
-pub type Color          = bevy::prelude::Color;
+pub type PbfColor       = bevy::prelude::Color;
 //b type MaterialHandle = bevy::asset::Handle<dyn bevy::pbr::prelude::Material<ExtractedAsset = Type, PreparedAsset = Type, Param = Type>>;
 pub type Position       = [f32;3];
 pub type Uv             = [f32;2];

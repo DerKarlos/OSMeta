@@ -27,7 +27,7 @@ pub struct MaterialObject {
     orm: String,
     nor: String,
     transp: u8,           // get_transparency
-    color: Option<super::Color>, // rgb alpha
+    color: Option<super::PbfColor>, // rgb alpha
     cull: bool, //  model.cull = Cull::Back; //??? crulle/hide:  None(all there?)  Front Back FrontAndBack(all gone!)
     object: Option<super::Object>, // model: Option<Model>,
     _pbf_material_index: usize,  // debug output only
@@ -45,7 +45,7 @@ impl MaterialObject {
         let cull = pbf_material.doubleSided(); // false = Cull::None  true = Cull::Back
 
         // color: bevy::prelude::Color::rgb(0.0, 1.0, 1.0),
-        let mut color: Option<super::Color> = Some(super::shape_color(
+        let mut color: Option<super::PbfColor> = Some(super::shape_color(
             pbf_material.baseColorR() as f32,
             pbf_material.baseColorG() as f32,
             pbf_material.baseColorB() as f32,

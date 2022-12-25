@@ -1,4 +1,4 @@
-////////////// main_pbf.rs ==>  example pbf.rs //////////
+////////////// main_pbf.rs ==>  example pbf.rs (or test.rs) //////////
 use bevy::prelude::*;
 
 
@@ -51,7 +51,9 @@ fn setup(
     commands.spawn(Camera3dBundle {
         transform: Transform::from_xyz(0.0, 0.0, 2.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
-    }) ; // .insert(bevy_flycam::FlyCam)
+    })
+     // NO: .insert(bevy_flycam::FlyCam)  // The camera is NOT moved by the fly-controls,
+    ;// we want to see the light effects if the PBR rotates
 
 
     // load a texture and retrieve its aspect ratio
@@ -69,7 +71,7 @@ fn setup(
     let quad_handle = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(
         quad_width,
         quad_width * aspect,
-    ))));
+    )))); // new Vec2, new shape, Mesh::from, meshes.add
 
     let material_handle = materials.add(StandardMaterial {
         unlit: false, // no ???
@@ -94,7 +96,7 @@ fn setup(
     });
 
 
-/* from tth glft-loader:
+/* NOTES from the glft-loader:
 LoadedAsset::new(StandardMaterial {
     base_color: Color::rgba(color[0], color[1], color[2], color[3]),
     base_color_texture,
@@ -118,6 +120,7 @@ LoadedAsset::new(StandardMaterial {
 */
 
 
+    // Intance a PBR-square
     commands.spawn(PbrBundle {
         mesh: quad_handle.clone(),
         material: material_handle,
@@ -128,12 +131,13 @@ LoadedAsset::new(StandardMaterial {
         },
         ..default()
     })
-    .insert(bevy_flycam::FlyCam)
-    .insert(Movable)
+    .insert(bevy_flycam::FlyCam)    // Square moved by Fly-(Camera)-controls  (the square, not the camera is moved)
+    .insert(Movable)    // square moves itselves (if fly-control is not used)
     ;
 }
 
 
+// temporal movement (not fly control)
 fn movement(
     _input: Res<Input<KeyCode>>,
     time: Res<Time>,
@@ -141,7 +145,7 @@ fn movement(
 ) {
     for mut transform in query.iter_mut() {
         //println!("xx {:?}", transform);
-        let delta_n = 0.002*time.delta_seconds();
+        let delta_n = 0.02*time.delta_seconds();
         let delta_rotation = Quat::from_euler(EulerRot::ZYX, 0.0, delta_n, 0.0,);
         transform.rotation *= delta_rotation; // multiply! means addition
     }

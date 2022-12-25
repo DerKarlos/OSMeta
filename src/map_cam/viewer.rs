@@ -1,19 +1,15 @@
 
-//use bevy::prelude::*;
-//bevy::render::camera::ActiveCamera;  
+use bevy::prelude::*;
 
-//use super::osm2world.js"
-//use super::dataPath, ScenePos, DeviceLimit, pbf_Zoom } from "./utils.js"
 use super::osmscene::*;
 use super::cameraview::*;
 use super::geopos::*;
 use super::geoview::*;
-//use super::Cars } from "./cars.js"
-//use super::Tdmr } from "./tdmr.js"
-//use super::Animations } from "./animations.js"
-//use super::Environment } from "./environment.js"
-//use super::Materials } from "./materials.js"
-//use super::Tile_Name } from "./utils.js"
+
+
+//  let mut viewer = commands/world.spawn( /* notihing, just and bevy ecs instance */ );
+
+
 
 /**
  * Fills an BJS scene with a 3D rendering of an [[OsmScene]], a "place on Earth"
@@ -29,16 +25,16 @@ use super::geoview::*;
  * and an free to use integer test switch.
  */
 
- pub struct Viewer {
-    geo_view:  Option<GeoView>,
-    osm_scene: Vec<OsmScene>,
-
- // camera: Camera3dBundle,
- }
+#[derive(Default)]
+pub struct Viewer {
+    geo_view:  Option<GeoView>, // Default = None?
+    osm_scene: Vec<OsmScene>,   // Default = empty Vec?
+//  camera:    Camera3dBundle,
+}
 
  impl Viewer {
 
-    pub fn new(
+    pub fn _new( // tha same as Default, hm?
     //  camera: Camera3dBundle
     ) -> Viewer {
 
@@ -55,27 +51,29 @@ use super::geoview::*;
      * At the given geo position on Earth, a new Scene will be created or existing will be used
      * @param geoView  gps posiiton and camera view
      */
-    pub fn set_geo_view(&mut self, geo_view: Option<GeoView>) { // setgeoview
+    pub fn set_geo_view( &mut self, geo_view_option: Option<GeoView>, transform: &mut Transform ) { // setgeoview
+        //println!("    geo_view_option: {:?}", geo_view_option);
 
-        if let Some(geo_view) = geo_view {
-            self.geo_view = Some(geo_view);
+        if let Some(geo_view_set) = geo_view_option {
+            //println!("    geo_view_set: {:?}", geo_view_set);
+            self.geo_view = Some(geo_view_set);
         } else {
-            self.geo_view = Some(GeoView::new(
-                GeoPos::new() // default passau
-            ));
+            self.geo_view = Some(GeoView::default( GeoPos::default() )); // default passau
         }
 
-        println!("    setGeoView: {:?}", self.geo_view);
+        println!("    self.geo_view: {:?}", self.geo_view);
 
         if self.osm_scene.len() > 0 
-        //if let Some(osm_scene) = self.osm_scene
-        { // if the scene exists
+        { // the scene exists
             let camera_view = self.geo_view.unwrap().to_camera_view(&self.osm_scene[0]);
-            self.set_camera_view(camera_view); // just set the camera
+            println!("    camera_view: {:?}", camera_view);
+            self.set_camera_view(&camera_view, transform ); // just set the camera
         } else { // create the scene. it will set the camera to.
             self.osm_scene.push( OsmScene::new(
-                geo_view.unwrap(), self)
-            );
+                self.geo_view.unwrap(),
+                self
+            ));
+            self.set_camera_view(&self.osm_scene[0].camera_view[0], transform ); // just set the camera
         }
     }
 
@@ -84,9 +82,19 @@ use super::geoview::*;
      * set the actual cameras position and direction
      * @param view  instance with all values
      */
-    pub fn set_camera_view(&self, _view: CameraView) { // startPosition,startRotation
-        //self.camera.transform        (  -1450.028,      4.807,     -0758.637    );
+    pub fn set_camera_view(&self, view: &CameraView, transform: &mut Transform ) { // startPosition,startRotation
 
+                println!("set_camera_view: {:?}", view);
+                transform.translation = view.scene_pos; //Vec3::new(-1450.028, 001.6, -758.637 );
+                transform.rotation
+                    = Quat::from_axis_angle(Vec3::Y, view.alpha.to_radians()  )  // beta?   mouse y: up/down
+                    * Quat::from_axis_angle(Vec3::X, view.beta.to_radians() ); // alpha?  mouse x: right/left
+
+
+        // let mut transform = self.camera.transform;
+        // transform.translation = view.scene_pos;
+        
+        //self.camera.transform        (  -1450.028,      4.807,     -0758.637    );
         //self.camera.target = view.scene_pos;
         //self.camera.beta = view.beta; // x view      beta  (radians) the latitudinal  rotation  0=down 90=horizotal 180=up
         //self.camera.alpha = view.alpha; // y direction alpha (radians) the longitudinal rotation  -90=Nord   left/right
@@ -168,10 +176,6 @@ use super::geoview::*;
     public viewRings: number;
 
 
-    / ** OSM zoom unit of the view-tiles  * /
-    public viewZoom: number = 16;
-    / ** Calculated factor between pbf zoom and view zoom. * /
-    public factZoom: number;
     / ** Calculated size of a view-tile, about 400 meter = pbf-tile size 3200 meter / 8 * /
     public aboutViewSize: number;
     / ** Array of distance limits for LoD tiles * /
@@ -261,8 +265,7 @@ use super::geoview::*;
         }
         else console.log("    local HTTPs")
 
-        this.factZoom = Math.pow(2, this.viewZoom - pbf_Zoom);  // 3^2=8   (in zoom/zoom)
-        this.aboutViewSize = 26578947 / Math.pow(2, this.viewZoom); // about osmScene.viewSize
+        this.aboutViewSize = 26578947 / Math.pow(2, VIEW_ZOOM); // about osmScene.viewSize
 
         const dist = this.aboutViewSize // envRadius/10  // aboutViewSize; //100 // ca. osmScene.viewSize .x    -- 16=>400 17=200 18=100
             * 1.0//ddd  to debug, default = 1?   0.3-0.28
@@ -310,7 +313,7 @@ use super::geoview::*;
                 break;
             case DeviceLimit.WEBXR:
                 alert("Device in WebXR-Mode.")
-                //this.viewZoom = 17: 3200/16 = 200 meter
+                //VIEW_ZOOM = 17: 3200/16 = 200 meter
                 //this.pbfFileMax = 1 * 1000 * 1000;
                 //this.viewPositionsMax = 1 * 1000 * 1000;
                 //this.envRadius == 1000;

@@ -1,63 +1,60 @@
 // main_o2w1.rs = main_osm1.rs
 
-mod fly_control;
+mod map_cam; // mod fly_control;
 mod o2w;
 
 use bevy::prelude::*;
-// use crate::o2w::viewer::*;
-use o2w::*;  //use rendf::*;
-use fly_control::{FlyCam, MovementSettings, NoCameraPlayerPlugin };  // PlayerPlugin
 //e bevy::render::render_resource::SamplerDescriptor;
 //e bevy::render::texture::ImageSettings;
 
+use o2w::*;
+use map_cam::{FlyCam, MovementSettings, NoCameraPlayerPlugin };  // PlayerPlugin  - fly_control::
+
+//d ui;
+//e ui::*;
 
 
+const TEST: bool = false;
+const FPS:  bool = false;
 
 
 fn main() {
 
-    App::new()
+    let window_plugin = WindowPlugin {
+        window: WindowDescriptor {
+            title: "OSMeta - OpenStreetMap Metaverse ;-)".to_string(),
+            //width: 500.,
+            //height: 300.,
+            //present_mode: PresentMode::AutoVsync,
+            //always_on_top: true,
+            //????  present_mode: bevy::window::PresentMode::Fifo, // Not that usefull???: Immediate: 16-18, Mailbox:14.5, Fifo:14.x
+            ..default()
+        },
+        ..default()
+    };
 
+    let image_plugin = ImagePlugin {
+            default_sampler: wgpu::SamplerDescriptor {
+            address_mode_u: wgpu::AddressMode::Repeat,
+            address_mode_v: wgpu::AddressMode::Repeat,
+            address_mode_w: wgpu::AddressMode::Repeat,
+            ..default()
+        },
+        ..default()
+    };
+
+
+    let mut app = App::new();
+    app
         .add_plugins(
             DefaultPlugins
-
-                // WINDOW  WINDOW  WINDOW  WINDOW 
-                .set( WindowPlugin {
-                    window: WindowDescriptor {
-                        title: "OSMeta - OpenStreetMap Metaverse ;-)".to_string(),
-                        //width: 500.,
-                        //height: 300.,
-                        //present_mode: PresentMode::AutoVsync,
-                        //always_on_top: true,
-                        //????  present_mode: bevy::window::PresentMode::Fifo, // Not that usefull???: Immediate: 16-18, Mailbox:14.5, Fifo:14.x
-                        ..default()
-                    }, // WindowDescriptor
-                    ..default()
-                }) // set WindowPlugin
-            
-                // IMAGE REPEAT  IMAGE REPEAT  IMAGE REPEAT
-                .set(ImagePlugin {
-                    default_sampler: wgpu::SamplerDescriptor {
-                        address_mode_u: wgpu::AddressMode::Repeat,
-                        address_mode_v: wgpu::AddressMode::Repeat,
-                        address_mode_w: wgpu::AddressMode::Repeat,
-                        ..default()
-                    }, // SamplerDescriptor
-                    ..default()
-                }) // set ImagePlugin
-
-            )
+                .set( window_plugin)
+                .set( image_plugin)
+            ) // add_plugins
 
     //  .insert_resource(ScheduleRunnerSettings::run_loop(Duration::from_secs_f64( 1.0 / 20.0, )))  // no different
     //  .with_run_criteria(FixedTimestep::step( (1.0/60.0) as f64))
         .insert_resource(Msaa { samples: 4 })
-
-
-        //.add_plugins(DefaultPlugins)
-        // Show Framerate in Console
-        // .add_plugin(LogDiagnosticsPlugin::default())
-    //  .add_plugin(FrameTimeDiagnosticsPlugin::default())
-
         .add_startup_system(setup)
 
         // https://github.com/sburris0/bevy_flycam  ##  https://github.com/BlackPhlox/bevy_config_cam
@@ -67,9 +64,19 @@ fn main() {
             sensitivity: 0.00015, //  mouse sensitivity, default: 0.00012
             speed: 30.0, // player movement speed, default: 12.0
         })
-        //  .add_system(ui_system)
-    //  .add_system(fixup_images)
-        .run();
+        ;
+
+        if FPS {
+            // Show Framerate in Console   
+            app
+                .add_plugin(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
+                .add_system(ui_update_system)
+                ;
+        }
+    
+        //  .add_system(fixup_images)
+
+        app.run();
 
         info!("Move camera around by using WASD for lateral movement");
         info!("Use Left Shift and Spacebar for vertical movement");
@@ -80,10 +87,10 @@ fn main() {
 //#[derive(Component)]
 //struct Movable;
 
+// A unit struct to help identify the FPS UI component, since there may be many Text components
+// if FPS?
 #[derive(Component)]
-struct StatsText;
-
-
+struct FpsText;
 
 /// set up a simple 3D scene
 fn setup(
@@ -93,9 +100,6 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
 
-    // UI with FPS
-    //commands.spawn_bundle(UiCameraBundle::default());
-    //commands.spawn_bundle(create_ui(&asset_server)).insert(StatsText);
 
     //// light ////8
     // Shadows do not work correct on my Macbook Air native, but in the browser it is ok.
@@ -113,22 +117,40 @@ fn setup(
     });
 
     //// camera ////
-    let camera = Camera3dBundle { // Agropolis auf Straße
-        transform: Transform::from_xyz(  -1450.028,      4.807,     -0758.637    )
-            .looking_at(Vec3::new(-1450.028-0.0, 4.807+0.0, -0758.637-1.0), Vec3::Y)
-            .with_scale(Vec3::new(1.,1.,1.))
-            ,
-        ..Default::default()             //          -1.0          +7.8             -1.0
+    let camera = 
+    if !TEST {
+        Camera3dBundle { // Agropolis auf Straße
+            transform: Transform::from_xyz(  -1450.028,      4.807,     -0758.637    )
+                .looking_at(Vec3::new(-1450.028-0.0, 4.807+0.0, -0758.637-1.0), Vec3::Y)
+                .with_scale(Vec3::new(1.,1.,1.))
+                ,
+            ..Default::default()             //          -1.0          +7.8             -1.0
+        }
+
+    } else {
+        Camera3dBundle { // almost 0
+            transform: Transform::from_xyz(   0.0, 10.0, 50.0)
+                .looking_at(Vec3::new(0.0, 00.0, 00.0), Vec3::Y)
+                ,
+            ..Default::default()             //          -1.0          +7.8             -1.0
+        }
+
     };
     // add plugin
     commands.spawn(camera).insert(FlyCam);
 
-    // camera.transform.with_scale(Vec3::new(1.,1.,1.));
 
     // Create the OSM2World-viewer
-//  let mut viewer = Viewer::new(
-    // . camera,
-    /*  {   // Options: todo? Structure ?
+
+    // let mut viewer = commands.spawn( Viewer::new() )
+    //  .insert(Viewer)
+    //;
+
+
+    //let mut _viewer = Viewer::new(
+    //  camera,
+        /* 
+        {   // Options: todo? Structure ?
             control: true, // shall the O2W default control be used?
             shadow: 1, // 0: off 1:1024 2:2048 4:4096 8:8192       ??????? water makes mesh invisible BJS? !!!!!!
             water: 1,  // 0: no waves 300ms, no reflection, 1: only skydome 310ms, 2: all shadow caster 420ms
@@ -139,23 +161,74 @@ fn setup(
             // viewRings:0,
             //cars: 0.99,
         } */
-//  );
+    //);
 
-    //var geoPos = new OSM2WORLD.GeoPos(48.591941, 12.703934); // wind
+    // var geoPos = new OSM2WORLD.GeoPos(48.591941, 12.703934); // wind
     //var geoPos = new OSM2WORLD.GeoPos(48.572044, 13.458089); // passau=default
     //var geoView = new OSM2WORLD.GeoView(geoPos /*default: geoPos, 1.8, -90.8, -15.8, 500.8*/ ); // hejght, compas, up/down, distance
 //  viewer.set_geo_view(None); // geoView // finds or creates a new Scene at this place on Earth and sets the camera view
 
 
-    // OpenStreetMap !!!
-    let _osm2world = OSM2World::new(
-        &mut commands,
-        &mut meshes,
-        &mut materials,
-        &asset_server,
-        Vec3::new(0.0, 30.0, 0.0), // camera.transform.translation.clone(),    ::ZERO
-    );
+    if !TEST {
+        // OpenStreetMap !!!  Viewer instead?
+        let _osm2world = OSM2World::new(
+            &mut commands,
+            &mut meshes,
+            &mut materials,
+            &asset_server,
+            Vec3::new(0.0, 30.0, 0.0), // camera.transform.translation.clone(),    ::ZERO
+        );
+    } else {
+        // cube
+        commands.spawn(PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Cube { size: 10.0 })),
+            material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
+            ..default()
+        });
+
+    }
+
+
+    if FPS {
+        // Text with multiple sections
+        commands.spawn((
+            // Create a TextBundle that has a Text with a list of sections.
+            TextBundle::from_sections([
+                TextSection::new(
+                    "FPS: ",
+                    TextStyle {
+                        font: asset_server.load("fonts/FiraMono-Medium.ttf"),
+                        font_size: 20.0,
+                        color: Color::WHITE,
+                    },
+                ),
+                TextSection::from_style(TextStyle {
+                    font: asset_server.load("fonts/FiraMono-Medium.ttf"),
+                    font_size: 20.0,
+                    color: Color::GOLD,
+                }),
+            ]),
+            FpsText,
+        ));
+    }
+
+
 
 
 
 }
+
+
+
+// if FPS?   MAY BE USE https://doc.rust-lang.org/cargo/reference/features.html
+fn ui_update_system(diagnostics: Res<bevy::diagnostic::Diagnostics>, mut query: Query<&mut Text, With<FpsText>>) {
+    for mut text in &mut query {
+        if let Some(fps) = diagnostics.get(bevy::diagnostic::FrameTimeDiagnosticsPlugin::FPS) {
+            if let Some(value) = fps.smoothed() {
+                // Update the value of the second section
+                text.sections[1].value = format!("{value:.2}");
+            }
+        }
+    }
+}
+

@@ -6,8 +6,8 @@ use super::cameraview::*;
 //use super::geoview::*;
 use super::utils::
 {
-    //TileName, TileSize, 
-    ScenePos, PI, LAT_FAKT // pbf_Zoom,
+    TileName, // TileSize, 
+    ScenePos, PI, LAT_FAKT, PBF_ZOOM, FACT_ZOOM,
     //LayerStep, LoadStep, ViewStep, rad, degr, phytagoras,
     //DeviceLimit, default_height
 };
@@ -34,23 +34,26 @@ use super::utils::
  * To avoild overload of the system, far away invisieble tiels and data should be dismissed.
  */
 
-// #[derive(Clone)]
+#[derive(Debug)]
 pub struct OsmScene {
 
     /** The BabylonJS scene handler */
     //pub scene: BABYLON.Scene,
 
     /** OSM viewer showing self scene */
-    //pub viewer: Viewer,
+    //pub viewer: &Viewer,
 
     /** Tile-name(x/y) of the first loaded pbf-tile */
-    //pub firstPbfTile_Name: TileName,
+    pub first_pbf_tile_name: TileName,
 
     /** Tile-name(x/y) of the nord west view-tile of the first loaded pbf-tile */
-    //pub firstViewTile_Name: TileName,
+    pub first_view_tile_name: TileName,
 
+    pub fst_geo_pos: GeoPos,
+    pub one_geo_pos: GeoPos,
+    
     /** Size of a pbf-tile in meter (only x/z used). Depends on the latitude. */
-    //pub pbfSize: TileSize,
+    pub pbf_size: glam::Vec3,
 
     /** Size of a view tile in meter (x is about equal to z). Depends on the latitude. */
     //pub viewSize: f32,
@@ -87,7 +90,7 @@ pub struct OsmScene {
     /** part of a second gone by, used to limit the settings of the browser URL */
     //    secPart: f32, // = 0,
 
-    camera_view: Vec<CameraView>,
+    pub camera_view: Vec<CameraView>,
 
 
     /* * First camera position, used as debug center in the worker / [[PbfTile]] */
@@ -114,9 +117,11 @@ impl OsmScene {
      */
     pub fn new (geo_view: GeoView, _viewer: &Viewer) -> OsmScene {
 
+        // ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss
+
         let mut osm_scene = OsmScene{
 
-    /*****
+        /*****
         self.viewer = viewer;
         self.scene = viewer.scene;
       //self.webARroot = new BABYLON.Mesh("webARroot", self.scene);
@@ -135,68 +140,97 @@ impl OsmScene {
         }
 
         geoView.storeCookie("start");
+        */
 
-        // calculate tile-names(x/y), containing the CPU-Scene 0/0 in its center
-        self.firstPbfTile_Name = geoView.geoPos.calcTile_Name(pbf_Zoom);
-        self.firstViewTile_Name = self.firstPbfTile_Name.scale(self.viewer.factZoom).add(new BABYLON.Vector2(self.viewer.factZoom / 2, self.viewer.factZoom / 2));
-        // pbf-tile 1/2 scaled would be 8/16 and added 12/20 i.e.  Adding is to get the first tiel next to the GPU 0 point
+        first_pbf_tile_name:  TileName::ZERO,
+        first_view_tile_name: TileName::ZERO,
+
 
         // Get the first loaded pbf/view-tile(corner) geoPos
         // and the next (+1x/y) pbf/view-tile(corner) geoPos -- The next pbf-tile is the end of the first one
-        let fstGeoPos = self.calcCornerGeoPosFrom_Name(self.firstPbfTile_Name, pbf_Zoom);
-        let oneGeoPos = self.calcCornerGeoPosFrom_Name(self.firstPbfTile_Name.add(BABYLON.Vector2.One()), pbf_Zoom);
+        fst_geo_pos: GeoPos::default(), //  = self.calcCornerGeoPosFrom_Name(self.firstPbfTile_Name, pbf_Zoom);
+        one_geo_pos: GeoPos::default(), //  = self.calcCornerGeoPosFrom_Name(self.firstPbfTile_Name.add(BABYLON.Vector2.One()), pbf_Zoom);
+
         // calcs the geoPos delta (degrees) and trans-calcs it to meters:
-        self.pbfSize = oneGeoPos.calcMetersToOtherGeoPos(fstGeoPos);
-        // _x: 3232.2079333866873   >  _z: 3231.278959942741  should be equal? calculaton not exactly???
+        pbf_size: glam::Vec3::ZERO,
 
-        // _Name add One => +x/+y => +x/-z meter  because:
-        // _Name y+1 means more south
-        //           means less degrees
-        //           means more to the eye
-        //           means less z (because z to the eye is negative and to the back is positive in BJS)
-        // to correct self:
-        self.pbfSize.z *= -1; // todo: let it negative as needed for ..toCenter
-
+        /*
         // raw view tile size for some calculations
-        self.viewSize = self.pbfSize.x / self.viewer.factZoom;
+        self.viewSize = self.pbfSize.x / FACT_ZOOM;
         */
 
         pbf_corner_to_center: glam::Vec3::ZERO,
 
         // Merkator center of pbf-tile = pbf zoom+1 tile corner = pbf name*2+1 and pbf zoom+1
-        null_geo_pos: GeoPos::new(),
+        null_geo_pos: GeoPos::default(),
         // todo: remove and use null_corner_geo_pos
 
-        camera_view: Vec::new(), // geoView.to_camera_view(self),
+        camera_view: Vec::new(),
 
         // lat: 48.545707582202596 lon: 13.491210938407548
-        null_corner_geo_pos: GeoPos::new(),
+        null_corner_geo_pos: GeoPos::default(),
 
 
         /*
         self.groundRoot = new BABYLON.Mesh("groundRoot", self.scene); // ddd scene needed ???
         self.groundRoot.parent = self.webARroot;
 
-        self.startScenePos = cameraView.scenePos;
-        self.viewer.setCameraView(cameraView);
+        self.startScenePos = camera_View.scenePos;
+        // not any more, done by the caller self.viewer.set_Camera_View(camera_View);
         //self.scene.getEngine().onBeginFrameObservable.add(self.render().bind(self));
 */
 
         };
 
+        // ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss
+
+
+    //  if  viewer.parameter.useUrl == 1 || viewer.parameter.useUrl == 3 {
+    //  };
+
+
+
+        // calculate tile-names(x/y), containing the CPU-Scene 0/0 in its center
+        osm_scene.first_pbf_tile_name  = geo_view.geo_pos.calc_tile_name(PBF_ZOOM);
+        // pbf-tile 1/2 scaled would be 8/16 and added 12/20 i.e.  Adding is to get the first tiel next to the GPU 0 point
+        osm_scene.first_view_tile_name = osm_scene.first_pbf_tile_name 
+                                     * TileName::new(FACT_ZOOM,FACT_ZOOM)
+                                     + TileName{x: (FACT_ZOOM / 2.).floor(), y: (FACT_ZOOM / 2.).floor()};
+
+        osm_scene.fst_geo_pos = osm_scene.calc_corner_geo_pos_from_name(           osm_scene.first_pbf_tile_name,     PBF_ZOOM);
+        osm_scene.one_geo_pos = osm_scene.calc_corner_geo_pos_from_name(osm_scene.first_pbf_tile_name + 1., PBF_ZOOM);
+        println!("+111: {:?}",osm_scene.first_pbf_tile_name + 1.);
+
+        osm_scene.null_geo_pos = osm_scene.calc_corner_geo_pos_from_name(
+                                                                            osm_scene.first_pbf_tile_name * 2. + 1.,
+                                                                            PBF_ZOOM + 1.
+                                                                        );
+
+        // calcs the geoPos delta (degrees) and trans-calcs it to meters:
+        osm_scene.pbf_size = osm_scene.one_geo_pos.calc_meters_to_other_geo_pos(osm_scene.fst_geo_pos);
+        // _x: 3232.2079333866873   >  _z: 3231.278959942741  should be equal? calculaton not exactly???
+
+        // _Name add One => +x/+y => +x/-z meter  because:
+        // _Name y+1 means more south
+        //           means less degrees
+        //           means more to the 3D-camera
+        //           means less z (because z to the eye is negative and to the back is positive in BJS/bevy)
+        // to correct self:
+        osm_scene.pbf_size.z *= -1.; // todo?: let it negative as needed for ..toCenter
+        // println!("pbf_size2: {:?}",osm_scene.pbf_size);
+
         // From the nord-west / upper-left corner (+z / -x) ...
         // ... to the center (0 / 0) by adding self delta (-z / +x)
         // Example First pbfTile: 0/0 -16xx/+16zz = -16xx/+16zz
         osm_scene.pbf_corner_to_center = glam::Vec3::new (
-            /*-osm_scene.pbfSize.x / . */ 2., 0.,
-            /* osm_scene.pbfSize.z / . */ 2.);
+            -osm_scene.pbf_size.x / 2., 0.,
+             osm_scene.pbf_size.z / 2. );  // ??? - for BEVY ???
 
-        // self.null_corner_geo_pos = fstGeoPos;
-        
+        osm_scene.null_corner_geo_pos = osm_scene.calc_corner_geo_pos_from_name(osm_scene.first_pbf_tile_name, PBF_ZOOM);
 
-        //osm_scene.null_geo_pos = osm_scene.calcCornerGeoPosFrom_Name(osm_scene.firstPbfTile_Name.scale(2).add(BABYLON.Vector2.One()), pbf_Zoom + 1);
-        osm_scene.camera_view.push(geo_view.to_camera_view(&osm_scene));
 
+        osm_scene.camera_view.push( geo_view.to_camera_view(&osm_scene) );
+        println!("osm_scene: {:#?}",osm_scene);
         osm_scene
 
     } // new / constructor
@@ -309,25 +343,25 @@ impl OsmScene {
 
     / **
      * Calculate the geo-location of a tile (nord west edge) by self tile-name(x/y)
+     * More x means more lon. More y means less lat!
      * @param tile_Name  tile-name(x/y) of a tile to calc the geo-location from
      * @param zoom  Zoom level on the OSM tile-name(x/y) system
      * @return a lat,lon geo position (GPS)
-     * /
-    pub calcCornerGeoPosFrom_Name(tile_Name: Tile_Name, zoom: f32): GeoPos {
-        let n = Math.PI - 2 * Math.PI * tile_Name.y / Math.pow(2, zoom);
-        let lat = 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
-        let lon = tile_Name.x / Math.pow(2, zoom) * 360 - 180;
-        return new GeoPos(lat, lon);
+     */
+    pub fn calc_corner_geo_pos_from_name(&self, tile_name: TileName, zoom: f32) -> GeoPos {
+        let n = PI - 2. * PI * tile_name.y / 2.0_f32.powf(zoom);
+        let lat = 180. / PI * (0.5 * ((n).exp() - (-n).exp() )).atan();
+        let lon = tile_name.x / 2.0_f32.powf(zoom) * 360. - 180.;
+        GeoPos{lat, lon}
     }
 
-    **/
 
     /**
      * calculate the GPS position from a position in the scene
      * @param scenePos position in the scene
      * @return GeoPos position on Earth
      **/
-    pub fn calc_geo_pos_from_scene_pos(&self, scene_pos: ScenePos) -> GeoPos {
+    pub fn _calc_geo_pos_from_scene_pos(&self, scene_pos: ScenePos) -> GeoPos {
         let lat = scene_pos.z /  LAT_FAKT + self.null_geo_pos.lat;  // -z   to nord = more z =
         let lon = scene_pos.x / (LAT_FAKT * ((lat / 180. * PI).abs() ).cos()) + self.null_geo_pos.lon;
         GeoPos{lat, lon}
@@ -343,8 +377,8 @@ impl OsmScene {
      * /
     private updateUrl(): void {
 
-        let cameraView = self.viewer.getCameraView();
-        let geoView = cameraView.toGeoView(self);
+        let camera_View = self.viewer.get_Camera_View();
+        let geoView = camera_View.toGeoView(self);
 
         //      let camera = self.scene.activeCamera as BABYLON.ArcRotateCamera;
         //      if (!camera.target) return;
