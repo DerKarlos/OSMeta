@@ -8,7 +8,7 @@ use bevy::prelude::*;
 //e bevy::render::texture::ImageSettings;
 
 use o2w::*;
-use map_cam::{FlyCam, MovementSettings, NoCameraPlayerPlugin };  // PlayerPlugin  - fly_control::
+use map_cam::{FlyCam, MovementSettings, NoCameraPlugin };  // CameraPlugin  - fly_control::
 
 //d ui;
 //e ui::*;
@@ -58,11 +58,12 @@ fn main() {
         .add_startup_system(setup)
 
         // https://github.com/sburris0/bevy_flycam  ##  https://github.com/BlackPhlox/bevy_config_cam
-        // NoCameraPlayerPlugin as we provide the camera
-        .add_plugin(NoCameraPlayerPlugin)
+        // NoCameraPlugin as we provide the camera
+        .add_plugin(NoCameraPlugin)
         .insert_resource(MovementSettings {
-            sensitivity: 0.00015, //  mouse sensitivity, default: 0.00012
-            speed: 30.0, // player movement speed, default: 12.0
+            sensitivity: 0.00015,               //  mouse sensitivity, default: 0.00012
+            speed:      30.0,                   // camera movement speed, default: 12.0
+            rotate:    (30.0_f32).to_radians(), // camera rotate speed  [degrees.to_radiants per secound]
         })
         ;
 
@@ -166,7 +167,7 @@ fn setup(
     // var geoPos = new OSM2WORLD.GeoPos(48.591941, 12.703934); // wind
     //var geoPos = new OSM2WORLD.GeoPos(48.572044, 13.458089); // passau=default
     //var geoView = new OSM2WORLD.GeoView(geoPos /*default: geoPos, 1.8, -90.8, -15.8, 500.8*/ ); // hejght, compas, up/down, distance
-//  viewer.set_geo_view(None); // geoView // finds or creates a new Scene at this place on Earth and sets the camera view
+//  viewer.set_view(None); // geoView // finds or creates a new Scene at this place on Earth and sets the camera view
 
 
     if !TEST {

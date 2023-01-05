@@ -5,6 +5,13 @@ use super::osmscene::*;
 use super::cameraview::*;
 use super::geopos::*;
 use super::geoview::*;
+//use super::utils::ScenePos;
+
+use std::collections::HashMap;
+
+
+
+
 
 
 //  let mut viewer = commands/world.spawn( /* notihing, just and bevy ecs instance */ );
@@ -29,7 +36,6 @@ use super::geoview::*;
 pub struct Viewer {
     geo_view:  Option<GeoView>, // Default = None?
     osm_scene: Vec<OsmScene>,   // Default = empty Vec?
-//  camera:    Camera3dBundle,
 }
 
  impl Viewer {
@@ -41,7 +47,6 @@ pub struct Viewer {
         Viewer{
             geo_view:  None,
             osm_scene: Vec::new(),
-        //  camera,
         }
 
     }
@@ -51,7 +56,7 @@ pub struct Viewer {
      * At the given geo position on Earth, a new Scene will be created or existing will be used
      * @param geoView  gps posiiton and camera view
      */
-    pub fn set_geo_view( &mut self, geo_view_option: Option<GeoView>, transform: &mut Transform ) { // setgeoview
+    pub fn set_view( &mut self, geo_view_option: Option<GeoView>, transform: &mut Transform ) { // setgeoview
         //println!("    geo_view_option: {:?}", geo_view_option);
 
         if let Some(geo_view_set) = geo_view_option {
@@ -61,45 +66,46 @@ pub struct Viewer {
             self.geo_view = Some(GeoView::default( GeoPos::default() )); // default passau
         }
 
-        println!("    self.geo_view: {:?}", self.geo_view);
+        println!("    geo_view: {:?}", self.geo_view);
 
-        if self.osm_scene.len() > 0 
-        { // the scene exists
-            let camera_view = self.geo_view.unwrap().to_camera_view(&self.osm_scene[0]);
-            println!("    camera_view: {:?}", camera_view);
-            self.set_camera_view(&camera_view, transform ); // just set the camera
-        } else { // create the scene. it will set the camera to.
+        if self.osm_scene.len() == 0
+        { // create the scene. //??? it will set the camera_view to.
+            println!("    scene geo_view: {:?}", self.geo_view.unwrap());
             self.osm_scene.push( OsmScene::new(
                 self.geo_view.unwrap(),
                 self
             ));
-            self.set_camera_view(&self.osm_scene[0].camera_view[0], transform ); // just set the camera
+            //lf.set_camera(&self.osm_scene[0].camera_view[0], transform ); // just set the camera
         }
+        else 
+        { // the scene exists
+            // let camera_view = self.geo_view.unwrap().to_camera_view(&self.osm_scene[0]);
+            // println!("    camera_view: {:?}", camera_view);
+            // self.set_camera(&camera_view, transform ); // just set the camera
+        } 
+
+        let camera_view = self.geo_view.unwrap().to_camera_view(&self.osm_scene[0]);
+        println!("    camera_view: {:?}", camera_view);
+        self.set_camera(&camera_view, transform ); // just set the camera
+
     }
 
 
     /**
-     * set the actual cameras position and direction
+     * local: set the actual cameras position and direction
      * @param view  instance with all values
      */
-    pub fn set_camera_view(&self, view: &CameraView, transform: &mut Transform ) { // startPosition,startRotation
+    fn set_camera(&self, view: &CameraView, transform: &mut Transform ) { // startPosition,startRotation
 
-                println!("set_camera_view: {:?}", view);
+                println!("    set_camera: {:?}", view);
                 transform.translation = view.scene_pos; //Vec3::new(-1450.028, 001.6, -758.637 );
                 transform.rotation
-                    = Quat::from_axis_angle(Vec3::Y, view.alpha.to_radians()  )  // beta?   mouse y: up/down
-                    * Quat::from_axis_angle(Vec3::X, view.beta.to_radians() ); // alpha?  mouse x: right/left
+                    = Quat::from_axis_angle(Vec3::Y, view.dir  )  // compas direction
+                    * Quat::from_axis_angle(Vec3::X, view.view ); // head up/down
 
-
-        // let mut transform = self.camera.transform;
-        // transform.translation = view.scene_pos;
-        
-        //self.camera.transform        (  -1450.028,      4.807,     -0758.637    );
-        //self.camera.target = view.scene_pos;
-        //self.camera.beta = view.beta; // x view      beta  (radians) the latitudinal  rotation  0=down 90=horizotal 180=up
-        //self.camera.alpha = view.alpha; // y direction alpha (radians) the longitudinal rotation  -90=Nord   left/right
-        //self.camera.radius = view.radius; // z radius the distance from the target position
-        //self.camera.fov = view.fov;
+                //self.camera.target = view.scene_pos;
+                //self.camera.radius = view.radius; // z radius the distance from the target position
+                //self.camera.fov = view.fov;
     }
 
 /*
@@ -593,29 +599,12 @@ pub struct Viewer {
 
 
 
-
-    setCameraView(view: CameraView): void { // startPosition,startRotation
-
-        let camera = this.scene.activeCamera as BABYLON.ArcRotateCamera;
-
-        if (!camera)
-            return alert("!!!-!!! NO CAMERA DEFINED - viewer.setCameraView")
-
-        camera.target = view.scenePos;
-        camera.beta = view.beta; // x view      beta  (radians) the latitudinal  rotation  0=down 90=horizotal 180=up
-        camera.alpha = view.alpha; // y direction alpha (radians) the longitudinal rotation  -90=Nord   left/right
-        camera.radius = view.radius; // z radius the distance from the target position
-        camera.fov = view.fov;
-        // camera.updateProjectionMatrix();
-
-    }
-
-
     / **
      * get the actual cameras scene position and direction
      * @return CameraView instance with all values
-     * /
-    getCameraView(): CameraView {
+     */
+    pub fn get_camera_view(&self, transform: &Transform) -> CameraView {
+        /*
         let camera = this.scene.activeCamera as BABYLON.ArcRotateCamera;
 
         let alpha = camera.rotation.y;
@@ -632,13 +621,23 @@ pub struct Viewer {
             camera.radius,
             camera.fov
         );
+        */
+        let (yaw, pitch,_z) = transform.rotation.to_euler(EulerRot::YXZ);
+
+        CameraView::new(
+            transform.translation, //ScenePos::ZERO,
+            yaw,
+            pitch,
+            0.,
+            0.,
+        )
     }
 
 
 
 
 
-    / **
+    /* *
      * Set the BabylonJS loading screen with the OSM2World logo and the version of this lib
      * /
     private setLogo(): void {
@@ -660,19 +659,26 @@ pub struct Viewer {
     / **
      * get the actual cameras geo position and direction
      * @return GeoView instance with all values
-     * /
-    getGeoViewAtCamera(): GeoView {
-        if (!this.osmScene) return new GeoView(new GeoPos());
-        let cameraView = this.getCameraView();
-        return cameraView.toGeoView(this.osmScene);
+     */
+    pub fn get_geo_view_at_camera(&self, transform: &Transform) -> GeoView {
+
+        if self.osm_scene.len() > 0 {
+            self.get_camera_view(&transform).to_geo_view(&self.osm_scene[0])
+        } else {
+            GeoView{
+                geo_pos: GeoPos::default(),
+                ..Default::default()
+            }
+        }
+
     }
 
 
-    / **
+    /* *
      * Restore the start position and view, stored by the scene automatically
      * /
     restoreStart(): void {
-        let view = this.restoreGeoView("start");
+        let view = this.restore("start");
         if (!view) return;
 
         this.setGeoView(view);
@@ -685,44 +691,48 @@ pub struct Viewer {
      * restore this geo pos from browser cookie
      * @param id  "name" of the cookie to restore it
      * @return restored geo view
-     * /
-    restoreGeoView(id: string): GeoView | undefined {
+     */
+    pub fn _restore_geo_view(&self, id: String, cookies: &mut HashMap<String,String>, transform: &Transform) -> Option<GeoView> {
 
         // todo: far jump calcualtes wrong pbf-tile ? (wind=>passau)
         // https://192.168.3.141:8080/o2w/tiles/13/4385/2827.o2w.pbf = wind
         // https://192.168.3.141:8080/o2w/tiles/13/4385/2829.o2w.pbf = BAD 9!
         // https://192.168.3.141:8080/o2w/tiles/13/4402/2828.o2w.pbf = default passau
 
-        if (document.cookie.indexOf('OSM2World_GeoView_' + id) == -1) return undefined;   // cookie does not exists
+        // if (document.cookie.indexOf('OSM2World_GeoView_' + id) == -1) return undefined;   // cookie does not exists
+
 
         // store actual position before jump, may be you like to jump back to it.
-        if (id != "last")
-            this.getGeoViewAtCamera().storeCookie("last");
+        if id != "last" {
+            self.get_geo_view_at_camera(transform).store("last".to_string(), cookies);
+        }
 
-        let cookie = this._getCookie('OSM2World_GeoView_' + id);
-        console.log("<<< geo: ", id, cookie);
+        //t cookie = self.getCookie("OSM2World_GeoView_".to_string() + &id);
+        let cookie = cookies.get( &id ).unwrap();//_or(&or);
 
-        let floats = cookie.split(' ');
+        println!("<<< id: {} cookie: {}", id, cookie);
 
-        let geoPos = new GeoPos(
-            parseFloat(floats[0]),
-            parseFloat(floats[1])
-        );
+        let floats: Vec<&str> = cookie.split(' ').collect();
 
-        return new GeoView(
-            geoPos,
-            parseFloat(floats[2]), // height
-            parseFloat(floats[3]), // alpha
-            parseFloat(floats[4]), // beta
-            parseFloat(floats[5]), // radius
-            parseFloat(floats[6]), // fow
-        )
+        let geo_pos = GeoPos{
+            lat: (floats[0]).parse().unwrap(),
+            lon: (floats[1]).parse().unwrap(),
+        };
+
+        Some(GeoView{
+            geo_pos,
+            height:  (floats[2]).parse().unwrap(),
+            dir:     (floats[3]).parse().unwrap(),
+            view:    (floats[4]).parse().unwrap(),
+            radius:  (floats[5]).parse().unwrap(),
+            fov:     (floats[6]).parse().unwrap(),
+        })
 
     }
 
 
 
-    / **
+    /* *
      * Sets the loading UI step and text
      * @param message  new visible text
      * @param step  just a number, count up
@@ -748,7 +758,11 @@ pub struct Viewer {
      * @param cookie "name"
      * @return the cookie string
      * /
-    private _getCookie(cname: string): string {
+    fn getCookie(&self, cname: String) -> String {
+
+        self.cookies.get( cname ).unwrap;//_or(&or);
+        
+        /*
         let name = cname + "=";
         let ca = document.cookie.split(';');
         for (let i = 0; i < ca.length; i++) {
@@ -757,6 +771,7 @@ pub struct Viewer {
             if (c.indexOf(name) != -1) return c.substring(name.length, c.length);
         }
         return "";
+        */
     }
 
 

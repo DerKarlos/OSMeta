@@ -176,7 +176,7 @@ impl OsmScene {
         self.groundRoot.parent = self.webARroot;
 
         self.startScenePos = camera_View.scenePos;
-        // not any more, done by the caller self.viewer.set_Camera_View(camera_View);
+        // not any more, done by the caller self.viewer.set_Camera(camera_View);
         //self.scene.getEngine().onBeginFrameObservable.add(self.render().bind(self));
 */
 
@@ -199,7 +199,7 @@ impl OsmScene {
 
         osm_scene.fst_geo_pos = osm_scene.calc_corner_geo_pos_from_name(           osm_scene.first_pbf_tile_name,     PBF_ZOOM);
         osm_scene.one_geo_pos = osm_scene.calc_corner_geo_pos_from_name(osm_scene.first_pbf_tile_name + 1., PBF_ZOOM);
-        println!("+111: {:?}",osm_scene.first_pbf_tile_name + 1.);
+        //println!("+111: {:?}",osm_scene.first_pbf_tile_name + 1.);
 
         osm_scene.null_geo_pos = osm_scene.calc_corner_geo_pos_from_name(
                                                                             osm_scene.first_pbf_tile_name * 2. + 1.,
@@ -230,7 +230,7 @@ impl OsmScene {
 
 
         osm_scene.camera_view.push( geo_view.to_camera_view(&osm_scene) );
-        println!("osm_scene: {:#?}",osm_scene);
+        // println!("osm_scene: {:#?}",osm_scene);
         osm_scene
 
     } // new / constructor
@@ -361,9 +361,9 @@ impl OsmScene {
      * @param scenePos position in the scene
      * @return GeoPos position on Earth
      **/
-    pub fn _calc_geo_pos_from_scene_pos(&self, scene_pos: ScenePos) -> GeoPos {
-        let lat = scene_pos.z /  LAT_FAKT + self.null_geo_pos.lat;  // -z   to nord = more z =
-        let lon = scene_pos.x / (LAT_FAKT * ((lat / 180. * PI).abs() ).cos()) + self.null_geo_pos.lon;
+    pub fn calc_geo_pos_from_scene_pos(&self, scene_pos: ScenePos) -> GeoPos {
+        let lat = -scene_pos.z /  LAT_FAKT + self.null_geo_pos.lat;  // -z   to nord = more z =
+        let lon =  scene_pos.x / (LAT_FAKT * ((lat / 180. * PI).abs() ).cos()) + self.null_geo_pos.lon;
         GeoPos{lat, lon}
     }
 

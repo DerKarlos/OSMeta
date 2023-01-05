@@ -76,7 +76,7 @@ impl GeoPos {
     pub fn calc_scene_pos(&self, osm_scene: &OsmScene) -> ScenePos {
         let pos_relative_to_corner = self.calc_meters_to_other_geo_pos(osm_scene.null_corner_geo_pos);
         let mut scene_pos = pos_relative_to_corner + osm_scene.pbf_corner_to_center; // center to corner ???
-        println!("rtc: {} - ctc: {}", pos_relative_to_corner, osm_scene.pbf_corner_to_center);
+        //println!("rtc: {} - ctc: {}", pos_relative_to_corner, osm_scene.pbf_corner_to_center);
         scene_pos.x =  (scene_pos.x * 100.).floor() / 100.; // cm is acurate in this case
         scene_pos.z = -(scene_pos.z * 100.).floor() / 100.; // !!!!! The - is NOT clear, but works :-/
         scene_pos // gps-degrees plus/nord = z-meter plus/behind "In the backround = north"

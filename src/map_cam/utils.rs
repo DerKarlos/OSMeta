@@ -19,7 +19,7 @@ pub static DEFAULT_VIEW: f32 = -12.;
 pub static DEFAULT_RADIUS: f32 = 375.;  // 547 -- F4 zoom 17/18/19 is about 1500/750/375 meter radius
 
 /** Height of the view point (eyes height of a small person) in meters */
-pub static DEFAULT_HEIGHT: f32 = 1.6;
+pub static DEFAULT_HEIGHT: f32 = 100.; // if orbital camera is used 1.6;
 
 /** Camera field of view angle (FoV) in degrees */
 pub static DEFAULT_FOV: f32 = 23.; // F4=    OSMgo=23?
