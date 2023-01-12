@@ -3,6 +3,8 @@
 use super::utils::{ScenePos, DEFAULT_LAT, DEFAULT_LON, PI, LAT_FAKT};
 use super::osmscene::*;
 
+use crate::cam_map::TileName;
+
 // import { OsmScene } from "./osmscene.js"
 
 
@@ -39,14 +41,14 @@ impl GeoPos {
      * @param zoom  Zoom level of the OSM tile-name(x/y) system
      * @return tile-name(x/y)
      */
-    pub fn calc_tile_name(&self, zoom: f32) -> glam::Vec2 {
-        let pow_zoom = 2.0_f32.powf(zoom as f32);
+    pub fn calc_tile_name(&self, zoom: u32) -> TileName {
+        let pow_zoom = 2_u32.pow(zoom) as f32;
 
         // return
-        glam::Vec2{
+        TileName{
 
             // Longitude, (Längengrad) West/East "index"
-            x: ((self.lon + 180.) / 360. * pow_zoom).floor(),
+            x: ((self.lon + 180.) / 360. * pow_zoom).floor() as u32,
 
             // y: Latitude, (Breitengrad) Nort/South "index"
             y: (
@@ -55,7 +57,7 @@ impl GeoPos {
                         (self.lat * PI / 180.).tan() + 1. / (self.lat * PI / 180.).cos()
                     ).ln() / PI
                 ) / 2. * pow_zoom
-            ).floor(),
+            ).floor() as u32,
             // The Nort/South y tile name part is not linear, the tiles gets stretched to the poles
             // to compensate the stretching if the stretching of the West/East projection
 

@@ -14,9 +14,24 @@ use super::cars::*;
 use super::print::*;
 
 
-//#[derive(Debug)]
+/**
+ * The pbf-tile data is processed in steps
+ */
+#[derive(Debug)]
+pub enum PbfState {
+    /** Load is requested */
+    Idle,
+    /** Loading on the way */
+    Loading,
+    /** Loaded, ready to use */
+    Loaded,
+}
+
+
+
+#[derive(Debug)]
 pub struct PbfTile {
-    _load_state: i32,
+    state: PbfState,
     pbf_url: String,
     start_pos: Vec3,
 
@@ -37,7 +52,7 @@ pub struct PbfTile {
 }
 
 impl PbfTile {
-    pub fn new(x: i32, y: i32, start_pos: Vec3) -> PbfTile {
+    pub fn new(x: u32, y: u32, start_pos: Vec3) -> PbfTile {
         // logs(format!("  PbfTile OSM tile: {}/{}", x, y));
 
         let mut material_map = Vec::<Vec::<usize>>::new(); // NO! vec![..]
@@ -45,7 +60,7 @@ impl PbfTile {
         material_map.push(           Vec::<usize>::new() ); // This code syntax is not Working:  vec![<usize>;0]
 
         PbfTile {
-            _load_state: 0,
+            state: PbfState::Idle,
 
             pbf_url: pbf_tile_path(x, y),
             start_pos,
@@ -68,6 +83,8 @@ impl PbfTile {
 
     pub fn load(&mut self, renderer: &mut super::Renderer, textures: &mut Textures, cars: &mut Cars) -> ViewTile {
         logs(format!("  loading OSM tile: {} (takes some seconds or up to 3 minutes)", self.pbf_url));
+
+        self.state = PbfState::Loading;
 
         let bytes = super::load_pbr_bytes(self.pbf_url.clone());
         let tile: Tile = protobuf::Message::parse_from_bytes(&bytes).unwrap();
@@ -164,6 +181,7 @@ impl PbfTile {
         //  &pbf_tile.create_objects(&mut loaded, renderer: &rend3::Renderer);
         self.create_objects(renderer, textures);
 
+        self.state = PbfState::Loaded;
         log(""); // new line after "......"
     }
 

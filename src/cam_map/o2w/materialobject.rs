@@ -18,7 +18,7 @@ use std::*;
 // for it needs 1 draw-call per material (and there are no material-groups in a model yet)
 // this may get sprlit into LoD and 400m tiles
 
-//#[derive(Debug)]
+#[derive(Debug)]
 pub struct MaterialObject {
     positions: Vec<super::Position>, // For bevy an array is needed:  positions: Vec<[f32;3]>,
     uvs: Vec<super::Uv>, // For bevy an array is needed:  uvs: Vec<[f32;2]>,

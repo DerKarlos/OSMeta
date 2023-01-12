@@ -20,7 +20,7 @@ mod instance_parameter; // nomen est omen
 mod materialobject; // An mesh with geometry and material
 mod textures;   // handle the textures for the material
 mod cars;       // read car.glm and instantiate cars of different color, size and position
-mod viewtile;   // a (sub-) square of the pbftile with all its material-objects
+pub mod viewtile;   // a (sub-) square of the pbftile with all its material-objects
 mod utils;      // nomen est omen
 mod print;      // Debug outputs. Todo? use print trait ?
 
@@ -41,7 +41,7 @@ use pbftile::*;
 use textures::*;
 use cars::*;
 
-
+use crate::cam_map::TileName;
 
 
 // This was not easy to find out!:
@@ -148,6 +148,7 @@ pub fn _fixup_images(
 // ----------------------------------------------------------------------
 
 // A "class" Object to show 3D meshes in the GPU
+#[derive(Debug)]
 pub struct Object {
     //  object_handle: Option<rend3::types::ObjectHandle>,
 }
@@ -395,6 +396,7 @@ impl OSM2World {
                 meshes:       &mut ResMut<Assets<Mesh>>,
                 materials:    &mut ResMut<Assets<StandardMaterial>>,
                 asset_server: &    Res<AssetServer>,
+                name:         &    TileName,
                 start_pos:    Vec3,
     ) -> OSM2World {
 
@@ -402,7 +404,7 @@ impl OSM2World {
         let mut textures = Textures::new();
         let mut cars = Cars::new();
 
-        let mut pbf_tile = PbfTile::new(4402, 2828, start_pos);
+        let mut pbf_tile = PbfTile::new(name.x, name.y, start_pos);
         pbf_tile.load( &mut (commands, meshes, materials, asset_server), &mut textures, &mut cars );
 
         OSM2World{}

@@ -29,7 +29,7 @@ pub fn server_path(file: String) -> String {
 }
 
 
-pub fn pbf_tile_path(x: i32, y: i32) -> String {
+pub fn pbf_tile_path(x: u32, y: u32) -> String {
     if LOCAL {
         format!("./assets/{}/{}.o2w.pbf", x, y)
     } else {

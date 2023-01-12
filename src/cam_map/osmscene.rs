@@ -1,3 +1,5 @@
+// OSM-Scene: A part of the  MAP,  visible in 3D
+
 use super::viewer::*;
 // import { PbfClient, ViewTile } from "./pbfclient.js"
 use super::geopos::{ GeoPos };
@@ -7,10 +9,13 @@ use super::cameraview::*;
 use super::utils::
 {
     TileName, // TileSize, 
-    ScenePos, PI, LAT_FAKT, PBF_ZOOM, FACT_ZOOM,
+    ScenePos, PI, LAT_FAKT, PBF_ZOOM, FACT_ZOOM
     //LayerStep, LoadStep, ViewStep, rad, degr, phytagoras,
     //DeviceLimit, default_height
 };
+
+//use super::o2w::*;
+//use crate::cam_map::viewtile::ViewTile;
 
 /**
  * Handler of a 3D rendered scene with OSM objects at a given geo position on Earth
@@ -68,6 +73,7 @@ pub struct OsmScene {
 
     /** 2D Array of pbf-tiles, "the Map" */
     //private _viewTiles: ViewTile[][],
+    //view_tiles: Vec<ViewTile>,
 
     /** the root-mesh of the osmScene to scale it i.e. on a table in a VR scene */
     // pub webARroot: BABYLON.Mesh,
@@ -81,7 +87,7 @@ pub struct OsmScene {
     //  lastUrl: string = "",
 
     /** count of loading workers to limit the running workers */
-    //pub pbfCount: f32, // = 0,
+    pub pbf_count: u32, // = 0,
     /** count of requested view tiles to limit the requests */
     //pub requestCount: f32, // = 0,  // todo: how to check if the load into the GPU is done? Ask BJS forum
     /** count of drawing view tiles, actually limited to 1 */
@@ -119,7 +125,12 @@ impl OsmScene {
 
         // ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss
 
+        // start-dummy only:
+        //let mut view_tiles: Vec<ViewTile> = Vec::new(); view_tiles.push( ViewTile::new(4402,2828) );
+
         let mut osm_scene = OsmScene{
+
+        //    view_tiles,
 
         /*****
         self.viewer = viewer;
@@ -170,6 +181,8 @@ impl OsmScene {
         // lat: 48.545707582202596 lon: 13.491210938407548
         null_corner_geo_pos: GeoPos::default(),
 
+        pbf_count: 0,
+
 
         /*
         self.groundRoot = new BABYLON.Mesh("groundRoot", self.scene); // ddd scene needed ???
@@ -194,16 +207,16 @@ impl OsmScene {
         osm_scene.first_pbf_tile_name  = geo_view.geo_pos.calc_tile_name(PBF_ZOOM);
         // pbf-tile 1/2 scaled would be 8/16 and added 12/20 i.e.  Adding is to get the first tiel next to the GPU 0 point
         osm_scene.first_view_tile_name = osm_scene.first_pbf_tile_name 
-                                     * TileName::new(FACT_ZOOM,FACT_ZOOM)
-                                     + TileName{x: (FACT_ZOOM / 2.).floor(), y: (FACT_ZOOM / 2.).floor()};
+                                     * TileName{x: FACT_ZOOM,   y: FACT_ZOOM  }
+                                     + TileName{x: FACT_ZOOM/2, y: FACT_ZOOM/2};
 
         osm_scene.fst_geo_pos = osm_scene.calc_corner_geo_pos_from_name(           osm_scene.first_pbf_tile_name,     PBF_ZOOM);
-        osm_scene.one_geo_pos = osm_scene.calc_corner_geo_pos_from_name(osm_scene.first_pbf_tile_name + 1., PBF_ZOOM);
+        osm_scene.one_geo_pos = osm_scene.calc_corner_geo_pos_from_name(osm_scene.first_pbf_tile_name + TileName::ONE, PBF_ZOOM);
         //println!("+111: {:?}",osm_scene.first_pbf_tile_name + 1.);
 
         osm_scene.null_geo_pos = osm_scene.calc_corner_geo_pos_from_name(
-                                                                            osm_scene.first_pbf_tile_name * 2. + 1.,
-                                                                            PBF_ZOOM + 1.
+                                                                            osm_scene.first_pbf_tile_name * TileName::TWO + TileName::ONE,
+                                                                            PBF_ZOOM + 1
                                                                         );
 
         // calcs the geoPos delta (degrees) and trans-calcs it to meters:
@@ -230,6 +243,7 @@ impl OsmScene {
 
 
         osm_scene.camera_view.push( geo_view.to_camera_view(&osm_scene) );
+
         // println!("osm_scene: {:#?}",osm_scene);
         osm_scene
 
@@ -348,10 +362,10 @@ impl OsmScene {
      * @param zoom  Zoom level on the OSM tile-name(x/y) system
      * @return a lat,lon geo position (GPS)
      */
-    pub fn calc_corner_geo_pos_from_name(&self, tile_name: TileName, zoom: f32) -> GeoPos {
-        let n = PI - 2. * PI * tile_name.y / 2.0_f32.powf(zoom);
+    pub fn calc_corner_geo_pos_from_name(&self, tile_name: TileName, zoom: u32) -> GeoPos {
+        let n = PI - 2. * PI * tile_name.y as f32 / 2_u32.pow(zoom) as f32;
         let lat = 180. / PI * (0.5 * ((n).exp() - (-n).exp() )).atan();
-        let lon = tile_name.x / 2.0_f32.powf(zoom) * 360. - 180.;
+        let lon = tile_name.x as f32 / 2_u32.pow(zoom) as f32 * 360. - 180.;
         GeoPos{lat, lon}
     }
 
@@ -465,19 +479,28 @@ impl OsmScene {
     / **
      * creates a new [[PbfTile]] instance and requests the data loading
      * @param viewTile_Name  The view tile, containing the pbf-tile
-     * /
-    requestPbfTile(viewTile: ViewTile): void {
-        if (self.viewer.pbfFileByte >= self.viewer.pbfFileMax) return;
-        if (self.pbfCount > 0) return; // a worker is still loading, don't do it twice the same time???
-        self.pbfCount++;
+     */
+    fn request_pbf_tile(&mut self, view_tile_name: TileName, load_pbf: &mut Option<TileName>) {
+    //  if self.viewer.pbf_file_byte >= PBF_FILE_MAX {return}
+        if self.pbf_count > 0 {return} // a worker is still loading, don't do it twice the same time???
+        self.pbf_count+=1;
         // view and pbfTile are not yet requested to load: start worker
-        let pbfTile_Name = viewTile.tile_Name.scale(1 / self.viewer.factZoom).floor();
-        self.pbfClients.push(new PbfClient(&self, pbfTile_Name));
-        return;
-    };
+        let pbf_tile_name = view_tile_name * TileName{x:FACT_ZOOM, y:FACT_ZOOM};
+        // self.pbfClients.push(PbfClient::new(&self, pbf_tile_name));
+
+        //let _osm2world = OSM2World::new(
+        //    &mut commands,
+        //    &mut meshes,
+        //    &mut materials,
+        //    &asset_server,
+        //    Vec3::new(0.0, 30.0, 0.0), // camera.transform.translation.clone(),    ::ZERO
+        //);
+
+        *load_pbf = Some(pbf_tile_name);
+    }
 
 
-    / **
+    /* *
      * Check if a view tile is ready to be requested for visualisation
      * and how importend the draw is. Importend is:
      * * if the tile is close to the spot, the camera is pointing to
@@ -583,7 +606,7 @@ impl OsmScene {
             if (!viewTile) viewTile = self.addViewTile(focusTile_Name.x, focusTile_Name.y);  //222
 
             if (!viewTile.pbfClient) {
-                self.requestPbfTile(viewTile); // request tile at camera
+                self.requestPbfTile(viewTile); // request pbf tile at camera
                 return undefined;
             }
 
@@ -637,9 +660,24 @@ impl OsmScene {
          * * 3) A layer request respones to 5 messages: layer parameters and 4 mesh data arrays (pbfClinet/Server)
          *
          * The good thing is: the layer requests are autonoumusly send to the GPU as a BabylonJS mesh.
-         * /
-        requestTiles(): void {
+         */
+        pub fn request_tiles(&mut self, load_pbf: &mut Option<TileName>) {
 
+        //  &self.requestPbfTile(view_tile.name, state); // ViewTile::new(4402,2828));
+            let _ = &self.request_pbf_tile(TileName{x: 4402*FACT_ZOOM,y: 2828*FACT_ZOOM}, load_pbf);
+
+            /*if self.view_tiles.len() > 0 {
+                let view_tile = &mut self.view_tiles[0];
+                if view_tile.pbf_client.is_some() {
+                    &self.requestPbfTile(view_tile.name, state); // ViewTile::new(4402,2828));
+                    view_tile.pbf_client = view_tile.pbf_client;
+                }    
+            }*/
+
+
+            
+
+        /*            
             if (self.drawCount > 0) // self is visible (during load) not usefull
                 return;
 
@@ -680,11 +718,11 @@ impl OsmScene {
                     viewTile.viewStep = ViewStep.done; // mark layer as done
                 }
             }
-
+*/
 
         }
 
-
+/*
     }
 
 

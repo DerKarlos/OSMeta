@@ -1,14 +1,14 @@
 // main_o2w1.rs = main_osm1.rs
 
-mod map_cam; // mod fly_control;
-mod o2w;
+mod cam_map; // mod fly_control;
+////mod o2w;
 
 use bevy::prelude::*;
 //e bevy::render::render_resource::SamplerDescriptor;
 //e bevy::render::texture::ImageSettings;
 
-use o2w::*;
-use map_cam::{FlyCam, MovementSettings, NoCameraPlugin };  // CameraPlugin  - fly_control::
+// use o2w::*;
+use cam_map::{CamMap, CamMapSettings, NoCamMapPlugin };  // CameraPlugin  - fly_control::
 
 //d ui;
 //e ui::*;
@@ -59,8 +59,8 @@ fn main() {
 
         // https://github.com/sburris0/bevy_flycam  ##  https://github.com/BlackPhlox/bevy_config_cam
         // NoCameraPlugin as we provide the camera
-        .add_plugin(NoCameraPlugin)
-        .insert_resource(MovementSettings {
+        .add_plugin(NoCamMapPlugin)
+        .insert_resource(CamMapSettings {
             sensitivity: 0.00015,               //  mouse sensitivity, default: 0.00012
             speed:      30.0,                   // camera movement speed, default: 12.0
             rotate:    (30.0_f32).to_radians(), // camera rotate speed  [degrees.to_radiants per secound]
@@ -138,7 +138,7 @@ fn setup(
 
     };
     // add plugin
-    commands.spawn(camera).insert(FlyCam);
+    commands.spawn(camera).insert(CamMap);
 
 
     // Create the OSM2World-viewer
@@ -172,15 +172,15 @@ fn setup(
 
     if !TEST {
         // OpenStreetMap !!!  Viewer instead?
-        let _osm2world = OSM2World::new(
-            &mut commands,
-            &mut meshes,
-            &mut materials,
-            &asset_server,
-            Vec3::new(0.0, 30.0, 0.0), // camera.transform.translation.clone(),    ::ZERO
-        );
+    //    let _osm2world = OSM2World::new(
+    //        &mut commands,
+    //        &mut meshes,
+    //        &mut materials,
+    //        &asset_server,
+    //        Vec3::new(0.0, 30.0, 0.0), // camera.transform.translation.clone(),    ::ZERO
+    //    );
     } else {
-        // cube
+        // test cube only
         commands.spawn(PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Cube { size: 10.0 })),
             material: materials.add(Color::rgb(0.8, 0.7, 0.6).into()),
