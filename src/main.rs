@@ -14,8 +14,8 @@ use cam_map::{CamMap, CamMapSettings, NoCamMapPlugin };  // CameraPlugin  - fly_
 //e ui::*;
 
 
-const TEST: bool = false;
-const FPS:  bool = false;
+pub const TEST: bool = true;
+pub const FPS:  bool = false;
 
 
 fn main() {

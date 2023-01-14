@@ -6,6 +6,7 @@ mod cameraview;
 mod geopos;
 mod geoview;
 mod utils;
+mod platform;
 
 mod o2w;
 pub use o2w::*;
@@ -18,6 +19,7 @@ use bevy::window::CursorGrabMode;
 
 use geoview::*;
 use geopos::*;
+use platform::*;
 
 use std::collections::HashMap;
 
@@ -38,7 +40,6 @@ pub struct CamMapState {
     reader_motion: ManualEventReader<MouseMotion>,
     viewer: Viewer, // The viewer instance(es) for this camera(s)   -- jus one now, but my become able to handle multible windows
     cookies: HashMap<String,String>,  // https://www.sitepoint.com/rust-global-variables/#singlethreadedglobalswithruntimeinitialization
-    shift: bool,
     pub init: bool,
 }
 
@@ -70,8 +71,8 @@ impl Default for CamMapState {
             reader_motion: ManualEventReader::default(),
             viewer: Viewer::default(),
             cookies,
-            shift:  false,
-            init:   false,
+        //  :  false,
+            init:   true,  // true = Test = no load of PBF file
         }
 
         //  settings.viewer.set_view(None, &mut Transform::default() ); // set view to default (transform is not used?)
@@ -139,23 +140,23 @@ fn initial_grab_cursor(mut windows: ResMut<Windows>) {
 }
 
 
+fn handle_view(shift: bool, id: String, input_state: &mut CamMapState, transform: &mut Transform) {
+    if shift {
+        input_state.viewer.get_geo_view_at_camera(&transform).store(id, &mut input_state.cookies);
+    } else {
+        input_state.viewer.get_geo_view_at_camera(transform).store("last".to_string(), &mut input_state.cookies);
+        let gv = GeoView::restore(id, &mut input_state.cookies);
+        input_state.viewer.set_view(gv, transform);
+    }
 
-fn set_view(id: String, input_state: &mut CamMapState, transform: &mut Transform) {
-    input_state.viewer.get_geo_view_at_camera(transform).store("last".to_string(), &mut input_state.cookies);
-    let gv = GeoView::restore(id, &mut input_state.cookies);
-    input_state.viewer.set_view(gv, transform);
-}
-
-fn store_view(id: String, input_state: &mut CamMapState, transform: &mut Transform) {
-    input_state.viewer.get_geo_view_at_camera(&transform).store(id, &mut input_state.cookies);
 }
 
 
 
 ////////////////// andles keyboard input and (cyclically) movement ()Move and Rotate) ////////////
 fn camera_move( // runs cycvlically! Only because of time ???
-        keys:     Res<Input<KeyCode>>,
-    //  scans:    Res<Input<ScanCode>>,
+   //   keys:     Res<Input<ScanCode>>,
+        scans:    Res<Input<ScanCode>>,
         time:     Res<Time>,
         windows:  Res<Windows>,
     mut commands: Commands,
@@ -180,7 +181,7 @@ fn camera_move( // runs cycvlically! Only because of time ???
 
             if !input_state.init {
                 input_state.init = true;
-                input_state.viewer.set_view(None, &mut transform); // default: next to university
+                input_state.viewer.set_view(None, &mut transform); // GPS default is next to university
             }
 
             if let Some(pbf_tile) = &input_state.viewer.load_pbf {
@@ -195,14 +196,10 @@ fn camera_move( // runs cycvlically! Only because of time ???
                 input_state.viewer.load_pbf = None;
             }
 
-            // test only for change to scan
-            //for scan in scans.get_just_pressed() {
-            //    println!("shift: {} scan: {:?}", input_state.shift, scan);
-            //} // get_just_pressed
 
             ////////// newly pressed or released key /////////
 
-            for key in keys.get_just_pressed() {
+            for scan in scans.get_just_pressed() {
 
                 let g0 = GeoView{  // 6 windows
                     geo_pos: GeoPos{
@@ -229,110 +226,76 @@ fn camera_move( // runs cycvlically! Only because of time ???
                     fov:    23.0,
                 };
 
-/*  ERROR! may be in winit
-    key:        RShift
-    key: Key0   Equals
-    key: Key9   Key0
-    key: Key8   Key9
-    key: Key7   Slash
-    key: Key6   Key7
-    key: Key5   =
-    key: Key4   =
-    key: Key3   =
-    key: Key2   Apostrophe
-    key: Key1   =
-*/
 
-                //println!("shift: {} key: {:?}", input_state.shift, key);
+                let scan_code = scan.0;
+                let shift = scans.pressed(ScanCode(Scancode::SHIFT));
 
-                if input_state.shift {
-                    match key {
-                        KeyCode::Key1       => store_view("1".to_string(), input_state, &mut transform), // 1 default
-                        KeyCode::Apostrophe => store_view("2".to_string(), input_state, &mut transform), // 2 center
-                        KeyCode::Key4       => store_view("4".to_string(), input_state, &mut transform), // 4 F4
-                        KeyCode::Key7       => store_view("6".to_string(), input_state, &mut transform), // 6 windows of Acropolos
-                        _ => (),
+                println!("XXX shift: {} Scancode: {:#04x} / {:?}", shift, scan_code, scan_code );
+
+                match scan_code {                        
+                //  Scancode::SHIFT => input_state.shift = true,
+
+                    Scancode::NUM1 => handle_view(shift, "1".to_string(), input_state, &mut transform), // 1 default
+                    Scancode::NUM2 => handle_view(shift, "2".to_string(), input_state, &mut transform), // 2 center
+                    Scancode::NUM4 => handle_view(shift, "4".to_string(), input_state, &mut transform), // 4 F4
+                    Scancode::NUM6 => handle_view(shift, "6".to_string(), input_state, &mut transform), // 6 windows of Acropolos
+
+                    // test only:
+                    Scancode::NUM9 => { input_state.viewer.set_view(None,     &mut transform); }, // default: next to university
+                    Scancode::NUM0 => { input_state.viewer.set_view(Some(g0), &mut transform); }, // center of first tile, test only
+                    Scancode::NUM5 => { input_state.viewer.set_view(Some(gv), &mut transform); }, // windows (of Acropolos?)
+
+                    Scancode::H    => { // test: show actual position as brower URL / abiut the cookie string
+                        let gv = input_state.viewer.get_geo_view_at_camera(&transform);
+                        println!(
+                            "URL:: x/z: {}/{} yaw/pitch:{}/{} lat/lon::{}/{}",
+                            transform.translation.x,
+                            transform.translation.z,
+                            yaw.to_degrees(),
+                            pitch.to_degrees(),
+                            gv.geo_pos.lat,
+                            gv.geo_pos.lon,
+                        );
+                    },
+
+                    Scancode::T    => { // Test someting
+
                     }
-                } else {
-                    match key {
 
-                        KeyCode::RShift | KeyCode::LShift => input_state.shift = true,
-
-                        // test only:
-                        KeyCode::Key9 => { input_state.viewer.set_view(None,     &mut transform); }, // default: next to university
-                        KeyCode::Key0 => { input_state.viewer.set_view(Some(g0), &mut transform); }, // center of first tile, test only
-                        KeyCode::Key5 => { input_state.viewer.set_view(Some(gv), &mut transform); }, // windows (of Acropolos?)
-
-                        // jump to stored view:
-                        KeyCode::Key1 => set_view("1".to_string(), input_state, &mut transform), // 1 default
-                        KeyCode::Key2 => set_view("2".to_string(), input_state, &mut transform), // 2 center
-                        KeyCode::Key4 => set_view("4".to_string(), input_state, &mut transform), // 4 F4
-                        KeyCode::Key6 => set_view("6".to_string(), input_state, &mut transform), // 6 windows of Acropolos
-
-                        KeyCode::Key7 => { // test: store in 6
-                            input_state.viewer.get_geo_view_at_camera(&transform).store("6".to_string(), &mut input_state.cookies);
-                        },
-
-                        KeyCode::H    => { // test: show actual position as brower URL / abiut the cookie string
-                            let gv = input_state.viewer.get_geo_view_at_camera(&transform);
-                            println!(
-                                "URL:: x/z: {}/{} yaw/pitch:{}/{} lat/lon::{}/{}",
-                                transform.translation.x,
-                                transform.translation.z,
-                                yaw.to_degrees(),
-                                pitch.to_degrees(),
-                                gv.geo_pos.lat,
-                                gv.geo_pos.lon,
-                            );
-                        },
-
-                        KeyCode::T    => { // Test someting
-                            let h = transform.translation.y;
-                            println!("test: {:#?} {:#?}", settings.speed,h*h*h*0.2);
-                        }
-
-                        _ => (),
-
-                    } // match key
-                } // no shift
+                    _ => (),
+                } // match scan_code
 
             } // get_just_pressed
 
 
-            for key in keys.get_just_released() {
-                match key {
-                    KeyCode::RShift | KeyCode::LShift => input_state.shift = false,
-                    _ => (),
-                }
-            }
-
-
             ////////// continously pressed key /////////
 
-            for key in keys.get_pressed() { // get me all the pressed keys for a loop
-                //println!("key: {:?}",key);
+            for scan in scans.get_pressed() { // get me all the pressed keys for a loop
+                //println!("scan: {:?}",scan);
 
                 match window.cursor_grab_mode() {
                     CursorGrabMode::None => (), // no grap, no acton
                     _ => {                      // grap: actions:
 
-                        match key {
+                        match scan.0 {
 
                             // move
-                            KeyCode::W | KeyCode::Up    => velocity += forward,
-                            KeyCode::S | KeyCode::Down  => velocity -= forward,
-                            KeyCode::A | KeyCode::Left  => velocity -=   right,
-                            KeyCode::D | KeyCode::Right => velocity +=   right,
+                            Scancode::W | Scancode::UP_ARROW    => velocity += forward,
+                            Scancode::S | Scancode::DOWN_ARROW  => velocity -= forward,
+                            Scancode::A | Scancode::LEFT_ARROW  => velocity -=   right,
+                            Scancode::D | Scancode::RIGHT_ARROW => velocity +=   right,
+
                             // move up/down. calc speed dependent of the height
-                            KeyCode::Space  | KeyCode::Plus  | KeyCode::Equals => { velocity += Vec3::Y; }, //  elevate
-                            KeyCode::LShift | KeyCode::Minus                   => { velocity -= Vec3::Y; }, // delevate
-                            // Key3 is # on the German keyboard ??? Needed for store! use + and -
+                            Scancode::SQUARE_BARCKET |                                  // ]  german layout: PLUS
+                            Scancode::SPACE              => { velocity += Vec3::Y; },   //  elevate
+                            Scancode::BACKSLASH      |                                  // \  german layout: SHARP
+                            Scancode::SLASH              => { velocity -= Vec3::Y; },   // delevate // german layout: MINUS
 
                             // rotate                                                                                            // ROTATE:
-                            KeyCode::Q                  => { yaw   += time.delta_seconds() * settings.rotate; rotated = true; }, // left
-                            KeyCode::E                  => { yaw   -= time.delta_seconds() * settings.rotate; rotated = true; }, // right
-                            KeyCode::R                  => { pitch += time.delta_seconds() * settings.rotate; rotated = true; }, // up
-                            KeyCode::F                  => { pitch -= time.delta_seconds() * settings.rotate; rotated = true; }, // down
+                            Scancode::Q => { yaw   += time.delta_seconds() * settings.rotate; rotated = true; }, // left  
+                            Scancode::E => { yaw   -= time.delta_seconds() * settings.rotate; rotated = true; }, // right 
+                            Scancode::R => { pitch += time.delta_seconds() * settings.rotate; rotated = true; }, // up    
+                            Scancode::F => { pitch -= time.delta_seconds() * settings.rotate; rotated = true; }, // down  
 
                             _ => (),
                         }
@@ -346,7 +309,7 @@ fn camera_move( // runs cycvlically! Only because of time ???
             //if transform.translation.y < 0.3 {transform.translation.y = 0.3};
 
             if rotated {
-                pitch = pitch.clamp(-1.54, 88_f32.to_radians() ); // todo:  degrees.to_radiants()
+                pitch = pitch.clamp(-88_f32.to_radians(), 88_f32.to_radians() );
                 // Order is important to prevent unintended roll
                 transform.rotation
                     = Quat::from_axis_angle(Vec3::Y, yaw  )  // beta?   mouse y: up/down
@@ -398,7 +361,10 @@ fn camera_look(
     }
 }
 
-fn cursor_grab(keys: Res<Input<KeyCode>>, mut windows: ResMut<Windows>) {
+fn cursor_grab(
+    keys: Res<Input<KeyCode>>,
+    mut windows: ResMut<Windows>
+) {  // use SCAN ???
     if let Some(window) = windows.get_primary_mut() {
         if keys.just_pressed(KeyCode::Escape) {
             toggle_grab_cursor(window);

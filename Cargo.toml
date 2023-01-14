@@ -5,6 +5,9 @@ edition = "2021"
 
 
 [dependencies]
+cfg-if = "1"
+
+winit = "0.27"
 
 ## d   = {version = "0.8.5", features = ["wasm-bindgen"] }
 rand   = {version = "0.8" }
@@ -17,7 +20,7 @@ anyhow = "1.0"
 ron = "0.8"
 serde = { version = "1", features = ["derive"] }
 
-wgpu =  "0.14"
+wgpu =  "0"
 
 ##async:
 reqwest = { version = "0.11", features = ["blocking"] }
@@ -25,7 +28,7 @@ image = { version = "0.24", default-features = false, features = ["png", "jpeg",
 pollster = "0.2"
 futures = "0.3"
 
-bevy = { version = "0.9", features = ["jpeg"] }
+bevy = { version = "0.9", features = ["jpeg"] } ## NOT the local file bevy, the one from the net
 ## control, used in examples:
 bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" }
 
@@ -33,11 +36,11 @@ bytemuck = "1.12"
 
 # S V G / data
 [target.'cfg(target_arch = "x86_64")'.dependencies]
-usvg = { version = "0.27", default-features=false, features=["text"] }
-resvg = "0.27"
+usvg = { version = "0.28", default-features=false }
+## g = { version = "0.28", default-features=false, features=["text"] }
+resvg = "0.28"
 tiny-skia = "0.8"
-base64 = "0.13"
-
+base64 = "0.21"
 
 
 [[example]]
