@@ -48,7 +48,7 @@ pub struct PbfTile {
     type_tree: u32,
     type_forest: u32,
 
-    material_objects: Vec<MaterialObject>,
+    material_objects: Vec<Vec<MaterialObject>>,
 }
 
 impl PbfTile {
@@ -58,6 +58,10 @@ impl PbfTile {
         let mut material_map = Vec::<Vec::<usize>>::new(); // NO! vec![..]
         material_map.push(           Vec::<usize>::new() );
         material_map.push(           Vec::<usize>::new() ); // This code syntax is not Working:  vec![<usize>;0]
+
+        let mut material_objects = Vec::<Vec::<MaterialObject>>::new();
+        material_objects.push(           Vec::<MaterialObject>::new() );
+        material_objects.push(           Vec::<MaterialObject>::new() );
 
         PbfTile {
             state: PbfState::Idle,
@@ -77,9 +81,10 @@ impl PbfTile {
             type_tree: 999,
             type_forest: 999,
 
-            material_objects: Vec::new(),
+            material_objects, //: Vec::new(),
         }
     }
+
 
     pub fn load(&mut self, renderer: &mut super::Renderer, textures: &mut Textures, cars: &mut Cars) -> ViewTile {
         logs(format!("  loading OSM tile: {} (takes some seconds or up to 3 minutes)", self.pbf_url));
@@ -129,8 +134,8 @@ impl PbfTile {
 
             //// Create first MaterialObject. May have a Texture ////
             let material_object = MaterialObject::new(pbf_material, pbf_material_index, 0);
-            self.material_map[0].push(self.material_objects.len());
-            self.material_objects.push(material_object);
+            self.material_map[0].push(self.material_objects[0].len());
+            self.material_objects[0].push(material_object);
 
             if texture_layers.len() > 1 {
                 let texture_layer = &texture_layers[1];
@@ -141,8 +146,8 @@ impl PbfTile {
 
                 //// Create second MaterialObject. Will have a Texture ////
                 let material_object = MaterialObject::new(pbf_material, pbf_material_index, 1);
-                self.material_map[1].push(self.material_objects.len());
-                self.material_objects.push(material_object);
+                self.material_map[1].push(self.material_objects[1].len());
+                self.material_objects[1].push(material_object);
             } else {
                 self.material_map[1].push(999); // push dummy
             };
@@ -151,9 +156,10 @@ impl PbfTile {
         // println!("134 material_map: {:?}", self.material_map);
 
         logs(format!( // !!! CPU->GPU ist faster with --release  why???
-            "Tile loaded. Bytes:{}  materials: {}  textures: {}>{}  osm-objects: {}.",
+            "Tile loaded. Bytes:{}  materials: {}+{}  textures: {}>{}  osm-objects: {}.",
             bytes.len(),
-            self.material_objects.len(),
+            self.material_objects[0].len(),
+            self.material_objects[1].len(),
             &textures.adds,
             &textures.len(),
             self.objects.len(),
@@ -188,7 +194,7 @@ impl PbfTile {
     fn proccess_objects(&mut self, cars: &mut Cars) {
         //let start = Local::now();
 
-        // get and draw all objects    ttt  iiiall
+        // get and draw all objects
         for (obejct_index, object) in self.objects.to_vec().iter().enumerate() {
             //if obejct_index != 1930  // 1930: -963.299, 1.0, -1295.737,
             //&& obejct_index != 11722 {continue}
@@ -200,43 +206,44 @@ impl PbfTile {
                 "".to_string()
             };
 
-                /****
-            if
-            //true ||
-                osm_id == "w127674957"  // !! ttt
-            //  osm_id == "w797605537"  ||
-            //  osm_id == "w797605530"  ||
-            //  osm_id == "w797605524"
-            {
-                / **** /
-                let tn = object.typeName() as usize;
-                let n = &self.strings[tn];
-                println!("\nObject #{}={:?} type: #{:?}={:?}", obejct_index, osm_id, tn,n );
-                let tgs = &object.triangleGeometries;
-                for g in tgs.iter() {  // Glass_Normal.jpg
-                    let mi = g.material() as usize;
-                    let _material = &self.pbf_materials[mi];
-                    println!("   tg material: #{}", mi ); // ääää
-                    //println!("   tg material: #{}={:#?}", mi, _material ); // ääää
-                    // let tls = &material.textureLayer;
-                    // for l in tls.iter() { println!(" * textureLayer: {:#?}", l ); }
-
-                }
-                / ****
-                let egs = object.get_extrusionGeometries();
-                for g in egs.iter() {
-                    let mi = g.get_material() as usize;
-                    let m = &self.pbf_materials[mi];
-                    println!("   eg material: #{}={:?}", mi, m );
-                }
-
-                let igs = &object.instanceGeometries;
-                for g in igs.iter() {
-                    println!("   instance: {:?}", g);
-                }
-                **** /
-            } else {continue};
-                ****/
+            let test = 0; // ttt 1:  0=off 1=filer on  2=and print triangles  3=and extrudes  4=and instances
+            if test>=1 {
+                if
+                    osm_id == "w127674957"
+                //  osm_id == "w797605537"  ||
+                //  osm_id == "w797605530"  ||
+                //  osm_id == "w797605524"
+                {
+                    let tn = object.typeName() as usize;
+                    let n = &self.strings[tn];
+                    println!("\nObject #{}={:?} type: #{:?}={:?}", obejct_index, osm_id, tn,n );
+                    if test>=2{
+                        let tgs = &object.triangleGeometries;
+                        for g in tgs.iter() {  // Glass_Normal.jpg
+                            let mi = g.material() as usize;
+                            let _material = &self.pbf_materials[mi];
+                            println!("   tg material: #{}", mi ); // ääää
+                            //println!("   tg material: #{}={:#?}", mi, _material ); // ääää
+                            // let tls = &material.textureLayer;
+                            // for l in tls.iter() { println!(" * textureLayer: {:#?}", l ); }
+                        }
+                    }
+                    if test>=3{
+                        let egs = &object.extrusionGeometries;
+                        for eg in egs.iter() {
+                            let mi = eg.material() as usize;
+                            let m = &self.pbf_materials[mi];
+                            println!("   eg material: #{}={:?}", mi, m );
+                        }
+                    }
+                    if test>=4{
+                        let igs = &object.instanceGeometries;
+                        for ig in igs.iter() {
+                            println!("   instance: {:?}", ig);
+                        }
+                    }
+                } else {continue};
+            }
 
             // n4750768485 = Bank vor Akropolis  index 1608  vertex 19238*3=57714: -1491.816​/500/721.101
 
@@ -407,7 +414,7 @@ impl PbfTile {
             let mut uvs = self.calc_uvdummies(vertices.len());
             let material_objects_index0 = self.material_map[0][pbf_material_index];
             // println!("texture empty: {},{}",material_objects_index0,pbf_material_index);
-            let material_object0 = &mut self.material_objects[material_objects_index0];
+            let material_object0 = &mut self.material_objects[0][material_objects_index0];
             material_object0.push_object(
                 &positions,
                 &mut uvs,
@@ -443,7 +450,7 @@ impl PbfTile {
 
                 let material_objects_index = self.material_map[texture_index][pbf_material_index];
                 // println!("texture index: {},{},{}",material_objects_index,texture_index,pbf_material_index);
-                let material_object = &mut self.material_objects[material_objects_index];
+                let material_object = &mut self.material_objects[texture_index][material_objects_index];
                 material_object.push_object(
                     &positions,
                     &mut uvs,
@@ -810,8 +817,11 @@ impl PbfTile {
       //let mut _test = 0;
         let mut full_count = 0;
 
-        // !! WHAT???  To make the 2. Texture visible, I have to "draw" it first! Does bevy revert the order???
-        for (mut _test, (index, material_object)) in self.material_objects.iter_mut()   .enumerate().enumerate() {  // .rev()
+        // ttt 2
+        // ? To make the 2. Texture visible, I have to "draw" it first?
+        for texture_index in (0..2).rev() { //   
+            println!("818 texture_index: {}",texture_index);
+        for (mut _test, (index, material_object)) in self.material_objects[texture_index].iter_mut() .rev() .enumerate().enumerate() {  // 
       //for             (index, material_object)  in self.material_objects.iter_mut().enumerate() {
             // (liefert) yields references
 
@@ -819,6 +829,9 @@ impl PbfTile {
 
             _test += 1;
             //if _test-1 == 999999999 {continue}
+
+
+
             let full = material_object.create_object(textures, renderer, index);
             if full {full_count += 1};
 
@@ -826,6 +839,9 @@ impl PbfTile {
             _positions += positions;
             _indices   += indices;
         }
+
+        }
+
         logs(format!("  rendered objects: {}", full_count));
 
         //logs(format!("Positions:{:?} Indices:{:?}", _positions, _indices));

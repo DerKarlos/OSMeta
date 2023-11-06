@@ -1,7 +1,6 @@
 // project uses
 use super::frontend::Material;
 use super::utils::*;
-//use crate::rendf;
 
 use super::textures::*;
 //e crate::pbftile::*;
@@ -27,6 +26,7 @@ pub struct MaterialObject {
     orm: String,
     nor: String,
     transp: u8,           // get_transparency
+    depth_bias: f32,
     color: Option<super::PbfColor>, // rgb alpha
     cull: bool, //  model.cull = Cull::Back; //??? crulle/hide:  None(all there?)  Front Back FrontAndBack(all gone!)
     object: Option<super::Object>, // model: Option<Model>,
@@ -40,8 +40,8 @@ impl MaterialObject {
             self.indices.len()    )
     }
 
-
     pub fn new(pbf_material: &Material, _pbf_material_index: usize, texture_layer_index: usize) -> MaterialObject {
+
         let cull = pbf_material.doubleSided(); // false = Cull::None  true = Cull::Back
 
         // color: bevy::prelude::Color::rgb(0.0, 1.0, 1.0),
@@ -61,7 +61,7 @@ impl MaterialObject {
 
         let texture_layers = &pbf_material.textureLayer;
 
-        /***** TEST ONLY: check if unsupported textures are used
+        /***** T E S T  O N L Y: check if unsupported textures are used
         if texture_layers.len() > 1 {
             let texture_layer = &mut texture_layers[0];
             if texture_layer.get_emissiveTextureURI().len() > 0     { log("emissiveTextureURI"    ); }
@@ -98,7 +98,7 @@ impl MaterialObject {
         }; // todo: eliminate this double from pbftile
 
         // create and return a instance:
-        MaterialObject {
+        let test = MaterialObject {
             positions: Vec::new(),
             uvs: Vec::new(),
             indices: Vec::new(),
@@ -106,11 +106,14 @@ impl MaterialObject {
             orm,
             nor,
             transp,
+            depth_bias: texture_layer_index as f32, // https://docs.rs/bevy/latest/bevy/pbr/struct.StandardMaterial.html#structfield.depth_bias
             color,
             cull,
             object: None, // model
             _pbf_material_index,
-        }
+        };
+        //println!("MaterialObject: {:#?}", test);
+        test
     }
 
 
@@ -147,12 +150,27 @@ impl MaterialObject {
 
 
     ////  finish
-    pub fn create_object(&mut self, textures: &mut Textures, renderer: &mut super::Renderer, _test_index: usize) -> bool {
+    pub fn create_object(&mut self, textures: &mut Textures, renderer: &mut super::Renderer, test_index: usize) -> bool {
 
         if self.positions.is_empty() {
-            logs(format!("--- No positions for material {:?}", _test_index));
+            //logs(format!("--- No positions for material {:?}", test_index));
             return false
         }
+
+
+    //if true // ttt 3
+    //&& self._pbf_material_index != 69 // Gibel
+    //&& self._pbf_material_index != 71 // Wand  0 ODER 1 ???
+    //&& self._pbf_material_index != 80 // Dach
+    //{return false};
+      
+      //if &self.url == "textures/Plaster002_Color.jpg"  {return false};
+      //if &self.url == "textures/Plaster002_Color.jpg"  {self.url = "textures/MarekCompositeWall00001_transparent.png".to_string() };
+      //if &self.url == "textures/MarekCompositeWall00001_transparent.png"  {self.url = "textures/Plaster002_Color.jpg".to_string() };
+
+        // println!("159 _pbf_material_index: {} {:#?}",self._pbf_material_index,&self); // .url
+
+
 
         let material_handle = super::pbr_material(
             self.color,
@@ -160,6 +178,7 @@ impl MaterialObject {
             &self.orm,
             &self.nor,
             self.transp,
+            self.depth_bias,
             self.cull, // some renderer need it at the material, some at the mesh
             textures,
             renderer,
@@ -188,7 +207,7 @@ impl MaterialObject {
             self.indices.clone(),
             material_handle,
             self.cull, // some renderer need it at the material, some at the mesh
-            _test_index,
+            test_index,
             renderer,
         ); // todo: no clone or "delete"
         self.object = Some(object);

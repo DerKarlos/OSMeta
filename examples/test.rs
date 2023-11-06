@@ -1,23 +1,103 @@
-////////////// main_pbf.rs ==>  example pbf.rs (or test.rs) //////////
+// trees0.rs
+
 use bevy::prelude::*;
+use bevy::render::mesh::Indices;
+use bevy::render::mesh::PrimitiveTopology;
 
-
-#[derive(Component)]
-struct Movable;
-
-
-
-/// This example shows various ways to configure texture materials in 3D
 fn main() {
     App::new()
+        .insert_resource(Msaa { samples: 4 })
+
         .add_plugins(DefaultPlugins)
-        .add_plugin(bevy_flycam::NoCameraPlayerPlugin) // https://github.com/sburris0/bevy_flycam  ##  https://github.com/BlackPhlox/bevy_config_cam
         .add_startup_system(setup)
-        .add_system(movement)
         .run();
 }
 
-/// sets up a scene with textured entities
+
+fn _create_tree() -> Mesh {
+
+    //  2__3
+    //  | /|
+    //  |/ |
+    //  0--1
+
+    let w = 2.0;
+    let h = 6.0;
+    let n = 0.0;
+    let positions = vec![
+    /*       x    y    z  */
+    /*0:*/ [-w,  n,	 n ],
+    /*1:*/ [ w,  n,  n ],
+    /*2:*/ [-w,  h,  n ],
+    /*3:*/ [ w,  h,  n ],
+    /*4:*/ [ n,  n,  w ],
+    /*5:*/ [ n,  n, -w ],
+    /*6:*/ [ n,  h,  w ],
+    /*7:*/ [ n,  h, -w ],
+    ];
+
+    let uvs = vec![
+    /*       u   v  is related to  x  y in this case  */
+    /*0:*/ [ 1., 1. ],
+    /*1:*/ [ 0., 1. ],
+    /*2:*/ [ 1., 0. ],
+    /*3:*/ [ 0., 0. ],
+    /*4:*/ [ 1., 1. ],
+    /*5:*/ [ 0., 1. ],
+    /*6:*/ [ 1., 0. ],
+    /*7:*/ [ 0., 0. ],
+    ];
+
+    let indices = vec![
+    0,	 1,	 3,
+    0,	 3,	 2,
+    4,	 5,	 7,
+    4,	 7,	 6,
+    ];
+
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+    mesh.set_indices(Some(Indices::U32(indices)));
+    // pub fn compute_flat_normals(&mut self)   Panics if Indices are set  ==>>  NOT set !!! todo: issue?
+
+    /**** THIS (MORE VERTICES)
+    // compute only works with duplicate!
+    mesh.duplicate_vertices();   // ERROR bevy_pbr::material: Mesh is missing requested attribute: Vertex_Normal (MeshVertexAttributeId(1), pipeline type: Some("bevy_pbr::material::MaterialPipeline<bevy_pbr::pbr_material::StandardMaterial>"))
+    mesh.compute_flat_normals(); // thread 'TaskPool (0)' panicked at 'assertion failed: `(left == right)`  //   left: `8`,  //  right: `6`: MeshVertexAttributeId(1) has a different vertex count (6) than other attributes (8) in this mesh.', /Users/karlos/.cargo/registry/src/github.com-1ecc6299db9ec823/bevy_render-0.7.0/src/mesh/mesh/mod.rs:208:17
+    OR THAT: ****/
+
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, vec![
+        [0.0, 0.0, 1.0],
+        [0.0, 0.0, 1.0],
+        [0.0, 0.0, 1.0],
+        [0.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+        [1.0, 0.0, 0.0],
+    ]);
+
+    /*
+    let a = 1.00;
+    let c = 0.01;
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, vec![
+        [c, c, c, a],
+        [c, c, c, a],
+        [c, c, c, a],
+        [c, c, c, a],
+        [c, c, c, a],
+        [c, c, c, a],
+        [c, c, c, a],
+        [c, c, c, a],
+    ]);
+     */
+
+    mesh
+}
+
+
+/// set up a simple 3D scene
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -25,128 +105,67 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
 
-
-    // ambient light
-    commands.insert_resource(AmbientLight {
-        color: Color::WHITE,
-        brightness: 0.02,
+    // plane
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Mesh::from(shape::Plane { size: 5.0 })),
+        material: materials.add(Color::rgb(0.3, 0.5, 0.3).into()),
+        ..default()
     });
 
 
-    // point light
-    commands
-        .spawn(PointLightBundle {
-            transform: Transform::from_xyz(0.0, 0.0, 3.0),
-            point_light: PointLight {
-                intensity: 10.0, // 1600 lumens - roughly a 100W non-halogen incandescent bulb
-                color: Color::WHITE,
-                shadows_enabled: true,
-                ..default()
-            },
+    // tree(s)
+    let texture_handle = asset_server.load("arbaro_tree_broad_leaved.png");
+
+    const MAX: usize = 7;
+    let max = MAX as f32;
+    for n in 0..MAX {   // ein mal Quad 10000 war ok.  10000 macht 13 FPS statt <=30.  Äh!! Nur die sichtbaren zählen?!
+        let m = n as f32;
+        let c = (max-m)/max;
+        //println!("c: {}",c);
+        let d = [c,c,c,1.0];
+        let e = vec![d;8];
+        let mut mesh = _create_tree();
+        mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, e);
+
+        commands.spawn(PbrBundle {
+            mesh: meshes.add(mesh),
+            material: materials.add(
+                StandardMaterial {
+                    base_color_texture: Some(texture_handle.clone() ),
+                    alpha_mode: bevy::pbr::AlphaMode::Mask(0.5), // Opaque, Mask(0.5), Blend,
+
+                    double_sided: true, // needed to have both sides equal lighted
+                    cull_mode: None,  // No cull of the back side.  Default is: Some(bevy::render::render_resource::Face::Back),
+                    ..default()
+                }
+            ),
+            transform: Transform::from_xyz(0.0, 0.0, -m ),
             ..default()
-        });
+        })
+        ;
+    }
+
+    //// light ////
+    // Shadows do not work correct on my Macbook Air native, but in the browser it is ok.
+    let mut _shadows = true;
+    #[cfg(not(target_arch = "wasm32"))]
+    { _shadows = false; }
+    commands.spawn(PointLightBundle {
+        point_light: PointLight {
+            intensity: 1500.0,
+            shadows_enabled: _shadows,
+            ..default()
+        },
+        transform: Transform::from_xyz(4.0, 8.0, 4.0),
+        ..default()
+    });
 
 
     // camera
     commands.spawn(Camera3dBundle {
-        transform: Transform::from_xyz(0.0, 0.0, 2.0).looking_at(Vec3::ZERO, Vec3::Y),
-        ..default()
-    })
-     // NO: .insert(bevy_flycam::FlyCam)  // The camera is NOT moved by the fly-controls,
-    ;// we want to see the light effects if the PBR rotates
-
-
-    // load a texture and retrieve its aspect ratio
-    let _normals_handle:   Handle<Image> = asset_server.load("ManholeCover004_Normal.jpg"); // jpg!!!
-    let _texture_handle:   Handle<Image> = asset_server.load("ManholeCover004_Color.png");
-    //   AoMRTextures Combined: ao/m/r_texture:  Texture with Ambient Occlusion in R, Metallic in G, and Roughness in B
-    let _metallic_handle:  Handle<Image> = asset_server.load("ManholeCover004_ORM-G.png"); // Green
-    let _occlusion_handle: Handle<Image> = asset_server.load("ManholeCover004_ORM-R.png"); // Red
-    //t _roughness_handle: Handle<Image> = asset_server.load("ManholeCover004_ORM-B.png"); // Blue
-    let _orm_o_orm_handle: Handle<Image> = asset_server.load("ManholeCover004_ORM.jpg");   // ALL
-
-    let aspect = 1.0;
-    // create a new quad mesh. this is what we will apply the texture to
-    let quad_width = 1.5;
-    let quad_handle = meshes.add(Mesh::from(shape::Quad::new(Vec2::new(
-        quad_width,
-        quad_width * aspect,
-    )))); // new Vec2, new shape, Mesh::from, meshes.add
-
-    let material_handle = materials.add(StandardMaterial {
-        unlit: false, // no ???
-        alpha_mode: AlphaMode::Blend, // transparency Blend: "analog" from base_color_texture alpha
-
-        base_color: Color::rgba( 1.0, 1.0, 1.0,   1.0, ),  // rgb  -- alpha 1=visible 0=transparent
-        base_color_texture: Some(_texture_handle.clone()),
-
-        // ROUGHNESS&/glossiness: perceived smoothness (0.0 exact reflection) or roughness (1.0 rough diffuse = default).
-
-        metallic: 1.0, // dielectric (0.0, non-metal) or conductor (1.0, metal).
-        metallic_roughness_texture: Some(_orm_o_orm_handle.clone()), // Green (and Blue?)
-        reflectance: 0.5, // Specular intensity for non-metals. The default is 0.5, or 4% reflectance.
-
-
-      //occlusion_texture: Some(occlusion_handle.clone()), // Red: Reaction to Hemispheric/ambient Light (heightmap) (white=1)
-      // emissive:Color::rgb( 0.0, 0.0, 1.0, ), // self iluminated material
-      // emissive_texture: Option<Handle<Image>>
-      normal_map_texture: Some(_normals_handle.clone()),
-        // flip_normal_map_y: true,
+        transform: Transform::from_xyz(-8.0, 10.0, 20.0).looking_at(Vec3::ZERO, Vec3::Y),
         ..default()
     });
 
-
-/* NOTES from the glft-loader:
-LoadedAsset::new(StandardMaterial {
-    base_color: Color::rgba(color[0], color[1], color[2], color[3]),
-    base_color_texture,
-    perceptual_roughness: pbr.roughness_factor(),
-    metallic: pbr.metallic_factor(),
-    metallic_roughness_texture,
-    normal_map_texture,
-    double_sided: material.double_sided(),
-    cull_mode: if material.double_sided() {
-        None
-    } else {
-        Some(Face::Back)
-    },
-    occlusion_texture,
-    emissive: Color::rgba(emissive[0], emissive[1], emissive[2], 1.0),
-    emissive_texture,
-    unlit: material.unlit(),
-    alpha_mode: alpha_mode(material),
-    ..Default::default()
-}),
-*/
-
-
-    // Intance a PBR-square
-    commands.spawn(PbrBundle {
-        mesh: quad_handle.clone(),
-        material: material_handle,
-        transform: Transform {
-            translation: Vec3::new(0.0, 0.0, 0.0),
-        //  rotation: Quat::from_rotation_x(-std::f32::consts::PI / 5.0),
-            ..default()
-        },
-        ..default()
-    })
-    .insert(bevy_flycam::FlyCam)    // Square moved by Fly-(Camera)-controls  (the square, not the camera is moved)
-    .insert(Movable)    // square moves itselves (if fly-control is not used)
-    ;
 }
 
-
-// temporal movement (not fly control)
-fn movement(
-    _input: Res<Input<KeyCode>>,
-    time: Res<Time>,
-    mut query: Query<&mut Transform, With<Movable>>,
-) {
-    for mut transform in query.iter_mut() {
-        //println!("xx {:?}", transform);
-        let delta_n = 0.02*time.delta_seconds();
-        let delta_rotation = Quat::from_euler(EulerRot::ZYX, 0.0, delta_n, 0.0,);
-        transform.rotation *= delta_rotation; // multiply! means addition
-    }
-}

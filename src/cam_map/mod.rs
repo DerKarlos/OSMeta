@@ -18,7 +18,7 @@ use bevy::prelude::*;
 use bevy::window::CursorGrabMode;
 
 use geoview::*;
-use geopos::*;
+//use geopos::*;
 use platform::*;
 
 use std::collections::HashMap;
@@ -41,6 +41,7 @@ pub struct CamMapState {
     viewer: Viewer, // The viewer instance(es) for this camera(s)   -- jus one now, but my become able to handle multible windows
     cookies: HashMap<String,String>,  // https://www.sitepoint.com/rust-global-variables/#singlethreadedglobalswithruntimeinitialization
     pub init: bool,
+    _osm2world: Option<OSM2World>,
 }
 
 impl Default for CamMapState {
@@ -50,21 +51,17 @@ impl Default for CamMapState {
         // viewer.set_view(None, &transform);
 
         let mut cookies = HashMap::default();
+        //          .                         lat               lon                hi  dir vie rad  fov
         cookies.insert("1".to_string(), "48.56583701046516 13.453166231638868 1.6 -32 -12 547. 23".to_string()); // 1 default uni
         cookies.insert("2".to_string(), "48.57203151991611 13.456722845073253 1.6 -63 -6. 77.1 23".to_string()); // 2 center
+        cookies.insert("3".to_string(), "48.56439632980203 13.430698929491165 1.6 -68 -0. 35.7 23".to_string()); // 3 cars
         cookies.insert("4".to_string(), "48.56725450000000 13.453000000000000 1.6 -30 -10 375. 23".to_string()); // 4 F4
+        cookies.insert("5".to_string(), "48.52713530972139 13.415167708626935 1.6 182 -25 1377 23".to_string()); // 5 wood
         cookies.insert("6".to_string(), "48.56690610000000 13.448879100000000 1.6 121 -10 65.0 23".to_string()); // 6 windows
+        cookies.insert("7".to_string(), "48.57739134741593 13.423744066161506 1.6 -44 -21 116. 23".to_string()); // 7 solar
+        cookies.insert("8".to_string(), "48.59397502885877 13.389369883128929 97. 120 -10 0.50 23".to_string()); // 8 crane
+        cookies.insert("9".to_string(), "48.59158409512967 12.701907495407475 1.6 63. -3. 705. 23".to_string()); // 9 wind
         //          .                         lat               lon                hi  dir vie rad  fov
-        //cookie =  "OSM2World_GeoView_Digit1=48.56583701046516 13.453166231638868 1.6 -32 -12 547. 23;samesite=strict"; // 1 default uni
-        //cookie =  "OSM2World_GeoView_Digit2=48.57203151991611 13.456722845073253 1.6 -63 -6. 77.1 23;samesite=strict"; // 2 center
-        //cookie =  "OSM2World_GeoView_Digit3=48.56439632980203 13.430698929491165 1.6 -68 -0. 35.7 23;samesite=strict"; // 3 cars
-        //cookie =  "OSM2World_GeoView_Digit4=48.56725450000000 13.453000000000000 1.6 -30 -10 375. 23;samesite=strict"; // 4 F4
-        //cookie =  "OSM2World_GeoView_Digit5=48.52713530972139 13.415167708626935 1.6 182 -25 1377 23;samesite=strict"; // 5 wood
-        //cookie =  "OSM2World_GeoView_Digit6=48.56690610000000 13.448879100000000 1.6 121 -10 65.0 23;samesite=strict"; // 6 windows
-        //cookie =  "OSM2World_GeoView_Digit7=48.57739134741593 13.423744066161506 1.6 -44 -21 116. 23;samesite=strict"; // 7 solar
-        //cookie =  "OSM2World_GeoView_Digit8=48.59397502885877 13.389369883128929 97. 120 -10 0.50 23;samesite=strict"; // 8 crane
-        //cookie =  "OSM2World_GeoView_Digit9=48.59158409512967 12.701907495407475 1.6 63. -3. 705. 23;samesite=strict"; // 9 wind
-        //                                    lat               lon                hi  dir vie rad  fov
 
 
         Self{
@@ -72,7 +69,8 @@ impl Default for CamMapState {
             viewer: Viewer::default(),
             cookies,
         //  :  false,
-            init:   true,  // true = Test = no load of PBF file
+            init:   false,  // true = Test = no load of PBF file
+            _osm2world: None,
         }
 
         //  settings.viewer.set_view(None, &mut Transform::default() ); // set view to default (transform is not used?)
@@ -144,7 +142,7 @@ fn handle_view(shift: bool, id: String, input_state: &mut CamMapState, transform
     if shift {
         input_state.viewer.get_geo_view_at_camera(&transform).store(id, &mut input_state.cookies);
     } else {
-        input_state.viewer.get_geo_view_at_camera(transform).store("last".to_string(), &mut input_state.cookies);
+        if id != "last" { input_state.viewer.get_geo_view_at_camera(transform).store("last".to_string(), &mut input_state.cookies); }
         let gv = GeoView::restore(id, &mut input_state.cookies);
         input_state.viewer.set_view(gv, transform);
     }
@@ -182,17 +180,20 @@ fn camera_move( // runs cycvlically! Only because of time ???
             if !input_state.init {
                 input_state.init = true;
                 input_state.viewer.set_view(None, &mut transform); // GPS default is next to university
+                let cam = input_state.viewer.get_camera_view(&mut transform);
+                let geo_view = cam.to_geo_view(&input_state.viewer.osm_scene[0]);
+                geo_view.store("start".to_string(), &mut input_state.cookies);
             }
 
             if let Some(pbf_tile) = &input_state.viewer.load_pbf {
-                let _osm2world = OSM2World::new(
+                input_state._osm2world = Some(OSM2World::new(
                     &mut commands,
                     &mut meshes,
                     &mut materials,
                     &asset_server,
                     pbf_tile,
                     Vec3::new(0.0, 30.0, 0.0), // camera.transform.translation.clone(),    ::ZERO
-                );
+                ));
                 input_state.viewer.load_pbf = None;
             }
 
@@ -201,7 +202,7 @@ fn camera_move( // runs cycvlically! Only because of time ???
 
             for scan in scans.get_just_pressed() {
 
-                let g0 = GeoView{  // 6 windows
+            /* let g0 = GeoView{  // 6 windows
                     geo_pos: GeoPos{
                              lat: 48.560251-0.0003, // 48.574795  48.545708
                              lon: 13.469238,        // 13.447266  13.491211
@@ -212,38 +213,33 @@ fn camera_move( // runs cycvlically! Only because of time ???
                     radius: 99.9,
                     fov:    22.2,
 
-                };
-
-                let gv = GeoView{  // 6 windows
-                    geo_pos: GeoPos{
-                             lat: 48.5669061,
-                             lon: 13.4488791,
-                         },
-                    height:  1.6,
-                    dir:   121.0, // alpha
-                    view:  -10.0, // beta
-                    radius: 65.0,
-                    fov:    23.0,
-                };
+                }; */
 
 
                 let scan_code = scan.0;
                 let shift = scans.pressed(ScanCode(Scancode::SHIFT));
 
-                println!("XXX shift: {} Scancode: {:#04x} / {:?}", shift, scan_code, scan_code );
+                //println!("XXX shift: {} Scancode: {:#04x} / {:?}", shift, scan_code, scan_code );
 
                 match scan_code {                        
                 //  Scancode::SHIFT => input_state.shift = true,
 
-                    Scancode::NUM1 => handle_view(shift, "1".to_string(), input_state, &mut transform), // 1 default
-                    Scancode::NUM2 => handle_view(shift, "2".to_string(), input_state, &mut transform), // 2 center
-                    Scancode::NUM4 => handle_view(shift, "4".to_string(), input_state, &mut transform), // 4 F4
-                    Scancode::NUM6 => handle_view(shift, "6".to_string(), input_state, &mut transform), // 6 windows of Acropolos
+                    Scancode::NUM1 => handle_view(shift, "1".to_string(), input_state, &mut transform),
+                    Scancode::NUM2 => handle_view(shift, "2".to_string(), input_state, &mut transform),
+                    Scancode::NUM3 => handle_view(shift, "3".to_string(), input_state, &mut transform),
+                    Scancode::NUM4 => handle_view(shift, "4".to_string(), input_state, &mut transform),
+                    Scancode::NUM5 => handle_view(shift, "5".to_string(), input_state, &mut transform),
+                    Scancode::NUM6 => handle_view(shift, "6".to_string(), input_state, &mut transform),
+                    Scancode::NUM7 => handle_view(shift, "7".to_string(), input_state, &mut transform),
+                    Scancode::NUM8 => handle_view(shift, "8".to_string(), input_state, &mut transform),
+                    Scancode::NUM9 => handle_view(shift, "9".to_string(), input_state, &mut transform),
+                    Scancode::NUM0 => input_state.viewer.restore_start(&mut input_state.cookies, &mut transform),
+
+                    Scancode::DEL  => handle_view(false, "last".to_string(), input_state, &mut transform),
 
                     // test only:
-                    Scancode::NUM9 => { input_state.viewer.set_view(None,     &mut transform); }, // default: next to university
-                    Scancode::NUM0 => { input_state.viewer.set_view(Some(g0), &mut transform); }, // center of first tile, test only
-                    Scancode::NUM5 => { input_state.viewer.set_view(Some(gv), &mut transform); }, // windows (of Acropolos?)
+                  //Scancode::NUM0 => { input_state.viewer.set_view(Some(g0), &mut transform); }, // center of first tile, test only
+                  //Scancode::NUM0 => { input_state.viewer.set_view(None,     &mut transform); }, // default: next to university
 
                     Scancode::H    => { // test: show actual position as brower URL / abiut the cookie string
                         let gv = input_state.viewer.get_geo_view_at_camera(&transform);
@@ -259,7 +255,6 @@ fn camera_move( // runs cycvlically! Only because of time ???
                     },
 
                     Scancode::T    => { // Test someting
-
                     }
 
                     _ => (),

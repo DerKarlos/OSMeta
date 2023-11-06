@@ -14,24 +14,26 @@ use cam_map::{CamMap, CamMapSettings, NoCamMapPlugin };  // CameraPlugin  - fly_
 //e ui::*;
 
 
-pub const TEST: bool = true;
+    const TEST: bool = false;
 pub const FPS:  bool = false;
 
 
 fn main() {
 
+    println!("main 23");
+
     let window_plugin = WindowPlugin {
         window: WindowDescriptor {
             title: "OSMeta - OpenStreetMap Metaverse ;-)".to_string(),
-            //width: 500.,
-            //height: 300.,
-            //present_mode: PresentMode::AutoVsync,
+            //width: 500., height: 300.,
             //always_on_top: true,
-            //????  present_mode: bevy::window::PresentMode::Fifo, // Not that usefull???: Immediate: 16-18, Mailbox:14.5, Fifo:14.x
+            //present_mode: bevy::window::PresentMode::???, // Not that usefull: AutoVsync:?, AutoNoVsync:?, Immediate: 16-18, Mailbox:14.5, Fifo:14.x
             ..default()
         },
         ..default()
     };
+
+    println!("main 36");
 
     let image_plugin = ImagePlugin {
             default_sampler: wgpu::SamplerDescriptor {
@@ -43,6 +45,7 @@ fn main() {
         ..default()
     };
 
+    println!("main 48");
 
     let mut app = App::new();
     app
@@ -67,6 +70,8 @@ fn main() {
         })
         ;
 
+        println!("main 73");
+
         if FPS {
             // Show Framerate in Console   
             app
@@ -77,7 +82,11 @@ fn main() {
     
         //  .add_system(fixup_images)
 
+        println!("main 85");
+
         app.run();
+
+        println!("main 89");
 
         info!("Move camera around by using WASD for lateral movement");
         info!("Use Left Shift and Spacebar for vertical movement");
@@ -101,6 +110,7 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
 
+    println!("main 113");
 
     //// light ////8
     // Shadows do not work correct on my Macbook Air native, but in the browser it is ok.
@@ -169,6 +179,7 @@ fn setup(
     //var geoView = new OSM2WORLD.GeoView(geoPos /*default: geoPos, 1.8, -90.8, -15.8, 500.8*/ ); // hejght, compas, up/down, distance
 //  viewer.set_view(None); // geoView // finds or creates a new Scene at this place on Earth and sets the camera view
 
+    println!("main 182");
 
     if !TEST {
         // OpenStreetMap !!!  Viewer instead?
@@ -214,6 +225,7 @@ fn setup(
     }
 
 
+    println!("main 228");
 
 
 

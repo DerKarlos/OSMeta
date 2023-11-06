@@ -34,7 +34,7 @@ use crate::cam_map::TileName;
 #[derive(Default)]
 pub struct Viewer {
     geo_view:  Option<GeoView>, // Default = None?
-    osm_scene: Vec<OsmScene>,   // Default = empty Vec?
+    pub osm_scene: Vec<OsmScene>,   // Default = empty Vec?
     /** Counter of pbf-file bytes to limit the loading memory */
     pub pbf_file_byte: u32,
     pub load_pbf: Option<TileName>,
@@ -70,15 +70,19 @@ pub struct Viewer {
             self.geo_view = Some(GeoView::default( GeoPos::default() )); // default passau
         }
 
-        println!("    geo_view: {:?}", self.geo_view);
+        //println!("    geo_view: {:?}", self.geo_view);
 
         if self.osm_scene.len() == 0
         { // create the scene. //??? it will set the camera_view to.
             println!("    scene geo_view: {:?}", self.geo_view.unwrap());
+            let geo_view = self.geo_view.unwrap();
             let mut osm_scene = OsmScene::new(
-                self.geo_view.unwrap(),
+                geo_view,
                 self
             );
+
+            // geo_view.store("start".to_string(), cookies);
+
             osm_scene.request_tiles(&mut self.load_pbf);
             self.osm_scene.push(osm_scene);
 
@@ -86,7 +90,7 @@ pub struct Viewer {
         }
 
         let camera_view = self.geo_view.unwrap().to_camera_view(&self.osm_scene[0]);
-        println!("    camera_view: {:?}", camera_view);
+        //println!("    camera_view: {:?}", camera_view);
         self.set_camera(&camera_view, transform ); // just set the camera
 
     }
@@ -677,23 +681,25 @@ pub struct Viewer {
 
     /* *
      * Restore the start position and view, stored by the scene automatically
-     * /
-    restoreStart(): void {
-        let view = this.restore("start");
-        if (!view) return;
+     */
+    pub fn restore_start(&mut self, cookies: &mut HashMap<String,String>, transform: &mut Transform) {
+        let option_geo_view = GeoView::restore("start".to_string(), cookies );
 
-        this.setGeoView(view);
-        if (this.osmScene) this.osmScene.webARroot.scaling = new BABYLON.Vector3(1, 1, 1);
+        if let Some(_) = option_geo_view {
+            self.set_view(option_geo_view, transform );
+            // if (this.osmScene) this.osmScene.webARroot.scaling = new BABYLON.Vector3(1, 1, 1);
+        }
+
     }
 
 
 
-    / **
+    /* *
      * restore this geo pos from browser cookie
      * @param id  "name" of the cookie to restore it
      * @return restored geo view
-     */
-    pub fn _restore_geo_view(&self, id: String, cookies: &mut HashMap<String,String>, transform: &Transform) -> Option<GeoView> {
+     * /
+    pub fn restore_geo_view(&self, id: String, cookies: &mut HashMap<String,String>, transform: &Transform) -> Option<GeoView> {
 
         // todo: far jump calcualtes wrong pbf-tile ? (wind=>passau)
         // https://192.168.3.141:8080/o2w/tiles/13/4385/2827.o2w.pbf = wind
@@ -733,7 +739,7 @@ pub struct Viewer {
 
 
 
-    /* *
+    / **
      * Sets the loading UI step and text
      * @param message  new visible text
      * @param step  just a number, count up

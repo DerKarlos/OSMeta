@@ -244,6 +244,7 @@ pub fn pbr_material(
     _orm: &str,
     _nor: &str,
     transparency: u8,
+    depth_bias: f32,
     cull: bool,
     _textures: &mut Textures,
     (_commands,_meshes,materials,asset_server): &mut Renderer,
@@ -258,15 +259,16 @@ pub fn pbr_material(
     match transparency {
         1 => bevy::pbr::AlphaMode::Blend,      // 1: TRUE,   windows!  (analog)
         2 => bevy::pbr::AlphaMode::Mask(0.5),  // 2: BINARY, trees (not analog)
-        _ => bevy::pbr::AlphaMode::Opaque,     // 0, 3.. no tramsparency    // 3: FALSE   "undurchsichtig"
+        _ => bevy::pbr::AlphaMode::Opaque, //ttt Opaque!     // 0, 3.. no tramsparency    // 3: FALSE   "undurchsichtig"
     };
 
     // Add PBR material with all defaults
     let mut material = StandardMaterial {
-        unlit: false, // no ???
         alpha_mode,   //: bevy::pbr::AlphaMode::Mask(0.5), // Opaque, Mask(0.5), Blend,
+        depth_bias,
         double_sided, // needed to have both sides equal lighted
         cull_mode,
+    //  unlit: false, // no ???
         ..default()
     };
 
@@ -278,7 +280,7 @@ pub fn pbr_material(
     if !url.is_empty()
     && !url.starts_with("data:")
     && !url.ends_with(".svg") { // url.len() > 0_usize
-        // println!("material _url: {:?}",url);
+        // println!("material _url: {:?}",url); // Windows = "textures/MarekCompositeWall00001_transparent.png"
         let texture_handle = load_texture(url.to_string(), asset_server);
         material.base_color_texture = Some(texture_handle.clone() );
 

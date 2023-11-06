@@ -17,7 +17,7 @@ pub fn print_materials(pbf_materials: &[Material], limit: u8) {
 
 pub fn print_material(index: usize, material: &Material, limit: u8) {
     println!(
-        "   material: #{} rgb[{:?},{:?},{:?}] {} {} {}",
+        "   `material: #{} rgb[{:?},{:?},{:?}] {} {} {}",
         index,
         material.baseColorR(),
         material.baseColorG(),
