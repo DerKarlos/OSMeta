@@ -1,3 +1,5 @@
+//! Loads and renders a glTF file as a scene.
+
 use bevy::{
     pbr::{CascadeShadowConfigBuilder, DirectionalLightShadowMap},
     prelude::*,
@@ -78,13 +80,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 
 
-fn add_tile(commands: &mut Commands, asset_server: &Res<AssetServer>,x: u32, y: u32) {
+fn add_tile(commands: &mut Commands, asset_server: &Res<AssetServer>,x: i32, y: i32) {
     // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
 
     // Just for testing:
     const TILE_SIZE: f32 = 814.5;
-    const X0: u32 = 17430;
-    const Y0: u32 = 11370;
+    const X0: i32 = 17430;
+    const Y0: i32 = 11370;
 
     let name: String = format!( "models/{}_{}.glb#Scene0",x,y);   //format!("hello {}", "world!");
     commands.spawn(SceneBundle {
