@@ -10,7 +10,7 @@
 			"group": "test",
 			"label": "rust: cargo test"
 		}
-
+		,
 		{
 			"type": "cargo",
 			"command": "run",

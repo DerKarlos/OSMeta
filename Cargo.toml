@@ -4,57 +4,29 @@ version = "0.1.0"
 edition = "2021"
 
 
+# Enable a small amount of optimization in debug mode
+#[profile.dev]
+#opt-level = 1
+
+# Enable high optimizations for dependencies (incl. Bevy), but not for our code:
+#[profile.dev.package."*"]
+#opt-level = 3
+
+
 [dependencies]
-cfg-if = "1"
-
-winit = "0.27"
-
-## d   = {version = "0.8.5", features = ["wasm-bindgen"] }
-rand   = {version = "0.8" }
-glam = "0.22"
-protobuf = "3.2"
-log = "0.4"
-
-## [dev-dependencies]
-anyhow = "1.0"
-ron = "0.8"
-serde = { version = "1", features = ["derive"] }
-
-wgpu =  "0"
-
-##async:
-reqwest = { version = "0.11", features = ["blocking"] }
-image = { version = "0.24", default-features = false, features = ["png", "jpeg", "tiff"]}
-pollster = "0.2"
-futures = "0.3"
-
-bevy = { version = "0.9", features = ["jpeg"] } ## NOT the local file bevy, the one from the net
-## control, used in examples:
-bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" }
-
-bytemuck = "1.12"
-
-# S V G / data
-[target.'cfg(target_arch = "x86_64")'.dependencies]
-usvg = { version = "0.28", default-features=false }
-## g = { version = "0.28", default-features=false, features=["text"] }
-resvg = "0.28"
-tiny-skia = "0.8"
-base64 = "0.21"
-
-
-[[example]]
-name = "test"
-path = "examples/test.rs"
-
-[[example]]
-name = "o2w0"
-path = "examples/o2w0.rs"
-
-[[example]]
-name = "trees0"
-path = "examples/trees0.rs"
+bevy = { version = "0.12", features = ["jpeg"] } ## NOT the local file bevy, the one from the net
+bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" }  ## control
+## bevy_config_cam = { git = "https://github.com/BlackPhlox/bevy_config_cam" } ## { version = "0.3.0"}
+glam = "0"
 
 
 #[features]
 #jpeg = ["bevy_internal/jpeg"]
+
+
+# [[example]]
+# name = "test"
+# path = "examples/test.rs"
+
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
