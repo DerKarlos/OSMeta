@@ -96,8 +96,6 @@ fn test_transform(x: i32, y: i32) -> Transform {
     const X0: i32 = 17430;
     const Y0: i32 = 11370;
 
-    let transform =
-        Transform::from_xyz((x - X0) as f32 * TILE_SIZE, 0., (y - Y0) as f32 * TILE_SIZE);
     // OSM y => GPU z
-    transform
+    Transform::from_xyz((x - X0) as f32 * TILE_SIZE, 0., (y - Y0) as f32 * TILE_SIZE)
 }
