@@ -15,12 +15,12 @@ pub struct Tile;
 
 impl TileMap {
     pub fn load(&mut self, commands: &mut Commands, x: i32, y: i32) {
-        self.to_load.push_front((x, y));
         self.tiles
             .entry(x)
             .or_default()
             .entry(y)
             .or_insert_with(|| {
+                self.to_load.push_front((x, y));
                 let transform = test_transform(x, y);
 
                 commands
