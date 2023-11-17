@@ -5,7 +5,7 @@ use bevy::{
     prelude::*,
 };
 use std::f32::consts::*;
-use tilemap::TileMap;
+use tilemap::{Tile, TileMap};
 
 use bevy_flycam::prelude::*;
 
@@ -22,13 +22,16 @@ fn main() {
         .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, (animate_light_direction, load_tiles))
+        .add_systems(
+            Update,
+            (animate_light_direction, load_tiles, drop_dummy_tiles),
+        )
         //.add_systems(Update, _animate_camera_position)
         .add_plugins(NoCameraPlayerPlugin) // https://github.com/sburris0/bevy_flycam (bevy_config_cam dies not work wiht Bevy 12)
         .run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut meshes: ResMut<Assets<Mesh>>) {
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(3., 100., 400.)
@@ -61,7 +64,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..default()
     });
 
-    commands.spawn(TileMap::default());
+    commands.spawn(TileMap::new(&mut meshes));
 }
 
 fn load_tiles(
@@ -81,6 +84,25 @@ fn load_tiles(
     tilemap.load(&mut commands, &asset_server, 17431, 11369);
     tilemap.load(&mut commands, &asset_server, 17431, 11370);
     tilemap.load(&mut commands, &asset_server, 17431, 11371);
+}
+
+fn drop_dummy_tiles(
+    mut commands: Commands,
+    server: Res<AssetServer>,
+    mut tiles: Query<(&mut Tile, &Handle<Scene>)>,
+) {
+    for (mut tile, scene) in tiles.iter_mut() {
+        use bevy::asset::LoadState::*;
+        match server.get_load_state(scene).unwrap() {
+            NotLoaded | Loading => {}
+            Loaded => {
+                if let Some(dummy) = tile.0.take() {
+                    commands.entity(dummy).despawn();
+                }
+            }
+            Failed => todo!(),
+        }
+    }
 }
 
 fn animate_light_direction(

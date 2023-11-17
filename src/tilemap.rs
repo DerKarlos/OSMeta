@@ -2,10 +2,15 @@ use std::collections::BTreeMap;
 
 use bevy::prelude::*;
 
-#[derive(Component, Default)]
+#[derive(Component)]
 pub struct TileMap {
-    tiles: BTreeMap<i32, BTreeMap<i32, Entity>>,
+    pub tiles: BTreeMap<i32, BTreeMap<i32, Entity>>,
+    pub dummy: Handle<Mesh>,
 }
+
+#[derive(Component)]
+/// Holds a dummy square until the actual mesh has loaded
+pub struct Tile(pub Option<Entity>);
 
 impl TileMap {
     pub fn load(
@@ -28,17 +33,46 @@ impl TileMap {
                 const Y0: i32 = 11370;
 
                 let name: String = format!("models/{}_{}.glb#Scene0", x, y); //format!("hello {}", "world!");
-                commands
-                    .spawn(SceneBundle {
-                        scene: asset_server.load(name), // "models/17430_11371.glb#Scene0"
-                        transform: Transform::from_xyz(
-                            (x - X0) as f32 * TILE_SIZE,
-                            0.,
-                            (y - Y0) as f32 * TILE_SIZE,
-                        ), // OSM y => GPU z
+                let transform = Transform::from_xyz(
+                    (x - X0) as f32 * TILE_SIZE,
+                    0.,
+                    (y - Y0) as f32 * TILE_SIZE,
+                ); // OSM y => GPU z
+
+                let dummy = commands
+                    .spawn(PbrBundle {
+                        mesh: self.dummy.clone(),
+                        transform,
                         ..default()
                     })
+                    .id();
+                commands
+                    .spawn((
+                        SceneBundle {
+                            scene: asset_server.load(name), // "models/17430_11371.glb#Scene0"
+                            transform,
+                            ..default()
+                        },
+                        Tile(Some(dummy)),
+                    ))
                     .id()
             });
+    }
+
+    pub fn new(meshes: &mut Assets<Mesh>) -> Self {
+        Self {
+            tiles: Default::default(),
+            dummy: meshes.add(
+                shape::Box {
+                    min_x: 0.0,
+                    max_x: 814.5,
+                    min_y: 0.0,
+                    max_y: 1.0,
+                    min_z: 0.0,
+                    max_z: 814.5,
+                }
+                .into(),
+            ),
+        }
     }
 }
