@@ -1,5 +1,5 @@
 [package]
-name = "osmeta" # OSMeta ???  `#[warn(non_snake_case)]` on by default
+name = "osmeta"   # OSMeta ???  `#[warn(non_snake_case)]` on by default
 version = "0.1.0"
 edition = "2021"
 
@@ -14,8 +14,10 @@ opt-level = 3
 
 
 [dependencies]
-bevy = { version = "0.12", features = ["jpeg"] } ## NOT the local file bevy, the one from the net
-bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" }  ## control
+bevy = { version = "0.12", features = [
+    "jpeg",
+] } ## NOT the local file bevy, the one from the net
+bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" } ## control
 ## bevy_config_cam = { git = "https://github.com/BlackPhlox/bevy_config_cam" } ## { version = "0.3.0"}
 glam = "0"
 
