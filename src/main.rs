@@ -11,19 +11,15 @@ use bevy_flycam::prelude::*;
 
 mod tilemap;
 
-//mod geopos;
-//use geopos::*;
-
 fn main() {
     App::new()
         .insert_resource(DirectionalLightShadowMap { size: 4096 })
         .insert_resource(Msaa::Sample4) // Msaa::Sample4  Msaa::default()   -- Todo: tut nichts?
         .add_plugins(DefaultPlugins)
         .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
-        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
+        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         .add_systems(Startup, setup)
         .add_systems(Update, (animate_light_direction, load_tiles))
-        //.add_systems(Update, _animate_camera_position)
         .add_plugins(NoCameraPlayerPlugin) // https://github.com/sburris0/bevy_flycam (bevy_config_cam dies not work wiht Bevy 12)
         .run();
 }
