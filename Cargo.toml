@@ -24,9 +24,19 @@ futures-core = "0.3.29"
 futures-io = "0.3.29"
 ## bevy_config_cam = { git = "https://github.com/BlackPhlox/bevy_config_cam" } ## { version = "0.3.0"}
 glam = "0"
-surf = { version = "2.3.2", default-features = false, features = ["h1-client-rustls"] }
 
-[target.'cfg(not(target_os="macos"))'.dependencies]
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+surf = { version = "2.3.2", default-features = false, features = [
+    "h1-client-rustls",
+] }
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+web-sys = {version = "0.3.22", default-features = false}
+js-sys = {version = "0.3", default-features = false}
+wasm-bindgen = {version = "0.2", default-features = false}
+wasm-bindgen-futures = "0.4"
+
+[target.'cfg(not(any(target_os="macos", target_arch = "wasm32")))'.dependencies]
 bevy_oxr = { git = "https://github.com/awtterpip/bevy_openxr", optional = true }
 
 [features]

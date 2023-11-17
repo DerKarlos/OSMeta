@@ -3320,7 +3320,11 @@ dependencies = [
  "futures-core",
  "futures-io",
  "glam",
+ "js-sys",
  "surf",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
 ]
 
 [[package]]
