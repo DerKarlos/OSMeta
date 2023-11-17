@@ -6,16 +6,23 @@ use bevy::{
 };
 use std::f32::consts::*;
 use tilemap::TileMap;
+use xr::XRPlugin;
 
 use bevy_flycam::prelude::*;
+use bevy_oxr::DefaultXrPlugins;
 
 mod tilemap;
+mod xr;
 
 fn main() {
-    App::new()
-        .insert_resource(DirectionalLightShadowMap { size: 4096 })
+    let mut app = App::new();
+    if std::env::args().any(|arg| arg == "xr") {
+        app.add_plugins(DefaultXrPlugins).add_plugins(XRPlugin);
+    } else {
+        app.add_plugins(DefaultPlugins);
+    }
+    app.insert_resource(DirectionalLightShadowMap { size: 4096 })
         .insert_resource(Msaa::Sample4) // Msaa::Sample4  Msaa::default()   -- Todo: tut nichts?
-        .add_plugins(DefaultPlugins)
         .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         .add_systems(Startup, setup)
