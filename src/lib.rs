@@ -1,7 +1,7 @@
 //! Loads and renders a glTF file as a scene.
 
 use bevy::prelude::*;
-#[cfg(all(feature = "xr", not(target_os = "macos")))]
+#[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 use http_assets::HttpAssetReaderPlugin;
 
@@ -11,18 +11,17 @@ mod flycam;
 mod http_assets;
 mod sun;
 mod tilemap;
-#[cfg(all(feature = "xr", not(target_os = "macos")))]
+#[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 mod xr;
 
 #[bevy_main]
 pub fn main() {
-    std::env::set_var("RUST_BACKTRACE", "1");
     let mut app = App::new();
     app.add_plugins(HttpAssetReaderPlugin {
         base_url: "https://gltiles.osm2world.org/glb/".into(),
     });
     if std::env::args().any(|arg| arg == "xr") {
-        #[cfg(all(feature = "xr", not(target_os = "macos")))]
+        #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
         app.add_plugins(xr::Plugin);
     } else {
         app.add_plugins(DefaultPlugins);
@@ -59,7 +58,7 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
 /// Used to make sure all players have a map to walk on.
 pub struct LocalPlayer;
 
-#[cfg(not(all(feature = "xr", not(target_os = "macos"))))]
+#[cfg(not(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32")))))]
 /// HACK: we can't attach `LocalPlayer` to the xr player yet, so we need
 /// to access the OpenXRTrackingRoot, but that doesn't exist without the xr feature
 type OpenXRTrackingRoot = LocalPlayer;
