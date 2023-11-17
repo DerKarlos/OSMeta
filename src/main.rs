@@ -98,14 +98,3 @@ fn animate_light_direction(
         );
     }
 }
-
-fn _animate_camera_position(time: Res<Time>, mut query: Query<&mut Transform, With<FlyCam>>) {
-    for mut transform in &mut query {
-        transform.rotation = Quat::from_euler(
-            EulerRot::ZYX,
-            0.0,                                // Looping
-            time.elapsed_seconds() * PI / 10.0, // Komnpas
-            -35. / 180. * PI,                   // Auf-Ab
-        );
-    }
-}
