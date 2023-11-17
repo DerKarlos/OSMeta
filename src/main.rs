@@ -19,7 +19,14 @@ fn main() {
         .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (animate_light_direction, load_tiles))
+        .add_systems(
+            Update,
+            (
+                animate_light_direction,
+                update_active_tile_zone,
+                tilemap::update,
+            ),
+        )
         .add_plugins(NoCameraPlayerPlugin) // https://github.com/sburris0/bevy_flycam (bevy_config_cam dies not work wiht Bevy 12)
         .run();
 }
@@ -60,11 +67,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut meshes: Res
     commands.spawn(TileMap::new(&mut meshes));
 }
 
-fn load_tiles(
-    mut commands: Commands,
-    asset_server: Res<AssetServer>,
-    mut tilemap: Query<&mut TileMap>,
-) {
+fn update_active_tile_zone(mut commands: Commands, mut tilemap: Query<&mut TileMap>) {
     let mut tilemap = tilemap.single_mut();
     tilemap.load(&mut commands, 17429, 11369);
     tilemap.load(&mut commands, 17429, 11370);
@@ -77,8 +80,6 @@ fn load_tiles(
     tilemap.load(&mut commands, 17431, 11369);
     tilemap.load(&mut commands, 17431, 11370);
     tilemap.load(&mut commands, 17431, 11371);
-
-    tilemap.update(&mut commands, &asset_server)
 }
 
 fn animate_light_direction(

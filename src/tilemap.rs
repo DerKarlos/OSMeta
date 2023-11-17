@@ -32,17 +32,19 @@ impl TileMap {
                     .id()
             });
     }
+}
 
-    pub fn update(&mut self, commands: &mut Commands, server: &Res<AssetServer>) {
-        if let Some((x, y, scene)) = self.loading.take() {
+pub fn update(mut commands: Commands, server: Res<AssetServer>, mut tilemap: Query<&mut TileMap>) {
+    for mut tilemap in &mut tilemap {
+        if let Some((x, y, scene)) = tilemap.loading.take() {
             use bevy::asset::LoadState::*;
             match server.get_load_state(&scene).unwrap() {
                 NotLoaded | Loading => {
-                    self.loading = Some((x, y, scene));
+                    tilemap.loading = Some((x, y, scene));
                     return;
                 }
                 Loaded => {
-                    let entity = self.tiles.entry(x).or_default().get_mut(&y).unwrap();
+                    let entity = tilemap.tiles.entry(x).or_default().get_mut(&y).unwrap();
 
                     let transform = test_transform(x, y);
                     let tile = commands
@@ -62,16 +64,18 @@ impl TileMap {
             }
         }
 
-        assert!(self.loading.is_none());
-        let Some((x, y)) = self.to_load.pop_back() else {
+        assert!(tilemap.loading.is_none());
+        let Some((x, y)) = tilemap.to_load.pop_back() else {
             return;
         };
 
         // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
         let name: String = format!("models/{}_{}.glb#Scene0", x, y);
-        self.loading = Some((x, y, server.load(name))); // "models/17430_11371.glb#Scene0"
+        tilemap.loading = Some((x, y, server.load(name))); // "models/17430_11371.glb#Scene0"
     }
+}
 
+impl TileMap {
     pub fn new(meshes: &mut Assets<Mesh>) -> Self {
         Self {
             dummy: meshes.add(
