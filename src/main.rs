@@ -5,8 +5,11 @@ use bevy::{
     prelude::*,
 };
 use std::f32::consts::*;
+use tilemap::TileMap;
 
 use bevy_flycam::prelude::*;
+
+mod tilemap;
 
 //mod geopos;
 //use geopos::*;
@@ -19,7 +22,7 @@ fn main() {
         .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, animate_light_direction)
+        .add_systems(Update, (animate_light_direction, load_tiles))
         //.add_systems(Update, _animate_camera_position)
         .add_plugins(NoCameraPlayerPlugin) // https://github.com/sburris0/bevy_flycam (bevy_config_cam dies not work wiht Bevy 12)
         .run();
@@ -58,37 +61,26 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..default()
     });
 
-    add_tile(&mut commands, &asset_server, 17429, 11369);
-    add_tile(&mut commands, &asset_server, 17429, 11370);
-    add_tile(&mut commands, &asset_server, 17429, 11371);
-
-    add_tile(&mut commands, &asset_server, 17430, 11369);
-    add_tile(&mut commands, &asset_server, 17430, 11370);
-    add_tile(&mut commands, &asset_server, 17430, 11371);
-
-    add_tile(&mut commands, &asset_server, 17431, 11369);
-    add_tile(&mut commands, &asset_server, 17431, 11370);
-    add_tile(&mut commands, &asset_server, 17431, 11371);
+    commands.spawn(TileMap::default());
 }
 
-fn add_tile(commands: &mut Commands, asset_server: &Res<AssetServer>, x: i32, y: i32) {
-    // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
+fn load_tiles(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut tilemap: Query<&mut TileMap>,
+) {
+    let mut tilemap = tilemap.single_mut();
+    tilemap.load(&mut commands, &asset_server, 17429, 11369);
+    tilemap.load(&mut commands, &asset_server, 17429, 11370);
+    tilemap.load(&mut commands, &asset_server, 17429, 11371);
 
-    // Just for testing:
-    const TILE_SIZE: f32 = 814.5;
-    const X0: i32 = 17430;
-    const Y0: i32 = 11370;
+    tilemap.load(&mut commands, &asset_server, 17430, 11369);
+    tilemap.load(&mut commands, &asset_server, 17430, 11370);
+    tilemap.load(&mut commands, &asset_server, 17430, 11371);
 
-    let name: String = format!("models/{}_{}.glb#Scene0", x, y); //format!("hello {}", "world!");
-    commands.spawn(SceneBundle {
-        scene: asset_server.load(name), // "models/17430_11371.glb#Scene0"
-        transform: Transform::from_xyz(
-            (x - X0) as f32 * TILE_SIZE,
-            0.,
-            (y - Y0) as f32 * TILE_SIZE,
-        ), // OSM y => GPU z
-        ..default()
-    });
+    tilemap.load(&mut commands, &asset_server, 17431, 11369);
+    tilemap.load(&mut commands, &asset_server, 17431, 11370);
+    tilemap.load(&mut commands, &asset_server, 17431, 11371);
 }
 
 fn animate_light_direction(
