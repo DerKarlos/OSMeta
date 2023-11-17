@@ -5,7 +5,7 @@ use bevy::{
     prelude::*,
 };
 use std::f32::consts::*;
-use tilemap::{Tile, TileMap};
+use tilemap::TileMap;
 
 use bevy_flycam::prelude::*;
 
@@ -22,10 +22,7 @@ fn main() {
         .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin::default())
         .add_systems(Startup, setup)
-        .add_systems(
-            Update,
-            (animate_light_direction, load_tiles, drop_dummy_tiles),
-        )
+        .add_systems(Update, (animate_light_direction, load_tiles))
         //.add_systems(Update, _animate_camera_position)
         .add_plugins(NoCameraPlayerPlugin) // https://github.com/sburris0/bevy_flycam (bevy_config_cam dies not work wiht Bevy 12)
         .run();
@@ -73,36 +70,19 @@ fn load_tiles(
     mut tilemap: Query<&mut TileMap>,
 ) {
     let mut tilemap = tilemap.single_mut();
-    tilemap.load(&mut commands, &asset_server, 17429, 11369);
-    tilemap.load(&mut commands, &asset_server, 17429, 11370);
-    tilemap.load(&mut commands, &asset_server, 17429, 11371);
+    tilemap.load(&mut commands, 17429, 11369);
+    tilemap.load(&mut commands, 17429, 11370);
+    tilemap.load(&mut commands, 17429, 11371);
 
-    tilemap.load(&mut commands, &asset_server, 17430, 11369);
-    tilemap.load(&mut commands, &asset_server, 17430, 11370);
-    tilemap.load(&mut commands, &asset_server, 17430, 11371);
+    tilemap.load(&mut commands, 17430, 11369);
+    tilemap.load(&mut commands, 17430, 11370);
+    tilemap.load(&mut commands, 17430, 11371);
 
-    tilemap.load(&mut commands, &asset_server, 17431, 11369);
-    tilemap.load(&mut commands, &asset_server, 17431, 11370);
-    tilemap.load(&mut commands, &asset_server, 17431, 11371);
-}
+    tilemap.load(&mut commands, 17431, 11369);
+    tilemap.load(&mut commands, 17431, 11370);
+    tilemap.load(&mut commands, 17431, 11371);
 
-fn drop_dummy_tiles(
-    mut commands: Commands,
-    server: Res<AssetServer>,
-    mut tiles: Query<(&mut Tile, &Handle<Scene>)>,
-) {
-    for (mut tile, scene) in tiles.iter_mut() {
-        use bevy::asset::LoadState::*;
-        match server.get_load_state(scene).unwrap() {
-            NotLoaded | Loading => {}
-            Loaded => {
-                if let Some(dummy) = tile.0.take() {
-                    commands.entity(dummy).despawn();
-                }
-            }
-            Failed => todo!(),
-        }
-    }
+    tilemap.update(&mut commands, &asset_server)
 }
 
 fn animate_light_direction(
