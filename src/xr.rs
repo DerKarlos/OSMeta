@@ -9,7 +9,9 @@ use bevy_oxr::xr_input::interactions::{
     XRRayInteractor,
 };
 use bevy_oxr::xr_input::oculus_touch::OculusController;
-use bevy_oxr::xr_input::prototype_locomotion::{proto_locomotion, PrototypeLocomotionConfig};
+use bevy_oxr::xr_input::prototype_locomotion::{
+    proto_locomotion, PrototypeLocomotionConfig, RotationType,
+};
 use bevy_oxr::xr_input::trackers::{
     AimPose, OpenXRController, OpenXRLeftController, OpenXRRightController, OpenXRTracker,
 };
@@ -24,7 +26,11 @@ pub struct XRPlugin;
 impl Plugin for XRPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, proto_locomotion)
-            .insert_resource(PrototypeLocomotionConfig::default())
+            .insert_resource(PrototypeLocomotionConfig {
+                locomotion_speed: 10.0,
+                rotation_type: RotationType::Snap,
+                ..default()
+            })
             .add_systems(Startup, spawn_controllers_example)
             .add_plugins(OpenXrHandInput)
             .add_plugins(HandInputDebugRenderer)

@@ -43,7 +43,12 @@ pub fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut meshes: ResMut<Assets<Mesh>>) {
+fn setup(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut movement_settings: ResMut<MovementSettings>,
+) {
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(3., 100., 400.)
@@ -75,6 +80,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, mut meshes: Res
         .into(),
         ..default()
     });
+
+    movement_settings.speed = 100.0;
 
     commands.spawn(TileMap::new(&mut meshes));
 }
