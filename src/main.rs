@@ -6,17 +6,21 @@ use bevy::{
 };
 use std::f32::consts::*;
 use tilemap::TileMap;
+#[cfg(feature = "xr")]
 use xr::XRPlugin;
 
 use bevy_flycam::prelude::*;
+#[cfg(feature = "xr")]
 use bevy_oxr::DefaultXrPlugins;
 
 mod tilemap;
+#[cfg(feature = "xr")]
 mod xr;
 
 fn main() {
     let mut app = App::new();
     if std::env::args().any(|arg| arg == "xr") {
+        #[cfg(feature = "xr")]
         app.add_plugins(DefaultXrPlugins).add_plugins(XRPlugin);
     } else {
         app.add_plugins(DefaultPlugins);
