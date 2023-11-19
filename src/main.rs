@@ -6,21 +6,21 @@ use bevy::{
 };
 use std::f32::consts::*;
 use tilemap::TileMap;
-#[cfg(feature = "xr")]
+#[cfg(all(feature = "xr", not(target_os = "macos")))]
 use xr::XRPlugin;
 
 use bevy_flycam::prelude::*;
-#[cfg(feature = "xr")]
+#[cfg(all(feature = "xr", not(target_os = "macos")))]
 use bevy_oxr::DefaultXrPlugins;
 
 mod tilemap;
-#[cfg(feature = "xr")]
+#[cfg(all(feature = "xr", not(target_os = "macos")))]
 mod xr;
 
 fn main() {
     let mut app = App::new();
     if std::env::args().any(|arg| arg == "xr") {
-        #[cfg(feature = "xr")]
+        #[cfg(all(feature = "xr", not(target_os = "macos")))]
         app.add_plugins(DefaultXrPlugins).add_plugins(XRPlugin);
     } else {
         app.add_plugins(DefaultPlugins);

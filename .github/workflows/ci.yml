@@ -37,12 +37,8 @@ jobs:
       - name: Install Dependencies
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libopenxr-loader1 libopenxr-dev
-      - name: Run cargo test (not mac, so with xr)
-        if: matrix.os != 'macos-latest'
+      - name: Run cargo test
         run: cargo test
-      - name: Run cargo test (mac, so without xr)
-        if: matrix.os == 'macos-latest'
-        run: cargo test --no-default-features
 
   # Run cargo clippy -- -D warnings
   clippy:
