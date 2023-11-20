@@ -1,0 +1,4 @@
+[submodule "runtime_libs"]
+	path = runtime_libs
+	url = https://github.com/DerKarlos/OSMeta.git
+	branch = binaries

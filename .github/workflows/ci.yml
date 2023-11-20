@@ -77,3 +77,33 @@ jobs:
         run: rustup component add rustfmt
       - name: Run cargo fmt
         run: cargo fmt --all -- --check
+
+  android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Install Dependencies
+        run: sudo apt-get update; sudo apt-get install pkg-config libx11-dev libasound2-dev libudev-dev lld llvm
+      - uses: actions/checkout@v4
+      - run: git submodule update --init
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-android
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Add Android targets
+        run: rustup target add aarch64-linux-android armv7-linux-androideabi
+      - name: Install cargo-binstall
+        run: curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+      - name: Install xbuild
+        run: cargo binstall --git https://github.com/NiklasEi/xbuild --bin-dir x xbuild -y
+      - name: show deps
+        run: x doctor
+      - name: Build app bundle
+        run: x build --release --platform android --format apk --arch arm64
