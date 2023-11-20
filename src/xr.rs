@@ -18,7 +18,7 @@ use bevy_oxr::xr_input::trackers::{
 };
 use bevy_oxr::xr_input::Hand;
 use bevy_oxr::xr_input::{
-    hand::{HandInputDebugRenderer, OpenXrHandInput},
+    hands::common::{HandInputDebugRenderer, OpenXrHandInput},
     xr_camera::XRProjection,
 };
 use bevy_oxr::DefaultXrPlugins;
