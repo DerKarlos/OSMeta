@@ -7,6 +7,8 @@ use bevy::{
 };
 use bevy_flycam::{FlyCam, MovementSettings, NoCameraPlayerPlugin};
 
+use crate::LocalPlayer;
+
 pub struct Plugin;
 
 impl bevy::prelude::Plugin for Plugin {
@@ -97,6 +99,7 @@ fn setup(
                     Color::rgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
                 ),
             },
+            LocalPlayer,
         ))
         .add_child(sphere);
     // FIXME: attach the camera bundle to the world, so when we move the world, the player is automatically moved with it.
