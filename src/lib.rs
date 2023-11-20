@@ -1,5 +1,7 @@
 //! Loads and renders a glTF file as a scene.
 
+#![allow(clippy::type_complexity)]
+
 use bevy::prelude::*;
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 
