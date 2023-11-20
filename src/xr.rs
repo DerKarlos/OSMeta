@@ -66,6 +66,9 @@ fn setup_initial_position(
 ) {
     tracking_root_query.single_mut().translation.x = 3.;
     tracking_root_query.single_mut().translation.z = 400.0;
+    // FIXME: attach the camera bundle to the world, so when we move the world, the player is automatically moved with it.
+    // We'll need this when the player moves very far or teleports to another place, as we need to ensure we don't go into
+    // regions where the floating point numbers become imprecise.
 }
 
 fn spawn_controllers_example(mut commands: Commands) {

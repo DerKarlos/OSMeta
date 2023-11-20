@@ -99,6 +99,9 @@ fn setup(
             },
         ))
         .add_child(sphere);
+    // FIXME: attach the camera bundle to the world, so when we move the world, the player is automatically moved with it.
+    // We'll need this when the player moves very far or teleports to another place, as we need to ensure we don't go into
+    // regions where the floating point numbers become imprecise.
 
     movement_settings.speed = 100.0;
 }
