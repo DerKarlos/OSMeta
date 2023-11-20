@@ -19,6 +19,17 @@ pub struct Tile;
 
 impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
     pub const TILE_SIZE: f32 = TILE_SIZE as f32 / 10.0;
+
+    pub fn load_nearest(&mut self, tilemap_id: Entity, commands: &mut Commands, pos: Vec3) {
+        let x = pos.x / Self::TILE_SIZE;
+        let y = pos.z / Self::TILE_SIZE;
+        for x_i in -1..=1 {
+            for y_i in -1..=1 {
+                self.load(tilemap_id, commands, x as i32 + x_i, y as i32 + y_i);
+            }
+        }
+    }
+
     /// Queue a tile coordinate for loading. This will load tiles
     /// in sequence to reduce lag (which would happen if we loaded lots
     /// of tiles at the same time).
@@ -77,7 +88,9 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
                         let dummy = std::mem::replace(entity, tile);
                         commands.entity(dummy).despawn();
                     }
-                    Failed => todo!(),
+                    Failed => {
+                        error!("failed to load tile {x},{y}");
+                    }
                 }
             }
 

@@ -1,6 +1,7 @@
 //! Loads and renders a glTF file as a scene.
 
 use bevy::prelude::*;
+use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 
 type TileMap = tilemap::TileMap<8145>;
 
@@ -46,17 +47,21 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     ));
 }
 
-fn update_active_tile_zone(mut commands: Commands, mut tilemap: Query<(Entity, &mut TileMap)>) {
-    let (id, mut tilemap) = tilemap.single_mut();
-    tilemap.load(id, &mut commands, 17429, 11369);
-    tilemap.load(id, &mut commands, 17429, 11370);
-    tilemap.load(id, &mut commands, 17429, 11371);
+#[derive(Component)]
+/// A dummy struct connected to all players local to this computer.
+/// Used to make sure all players have a map to walk on.
+pub struct LocalPlayer;
 
-    tilemap.load(id, &mut commands, 17430, 11369);
-    tilemap.load(id, &mut commands, 17430, 11370);
-    tilemap.load(id, &mut commands, 17430, 11371);
-
-    tilemap.load(id, &mut commands, 17431, 11369);
-    tilemap.load(id, &mut commands, 17431, 11370);
-    tilemap.load(id, &mut commands, 17431, 11371);
+fn update_active_tile_zone(
+    mut commands: Commands,
+    mut tilemap: Query<
+        (Entity, &mut TileMap, &Transform),
+        (Without<OpenXRTrackingRoot>, Without<LocalPlayer>),
+    >,
+    player_pos: Query<&Transform, Or<(With<OpenXRTrackingRoot>, With<LocalPlayer>)>>,
+) {
+    let (id, mut tilemap, transform) = tilemap.single_mut();
+    for pos in player_pos.iter() {
+        tilemap.load_nearest(id, &mut commands, pos.translation - transform.translation);
+    }
 }
