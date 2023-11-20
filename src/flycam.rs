@@ -5,7 +5,13 @@ use bevy::{
     prelude::*,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
-use bevy_flycam::{FlyCam, MovementSettings};
+use bevy_flycam::{FlyCam, MovementSettings, NoCameraPlayerPlugin};
+
+pub fn init(app: &mut App) {
+    app.add_systems(Startup, setup)
+        .add_systems(Update, (move_shape_with_camera,))
+        .add_plugins(NoCameraPlayerPlugin); // https://github.com/sburris0/bevy_flycam (bevy_config_cam dies not work wiht Bevy 12)
+}
 
 /// Creates a colorful test pattern
 fn uv_debug_texture() -> Image {
@@ -37,9 +43,9 @@ fn uv_debug_texture() -> Image {
 
 #[derive(Component)]
 /// A unique identifier for the non-VR flycam
-pub struct Shape;
+struct Shape;
 
-pub fn setup(
+fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -86,7 +92,7 @@ pub fn setup(
     movement_settings.speed = 100.0;
 }
 
-pub fn move_shape_with_camera(
+fn move_shape_with_camera(
     mut shape: Query<&mut Transform, (With<Shape>, Without<FlyCam>)>,
     camera: Query<&Transform, (Without<Shape>, With<FlyCam>)>,
 ) {
