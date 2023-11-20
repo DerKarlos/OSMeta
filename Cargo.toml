@@ -1,8 +1,9 @@
 [package]
-name = "osmeta"   # OSMeta ???  `#[warn(non_snake_case)]` on by default
+name = "osmeta"         # OSMeta ???  `#[warn(non_snake_case)]` on by default
 version = "0.1.0"
 edition = "2021"
-
+links = "openxr_loader"
+build = "build.rs"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]
@@ -36,3 +37,10 @@ default = ["xr"]
 # path = "examples/test.rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+# we need to split our crate into a lib and a binary, because android targets don't want a binary.
+# our binary is now just a tiny dummy thing that invokes the library's main function.
+[lib]
+name = "osmeta"
+crate-type = ["staticlib", "cdylib", "lib"]

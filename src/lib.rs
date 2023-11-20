@@ -17,7 +17,8 @@ mod tilemap;
 #[cfg(all(feature = "xr", not(target_os = "macos")))]
 mod xr;
 
-fn main() {
+#[bevy_main]
+pub fn main() {
     let mut app = App::new();
     if std::env::args().any(|arg| arg == "xr") {
         #[cfg(all(feature = "xr", not(target_os = "macos")))]
