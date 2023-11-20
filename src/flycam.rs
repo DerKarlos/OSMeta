@@ -12,7 +12,6 @@ pub struct Plugin;
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
-            .add_systems(Update, (move_shape_with_camera,))
             .add_plugins(NoCameraPlayerPlugin); // https://github.com/sburris0/bevy_flycam (bevy_config_cam dies not work wiht Bevy 12)
     }
 }
@@ -45,10 +44,6 @@ fn uv_debug_texture() -> Image {
     )
 }
 
-#[derive(Component)]
-/// A unique identifier for the non-VR flycam
-struct Shape;
-
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
@@ -59,27 +54,6 @@ fn setup(
 ) {
     let transform =
         Transform::from_xyz(3., 100., 400.).looking_at(Vec3::new(0.0, 0.3, 0.0), Vec3::Y);
-    commands.spawn((
-        Camera3dBundle {
-            transform,
-            ..default()
-        },
-        FlyCam,
-        EnvironmentMapLight {
-            diffuse_map: asset_server.load("environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
-            specular_map: asset_server.load("environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
-        },
-        FogSettings {
-            color: Color::rgba(0.35, 0.48, 0.66, 1.0),
-            directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
-            directional_light_exponent: 30.0,
-            falloff: FogFalloff::from_visibility_colors(
-                10000.0, // distance in world units up to which objects retain visibility (>= 5% contrast)
-                Color::rgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
-                Color::rgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
-            ),
-        },
-    ));
 
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
@@ -93,22 +67,38 @@ fn setup(
         .try_into()
         .unwrap(),
     );
-    commands.spawn((
-        PbrBundle {
+    let sphere = commands
+        .spawn(PbrBundle {
             mesh,
             material,
-            transform,
             ..default()
-        },
-        Shape,
-    ));
+        })
+        .id();
+
+    commands
+        .spawn((
+            Camera3dBundle {
+                transform,
+                ..default()
+            },
+            InheritedVisibility::default(),
+            FlyCam,
+            EnvironmentMapLight {
+                diffuse_map: asset_server.load("environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
+                specular_map: asset_server.load("environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
+            },
+            FogSettings {
+                color: Color::rgba(0.35, 0.48, 0.66, 1.0),
+                directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
+                directional_light_exponent: 30.0,
+                falloff: FogFalloff::from_visibility_colors(
+                    10000.0, // distance in world units up to which objects retain visibility (>= 5% contrast)
+                    Color::rgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
+                    Color::rgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
+                ),
+            },
+        ))
+        .add_child(sphere);
 
     movement_settings.speed = 100.0;
-}
-
-fn move_shape_with_camera(
-    mut shape: Query<&mut Transform, (With<Shape>, Without<FlyCam>)>,
-    camera: Query<&Transform, (Without<Shape>, With<FlyCam>)>,
-) {
-    *shape.single_mut() = *camera.single();
 }
