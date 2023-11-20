@@ -4,9 +4,13 @@ use bevy::prelude::*;
 
 #[derive(Component, Default)]
 pub struct TileMap {
+    /// All currently loaded tiles.
     tiles: BTreeMap<i32, BTreeMap<i32, Entity>>,
+    /// fifo queue of tiles to be loaded.
     to_load: VecDeque<(i32, i32)>,
+    /// The tile currently being loaded.
     loading: Option<(i32, i32, Handle<Scene>)>,
+    /// Dummy square to show while a scene is loading
     dummy: Handle<Mesh>,
 }
 
@@ -14,6 +18,9 @@ pub struct TileMap {
 pub struct Tile;
 
 impl TileMap {
+    /// Queue a tile coordinate for loading. This will load tiles
+    /// in sequence to reduce lag (which would happen if we loaded lots
+    /// of tiles at the same time).
     pub fn load(&mut self, commands: &mut Commands, x: i32, y: i32) {
         self.tiles
             .entry(x)
@@ -36,6 +43,7 @@ impl TileMap {
 
 pub fn update(mut commands: Commands, server: Res<AssetServer>, mut tilemap: Query<&mut TileMap>) {
     for mut tilemap in &mut tilemap {
+        // check if the currently loading tile is done
         if let Some((x, y, scene)) = tilemap.loading.take() {
             use bevy::asset::LoadState::*;
             match server.get_load_state(&scene).unwrap() {
@@ -44,6 +52,7 @@ pub fn update(mut commands: Commands, server: Res<AssetServer>, mut tilemap: Que
                     return;
                 }
                 Loaded => {
+                    // Done, remove dummy tile and insert the real one
                     let entity = tilemap.tiles.entry(x).or_default().get_mut(&y).unwrap();
 
                     let transform = test_transform(x, y);
@@ -65,12 +74,14 @@ pub fn update(mut commands: Commands, server: Res<AssetServer>, mut tilemap: Que
         }
 
         assert!(tilemap.loading.is_none());
+        // Check if there are more tiles to load
         let Some((x, y)) = tilemap.to_load.pop_back() else {
             return;
         };
 
         // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
         let name: String = format!("models/{}_{}.glb#Scene0", x, y);
+        // Start loading next tile
         tilemap.loading = Some((x, y, server.load(name))); // "models/17430_11371.glb#Scene0"
     }
 }
