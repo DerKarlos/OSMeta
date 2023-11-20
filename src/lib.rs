@@ -30,20 +30,33 @@ pub fn main() {
 }
 
 fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
-    commands.spawn(TileMap::new(&mut meshes));
+    // Just for testing:
+    const X0: i32 = 17430;
+    const Y0: i32 = 11370;
+    commands.spawn((
+        TileMap::new(&mut meshes),
+        SpatialBundle {
+            transform: Transform::from_xyz(
+                -X0 as f32 * TileMap::TILE_SIZE,
+                0.,
+                -Y0 as f32 * TileMap::TILE_SIZE,
+            ),
+            ..default()
+        },
+    ));
 }
 
-fn update_active_tile_zone(mut commands: Commands, mut tilemap: Query<&mut TileMap>) {
-    let mut tilemap = tilemap.single_mut();
-    tilemap.load(&mut commands, 17429, 11369);
-    tilemap.load(&mut commands, 17429, 11370);
-    tilemap.load(&mut commands, 17429, 11371);
+fn update_active_tile_zone(mut commands: Commands, mut tilemap: Query<(Entity, &mut TileMap)>) {
+    let (id, mut tilemap) = tilemap.single_mut();
+    tilemap.load(id, &mut commands, 17429, 11369);
+    tilemap.load(id, &mut commands, 17429, 11370);
+    tilemap.load(id, &mut commands, 17429, 11371);
 
-    tilemap.load(&mut commands, 17430, 11369);
-    tilemap.load(&mut commands, 17430, 11370);
-    tilemap.load(&mut commands, 17430, 11371);
+    tilemap.load(id, &mut commands, 17430, 11369);
+    tilemap.load(id, &mut commands, 17430, 11370);
+    tilemap.load(id, &mut commands, 17430, 11371);
 
-    tilemap.load(&mut commands, 17431, 11369);
-    tilemap.load(&mut commands, 17431, 11370);
-    tilemap.load(&mut commands, 17431, 11371);
+    tilemap.load(id, &mut commands, 17431, 11369);
+    tilemap.load(id, &mut commands, 17431, 11370);
+    tilemap.load(id, &mut commands, 17431, 11371);
 }

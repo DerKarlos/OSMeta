@@ -18,11 +18,11 @@ pub struct TileMap<const TILE_SIZE: u32> {
 pub struct Tile;
 
 impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
-    const TILE_SIZE: f32 = TILE_SIZE as f32 / 10.0;
+    pub const TILE_SIZE: f32 = TILE_SIZE as f32 / 10.0;
     /// Queue a tile coordinate for loading. This will load tiles
     /// in sequence to reduce lag (which would happen if we loaded lots
     /// of tiles at the same time).
-    pub fn load(&mut self, commands: &mut Commands, x: i32, y: i32) {
+    pub fn load(&mut self, tilemap_id: Entity, commands: &mut Commands, x: i32, y: i32) {
         self.tiles
             .entry(x)
             .or_default()
@@ -32,18 +32,24 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
 
                 let transform = Self::test_transform(x, y);
 
-                commands
+                let id = commands
                     .spawn(PbrBundle {
                         mesh: self.dummy.clone(),
                         transform,
                         ..default()
                     })
-                    .id()
+                    .id();
+                commands.entity(tilemap_id).add_child(id);
+                id
             });
     }
 
-    pub fn update(mut commands: Commands, server: Res<AssetServer>, mut tilemap: Query<&mut Self>) {
-        for mut tilemap in &mut tilemap {
+    pub fn update(
+        mut commands: Commands,
+        server: Res<AssetServer>,
+        mut tilemap: Query<(Entity, &mut Self)>,
+    ) {
+        for (id, mut tilemap) in &mut tilemap {
             // check if the currently loading tile is done
             if let Some((x, y, scene)) = tilemap.loading.take() {
                 use bevy::asset::LoadState::*;
@@ -67,6 +73,7 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
                                 Tile,
                             ))
                             .id();
+                        commands.entity(id).add_child(tile);
                         let dummy = std::mem::replace(entity, tile);
                         commands.entity(dummy).despawn();
                     }
@@ -105,15 +112,7 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
     }
 
     fn test_transform(x: i32, y: i32) -> Transform {
-        // Just for testing:
-        const X0: i32 = 17430;
-        const Y0: i32 = 11370;
-
         // OSM y => GPU z
-        Transform::from_xyz(
-            (x - X0) as f32 * Self::TILE_SIZE,
-            0.,
-            (y - Y0) as f32 * Self::TILE_SIZE,
-        )
+        Transform::from_xyz(x as f32 * Self::TILE_SIZE, 0., y as f32 * Self::TILE_SIZE)
     }
 }
