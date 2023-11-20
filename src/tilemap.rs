@@ -95,15 +95,16 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
     }
 
     pub fn new(meshes: &mut Assets<Mesh>) -> Self {
+        let half = Self::TILE_SIZE / 2.0;
         Self {
             dummy: meshes.add(
                 shape::Box {
-                    min_x: 0.0,
-                    max_x: Self::TILE_SIZE,
+                    min_x: -half,
+                    max_x: half,
                     min_y: 0.0,
                     max_y: 1.0,
-                    min_z: 0.0,
-                    max_z: Self::TILE_SIZE,
+                    min_z: -half,
+                    max_z: half,
                 }
                 .into(),
             ),
