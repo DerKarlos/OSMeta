@@ -2,11 +2,6 @@
 
 use bevy::prelude::*;
 use tilemap::TileMap;
-#[cfg(all(feature = "xr", not(target_os = "macos")))]
-use xr::XRPlugin;
-
-#[cfg(all(feature = "xr", not(target_os = "macos")))]
-use bevy_oxr::DefaultXrPlugins;
 
 mod flycam;
 mod sun;
@@ -19,7 +14,7 @@ pub fn main() {
     let mut app = App::new();
     if std::env::args().any(|arg| arg == "xr") {
         #[cfg(all(feature = "xr", not(target_os = "macos")))]
-        app.add_plugins(DefaultXrPlugins).add_plugins(XRPlugin);
+        xr::init(&mut app);
     } else {
         app.add_plugins(DefaultPlugins);
     }

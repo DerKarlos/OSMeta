@@ -20,8 +20,13 @@ use bevy_oxr::xr_input::{
     hand::{HandInputDebugRenderer, OpenXrHandInput},
     xr_camera::XRProjection,
 };
+use bevy_oxr::DefaultXrPlugins;
 
-pub struct XRPlugin;
+pub fn init(app: &mut App) {
+    app.add_plugins(DefaultXrPlugins).add_plugins(XRPlugin);
+}
+
+struct XRPlugin;
 
 impl Plugin for XRPlugin {
     fn build(&self, app: &mut App) {
