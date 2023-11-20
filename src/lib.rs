@@ -1,7 +1,8 @@
 //! Loads and renders a glTF file as a scene.
 
 use bevy::prelude::*;
-use tilemap::TileMap;
+
+type TileMap = tilemap::TileMap<8145>;
 
 mod flycam;
 mod sun;
@@ -24,7 +25,7 @@ pub fn main() {
         .add_plugins(sun::Plugin)
         .add_plugins(flycam::Plugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (update_active_tile_zone, tilemap::update))
+        .add_systems(Update, (update_active_tile_zone, TileMap::update))
         .run();
 }
 
