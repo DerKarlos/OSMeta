@@ -93,7 +93,6 @@ fn spawn_controllers_example(mut commands: Commands) {
     ));
 }
 
-#[allow(clippy::type_complexity)]
 fn prototype_interaction_input(
     oculus_controller: Res<OculusController>,
     frame_state: Res<XrFrameState>,
