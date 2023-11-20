@@ -1,7 +1,7 @@
 //! Everything related to the global light and shadow logic
 
 use bevy::{
-    pbr::{CascadeShadowConfigBuilder, DirectionalLightShadowMap},
+    pbr::{CascadeShadowConfigBuilder, DirectionalLightShadowMap, NotShadowCaster},
     prelude::*,
 };
 use std::f32::consts::*;
@@ -30,7 +30,12 @@ fn animate_light_direction(
     }
 }
 
-fn setup(mut commands: Commands) {
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    // Sun
     commands.spawn(DirectionalLightBundle {
         directional_light: DirectionalLight {
             illuminance: 15000., // lux  https://docs.rs/bevy/latest/bevy/pbr/struct.DirectionalLight.html
@@ -49,4 +54,20 @@ fn setup(mut commands: Commands) {
         .into(),
         ..default()
     });
+
+    // Sky
+    commands.spawn((
+        PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Box::default())),
+            material: materials.add(StandardMaterial {
+                base_color: Color::hex("888888").unwrap(),
+                unlit: true,
+                cull_mode: None,
+                ..default()
+            }),
+            transform: Transform::from_scale(Vec3::splat(10000.0)),
+            ..default()
+        },
+        NotShadowCaster,
+    ));
 }
