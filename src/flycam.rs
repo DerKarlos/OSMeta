@@ -7,10 +7,14 @@ use bevy::{
 };
 use bevy_flycam::{FlyCam, MovementSettings, NoCameraPlayerPlugin};
 
-pub fn init(app: &mut App) {
-    app.add_systems(Startup, setup)
-        .add_systems(Update, (move_shape_with_camera,))
-        .add_plugins(NoCameraPlayerPlugin); // https://github.com/sburris0/bevy_flycam (bevy_config_cam dies not work wiht Bevy 12)
+pub struct Plugin;
+
+impl bevy::prelude::Plugin for Plugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(Startup, setup)
+            .add_systems(Update, (move_shape_with_camera,))
+            .add_plugins(NoCameraPlayerPlugin); // https://github.com/sburris0/bevy_flycam (bevy_config_cam dies not work wiht Bevy 12)
+    }
 }
 
 /// Creates a colorful test pattern

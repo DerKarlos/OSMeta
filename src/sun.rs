@@ -6,10 +6,14 @@ use bevy::{
 };
 use std::f32::consts::*;
 
-pub fn init(app: &mut App) {
-    app.insert_resource(DirectionalLightShadowMap { size: 4096 })
-        .add_systems(Startup, setup)
-        .add_systems(Update, (animate_light_direction,));
+pub struct Plugin;
+
+impl bevy::prelude::Plugin for Plugin {
+    fn build(&self, app: &mut App) {
+        app.insert_resource(DirectionalLightShadowMap { size: 4096 })
+            .add_systems(Startup, setup)
+            .add_systems(Update, (animate_light_direction,));
+    }
 }
 
 fn animate_light_direction(

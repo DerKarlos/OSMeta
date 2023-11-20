@@ -22,15 +22,12 @@ use bevy_oxr::xr_input::{
 };
 use bevy_oxr::DefaultXrPlugins;
 
-pub fn init(app: &mut App) {
-    app.add_plugins(DefaultXrPlugins).add_plugins(XRPlugin);
-}
+pub struct Plugin;
 
-struct XRPlugin;
-
-impl Plugin for XRPlugin {
+impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, proto_locomotion)
+        app.add_plugins(DefaultXrPlugins)
+            .add_systems(Update, proto_locomotion)
             .insert_resource(PrototypeLocomotionConfig {
                 locomotion_speed: 10.0,
                 rotation_type: RotationType::Snap,

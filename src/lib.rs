@@ -14,15 +14,15 @@ pub fn main() {
     let mut app = App::new();
     if std::env::args().any(|arg| arg == "xr") {
         #[cfg(all(feature = "xr", not(target_os = "macos")))]
-        xr::init(&mut app);
+        app.add_plugins(xr::Plugin);
     } else {
         app.add_plugins(DefaultPlugins);
     }
-    sun::init(&mut app);
-    flycam::init(&mut app);
     app.insert_resource(Msaa::Sample4) // Msaa::Sample4  Msaa::default()   -- Todo: tut nichts?
         .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+        .add_plugins(sun::Plugin)
+        .add_plugins(flycam::Plugin)
         .add_systems(Startup, setup)
         .add_systems(Update, (update_active_tile_zone, tilemap::update))
         .run();
