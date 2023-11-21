@@ -3,6 +3,7 @@
 #![allow(clippy::type_complexity)]
 
 use bevy::prelude::*;
+#[cfg(all(feature = "xr", not(target_os = "macos")))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 
 type TileMap = tilemap::TileMap<8145>;
@@ -53,6 +54,11 @@ fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
 /// A dummy struct connected to all players local to this computer.
 /// Used to make sure all players have a map to walk on.
 pub struct LocalPlayer;
+
+#[cfg(not(all(feature = "xr", not(target_os = "macos"))))]
+/// HACK: we can't attach `LocalPlayer` to the xr player yet, so we need
+/// to access the OpenXRTrackingRoot, but that doesn't exist without the xr feature
+type OpenXRTrackingRoot = LocalPlayer;
 
 fn update_active_tile_zone(
     mut commands: Commands,
