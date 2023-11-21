@@ -44,3 +44,6 @@ default = ["xr"]
 [lib]
 name = "osmeta"
 crate-type = ["staticlib", "cdylib", "lib"]
+
+[lints.clippy]
+type_complexity = "allow"
