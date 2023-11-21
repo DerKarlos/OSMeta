@@ -73,6 +73,8 @@ fn load_next_tile(
             id,
             &mut commands,
             &server,
+            // FIXME: Maybe use https://crates.io/crates/big_space in order to be able to remove
+            // the translation from the tilemap and instead just use its real coordinates.
             pos.translation - transform.translation,
         );
     }
