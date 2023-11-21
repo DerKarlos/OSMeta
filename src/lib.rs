@@ -27,7 +27,7 @@ pub fn main() {
         .add_plugins(sun::Plugin)
         .add_plugins(flycam::Plugin)
         .add_systems(Startup, setup)
-        .add_systems(Update, (update_active_tile_zone, TileMap::update))
+        .add_systems(Update, (load_next_tile, TileMap::update))
         .run();
 }
 
@@ -58,8 +58,9 @@ pub struct LocalPlayer;
 /// to access the OpenXRTrackingRoot, but that doesn't exist without the xr feature
 type OpenXRTrackingRoot = LocalPlayer;
 
-fn update_active_tile_zone(
+fn load_next_tile(
     mut commands: Commands,
+    server: Res<AssetServer>,
     mut tilemap: Query<
         (Entity, &mut TileMap, &Transform),
         (Without<OpenXRTrackingRoot>, Without<LocalPlayer>),
@@ -68,6 +69,11 @@ fn update_active_tile_zone(
 ) {
     let (id, mut tilemap, transform) = tilemap.single_mut();
     for pos in player_pos.iter() {
-        tilemap.load_nearest(id, &mut commands, pos.translation - transform.translation);
+        tilemap.load_next(
+            id,
+            &mut commands,
+            &server,
+            pos.translation - transform.translation,
+        );
     }
 }

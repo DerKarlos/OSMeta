@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, VecDeque};
+use std::collections::BTreeMap;
 
 use bevy::prelude::*;
 
@@ -6,8 +6,6 @@ use bevy::prelude::*;
 pub struct TileMap<const TILE_SIZE: u32> {
     /// All currently loaded tiles.
     tiles: BTreeMap<i32, BTreeMap<i32, Entity>>,
-    /// fifo queue of tiles to be loaded.
-    to_load: VecDeque<IVec2>,
     /// The tile currently being loaded.
     loading: Option<(IVec2, Handle<Scene>)>,
     /// Dummy square to show while a scene is loading
@@ -20,28 +18,69 @@ pub struct Tile;
 impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
     pub const TILE_SIZE: f32 = TILE_SIZE as f32 / 10.0;
 
-    pub fn load_nearest(&mut self, tilemap_id: Entity, commands: &mut Commands, pos: Vec3) {
-        let pos = pos.xz() / Self::TILE_SIZE;
-        let pos = pos.as_ivec2();
+    pub fn load_next(
+        &mut self,
+        tilemap_id: Entity,
+        commands: &mut Commands,
+        server: &AssetServer,
+        origin: Vec3,
+    ) {
+        let origin = origin.xz() / Self::TILE_SIZE;
+        let origin = origin.as_ivec2();
+        let mut best_score = f32::INFINITY;
+        let mut best_pos = None;
         for x_i in -1..=1 {
             for y_i in -1..=1 {
                 let offset = IVec2::new(x_i, y_i);
-                self.load(tilemap_id, commands, pos + offset);
+                let score = self.get_view_tile_score(origin, offset);
+                if score < best_score {
+                    best_pos = Some(origin + offset);
+                    best_score = score;
+                }
             }
         }
+        if let Some(best_pos) = best_pos {
+            self.load(tilemap_id, commands, server, best_pos);
+        }
+    }
+
+    /// Takes an offset to the player position and returns a score for how important
+    /// to load it is. Lower values are better.
+    // FIXME(#18): use a smarter algorithm
+    pub fn get_view_tile_score(&self, pos: IVec2, offset: IVec2) -> f32 {
+        if let Some(line) = self.tiles.get(&(pos.x + offset.x)) {
+            if line.get(&(pos.y + offset.y)).is_some() {
+                return f32::INFINITY;
+            }
+        }
+        offset.as_vec2().length_squared()
     }
 
     /// Queue a tile coordinate for loading. This will load tiles
     /// in sequence to reduce lag (which would happen if we loaded lots
     /// of tiles at the same time).
-    pub fn load(&mut self, tilemap_id: Entity, commands: &mut Commands, pos: IVec2) {
+    /// Silently does nothing if the tile was already loaded or is in the process of loading.
+    /// Silently does nothing if another tile is already being loaded.
+    pub fn load(
+        &mut self,
+        tilemap_id: Entity,
+        commands: &mut Commands,
+        server: &AssetServer,
+        pos: IVec2,
+    ) {
+        if self.loading.is_some() {
+            return;
+        }
+        // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
+        let name: String = format!("models/{}_{}.glb#Scene0", pos.x, pos.y);
+        // Start loading next tile
+        self.loading = Some((pos, server.load(name))); // "models/17430_11371.glb#Scene0"
+                                                       // Insert dummy tile while loading.
         self.tiles
             .entry(pos.x)
             .or_default()
             .entry(pos.y)
             .or_insert_with(|| {
-                self.to_load.push_front(pos);
-
                 let transform = Self::test_transform(pos);
 
                 let id = commands
@@ -72,7 +111,12 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
                     }
                     Loaded => {
                         // Done, remove dummy tile and insert the real one
-                        let entity = tilemap.tiles.entry(pos.x).or_default().get_mut(&pos.y).unwrap();
+                        let entity = tilemap
+                            .tiles
+                            .entry(pos.x)
+                            .or_default()
+                            .get_mut(&pos.y)
+                            .unwrap();
 
                         let transform = Self::test_transform(pos);
                         let tile = commands
@@ -96,15 +140,6 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
             }
 
             assert!(tilemap.loading.is_none());
-            // Check if there are more tiles to load
-            let Some(pos) = tilemap.to_load.pop_back() else {
-                return;
-            };
-
-            // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
-            let name: String = format!("models/{}_{}.glb#Scene0", pos.x, pos.y);
-            // Start loading next tile
-            tilemap.loading = Some((pos, server.load(name))); // "models/17430_11371.glb#Scene0"
         }
     }
 
