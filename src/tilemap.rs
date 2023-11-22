@@ -115,6 +115,9 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
                         tilemap.loading = Some((pos, scene, source));
                     }
                     Loaded => {
+                        // FIXME: implement caching of downloaded assets by implementing something like
+                        // https://github.com/bevyengine/bevy/blob/main/examples/asset/processing/asset_processing.rs
+
                         // Done, remove dummy tile and insert the real one
                         let entity = tilemap
                             .tiles
