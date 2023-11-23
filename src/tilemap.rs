@@ -72,7 +72,7 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
             return;
         }
         // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
-        let name: String = format!("tile://{}_{}.glb.gz", pos.x, pos.y);
+        let name: String = format!("tile://{}_{}.glb", pos.x, pos.y);
         // Start loading next tile
         self.loading = Some((pos, server.load(name))); // "models/17430_11371.glb#Scene0"
                                                        // Insert dummy tile while loading.

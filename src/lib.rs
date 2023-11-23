@@ -3,13 +3,11 @@
 use bevy::prelude::*;
 #[cfg(all(feature = "xr", not(target_os = "macos")))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
-use gz::{GzAsset, GzAssetLoader};
 use http_assets::HttpAssetReaderPlugin;
 
 type TileMap = tilemap::TileMap<8145>;
 
 mod flycam;
-mod gz;
 mod http_assets;
 mod sun;
 mod tilemap;
@@ -29,8 +27,6 @@ pub fn main() {
     } else {
         app.add_plugins(DefaultPlugins);
     }
-    app.init_asset::<GzAsset>()
-        .init_asset_loader::<GzAssetLoader>();
     app.insert_resource(Msaa::Sample4) // Msaa::Sample4  Msaa::default()   -- Todo: tut nichts?
         .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)

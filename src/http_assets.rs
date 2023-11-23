@@ -1,11 +1,21 @@
 // Taken from https://github.com/lizelive/bevy_http and modified.
 
 use bevy::{
-    asset::io::{AssetReader, AssetReaderError, AssetSource, AssetSourceId, PathStream, Reader},
+    asset::{
+        io::{
+            AssetReader, AssetReaderError, AssetSource, AssetSourceId, PathStream, Reader,
+            VecReader,
+        },
+        AsyncReadExt,
+    },
     prelude::*,
     utils::BoxedFuture,
 };
-use std::path::{Path, PathBuf};
+use flate2::read::GzDecoder;
+use std::{
+    io::Read,
+    path::{Path, PathBuf},
+};
 
 use std::pin::Pin;
 use std::task::Poll;
@@ -84,13 +94,27 @@ impl AssetReader for HttpAssetReader {
         path: &'a Path,
     ) -> BoxedFuture<'a, Result<Box<Reader<'a>>, AssetReaderError>> {
         let path = path.display().to_string();
-        let path = if self.tile {
+        if self.tile {
             let (x, rest) = path.split_once('_').unwrap();
-            format!("lod1/15/{x}/{rest}")
+            let path = format!("lod1/15/{x}/{rest}.gz");
+            Box::pin(async move {
+                let mut bytes_compressed = Vec::new();
+                self.fetch_bytes(&path)
+                    .await?
+                    .read_to_end(&mut bytes_compressed)
+                    .await?;
+
+                let mut decoder = GzDecoder::new(bytes_compressed.as_slice());
+
+                let mut bytes_uncompressed = Vec::new();
+
+                decoder.read_to_end(&mut bytes_uncompressed)?;
+
+                Ok(Box::new(VecReader::new(bytes_uncompressed)) as Box<Reader<'static>>)
+            })
         } else {
-            path
-        };
-        Box::pin(async move { self.fetch_bytes(&path).await })
+            Box::pin(async move { self.fetch_bytes(&path).await })
+        }
     }
 
     fn read_meta<'a>(

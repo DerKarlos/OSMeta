@@ -3318,6 +3318,7 @@ dependencies = [
  "bevy_oxr",
  "flate2",
  "futures-core",
+ "futures-io",
  "glam",
  "surf",
 ]
