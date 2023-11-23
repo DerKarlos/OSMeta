@@ -1,13 +1,13 @@
 use std::collections::BTreeMap;
 
-use bevy::{gltf::Gltf, prelude::*};
+use bevy::prelude::*;
 
 #[derive(Component, Default)]
 pub struct TileMap<const TILE_SIZE: u32> {
     /// All currently loaded tiles.
     tiles: BTreeMap<i32, BTreeMap<i32, Entity>>,
     /// The tile currently being loaded.
-    loading: Option<(IVec2, Handle<Gltf>)>,
+    loading: Option<(IVec2, Handle<Scene>)>,
     /// Dummy square to show while a scene is loading
     dummy: Handle<Mesh>,
 }
@@ -72,7 +72,7 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
             return;
         }
         // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
-        let name: String = format!("tile://{}_{}.glb", pos.x, pos.y);
+        let name: String = format!("tile://{}_{}.glb#Scene0", pos.x, pos.y);
         // Start loading next tile
         self.loading = Some((pos, server.load(name))); // "models/17430_11371.glb#Scene0"
                                                        // Insert dummy tile while loading.
@@ -98,7 +98,6 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
     pub fn update(
         mut commands: Commands,
         server: Res<AssetServer>,
-        scenes: Res<Assets<Gltf>>,
         mut tilemap: Query<(Entity, &mut Self)>,
     ) {
         for (id, mut tilemap) in &mut tilemap {
@@ -122,7 +121,6 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
                             .unwrap();
 
                         let transform = Self::test_transform(pos);
-                        let scene = scenes.get(scene).unwrap().scenes[0].clone();
                         let tile = commands
                             .spawn((
                                 SceneBundle {
