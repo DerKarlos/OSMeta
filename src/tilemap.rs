@@ -2,17 +2,12 @@ use std::collections::BTreeMap;
 
 use bevy::{gltf::Gltf, prelude::*};
 
-enum LoadSource {
-    Local,
-    Network,
-}
-
 #[derive(Component, Default)]
 pub struct TileMap<const TILE_SIZE: u32> {
     /// All currently loaded tiles.
     tiles: BTreeMap<i32, BTreeMap<i32, Entity>>,
     /// The tile currently being loaded.
-    loading: Option<(IVec2, Handle<Gltf>, LoadSource)>,
+    loading: Option<(IVec2, Handle<Gltf>)>,
     /// Dummy square to show while a scene is loading
     dummy: Handle<Mesh>,
 }
@@ -77,10 +72,10 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
             return;
         }
         // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
-        let name: String = format!("{}_{}.glb", pos.x, pos.y);
+        let name: String = format!("tile://{}_{}.glb.gz", pos.x, pos.y);
         // Start loading next tile
-        self.loading = Some((pos, server.load(name), LoadSource::Local)); // "models/17430_11371.glb#Scene0"
-                                                                          // Insert dummy tile while loading.
+        self.loading = Some((pos, server.load(name))); // "models/17430_11371.glb#Scene0"
+                                                       // Insert dummy tile while loading.
         self.tiles
             .entry(pos.x)
             .or_default()
@@ -108,11 +103,11 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
     ) {
         for (id, mut tilemap) in &mut tilemap {
             // check if the currently loading tile is done
-            if let Some((pos, scene, source)) = tilemap.loading.take() {
+            if let Some((pos, scene)) = tilemap.loading.take() {
                 use bevy::asset::LoadState::*;
                 match server.get_load_state(&scene).unwrap() {
                     NotLoaded | Loading => {
-                        tilemap.loading = Some((pos, scene, source));
+                        tilemap.loading = Some((pos, scene));
                     }
                     Loaded => {
                         // FIXME: implement caching of downloaded assets by implementing something like
@@ -143,24 +138,7 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
                         commands.entity(dummy).despawn();
                     }
                     Failed => {
-                        match source {
-                            LoadSource::Local => {
-                                warn!("failed to load tile {pos} from disk, trying to load from network");
-                                // FIXME: this `/` between the x and y coordinates causes bevy to think it
-                                // needs to load textures from `assets/XCOORDINATE/textures` instead of
-                                // `assets/textures`. Thus we are using the `NOT_A_DIR_SEPARATOR` hack that
-                                // rewrites this string to a slash just before accessing the network.
-                                // Bevy never sees it.
-                                let scene = server.load(format!(
-                                    "osm2world://{}NOT_A_DIR_SEPARATOR{}.glb.gz",
-                                    pos.x, pos.y
-                                ));
-                                tilemap.loading = Some((pos, scene, LoadSource::Network));
-                            }
-                            LoadSource::Network => {
-                                error!("failed to load tile {pos} from network");
-                            }
-                        }
+                        error!("failed to load tile {pos} from network");
                     }
                 }
             }
