@@ -124,7 +124,7 @@ impl AssetReader for HttpAssetReader {
         Box::pin(async move {
             let path = path.display().to_string();
             let meta_path = path + ".meta";
-            Ok(self.fetch_bytes(&meta_path).await?)
+            self.fetch_bytes(&meta_path).await
         })
     }
 
