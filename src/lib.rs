@@ -44,8 +44,8 @@ pub fn main() {
 
 fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     // Just for testing:
-    const X0: i32 = 17430;
-    const Y0: i32 = 11370;
+    const X0: i32 = 17437;
+    const Y0: i32 = 11371;
     commands.spawn((
         TileMap::new(&mut meshes),
         SpatialBundle {
