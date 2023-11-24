@@ -12,13 +12,7 @@ use bevy::{
     utils::BoxedFuture,
 };
 use flate2::read::GzDecoder;
-use std::{
-    io::Read,
-    path::{Path, PathBuf},
-};
-
-use std::pin::Pin;
-use std::task::Poll;
+use std::{io::Read, path::Path};
 
 /// A custom asset reader implementation that wraps a given asset reader implementation
 pub struct HttpAssetReader {
@@ -75,19 +69,6 @@ impl HttpAssetReader {
     }
 }
 
-struct EmptyPathStream;
-
-impl futures_core::Stream for EmptyPathStream {
-    type Item = PathBuf;
-
-    fn poll_next(
-        self: Pin<&mut Self>,
-        _cx: &mut std::task::Context<'_>,
-    ) -> Poll<Option<Self::Item>> {
-        Poll::Ready(None)
-    }
-}
-
 impl AssetReader for HttpAssetReader {
     fn read<'a>(
         &'a self,
@@ -121,28 +102,21 @@ impl AssetReader for HttpAssetReader {
         &'a self,
         path: &'a Path,
     ) -> BoxedFuture<'a, Result<Box<Reader<'a>>, AssetReaderError>> {
-        Box::pin(async move {
-            let path = path.display().to_string();
-            let meta_path = path + ".meta";
-            self.fetch_bytes(&meta_path).await
-        })
+        Box::pin(async move { Err(AssetReaderError::NotFound(path.into())) })
     }
 
     fn read_directory<'a>(
         &'a self,
-        _path: &'a Path,
+        path: &'a Path,
     ) -> BoxedFuture<'a, Result<Box<PathStream>, AssetReaderError>> {
-        let stream: Box<PathStream> = Box::new(EmptyPathStream);
-        error!("Reading directories is not supported with the HttpAssetReader");
-        Box::pin(async move { Ok(stream) })
+        Box::pin(async move { Err(AssetReaderError::NotFound(path.into())) })
     }
 
     fn is_directory<'a>(
         &'a self,
-        _path: &'a Path,
+        path: &'a Path,
     ) -> BoxedFuture<'a, std::result::Result<bool, AssetReaderError>> {
-        error!("Reading directories is not supported with the HttpAssetReader");
-        Box::pin(async move { Ok(false) })
+        Box::pin(async move { Err(AssetReaderError::NotFound(path.into())) })
     }
 }
 
