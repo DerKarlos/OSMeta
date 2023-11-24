@@ -48,7 +48,6 @@ fn uv_debug_texture() -> Image {
 
 fn setup(
     mut commands: Commands,
-    asset_server: Res<AssetServer>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -85,10 +84,6 @@ fn setup(
             },
             InheritedVisibility::default(),
             FlyCam,
-            EnvironmentMapLight {
-                diffuse_map: asset_server.load("environment_maps/pisa_diffuse_rgb9e5_zstd.ktx2"),
-                specular_map: asset_server.load("environment_maps/pisa_specular_rgb9e5_zstd.ktx2"),
-            },
             FogSettings {
                 color: Color::rgba(0.35, 0.48, 0.66, 1.0),
                 directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),

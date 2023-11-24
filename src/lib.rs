@@ -1,15 +1,14 @@
 //! Loads and renders a glTF file as a scene.
 
 use bevy::prelude::*;
-use bevy_http::HttpAssetReaderPlugin;
 #[cfg(all(feature = "xr", not(target_os = "macos")))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
-use gz::{GzAsset, GzAssetLoader};
+use http_assets::HttpAssetReaderPlugin;
 
 type TileMap = tilemap::TileMap<8145>;
 
 mod flycam;
-mod gz;
+mod http_assets;
 mod sun;
 mod tilemap;
 #[cfg(all(feature = "xr", not(target_os = "macos")))]
@@ -20,9 +19,7 @@ pub fn main() {
     std::env::set_var("RUST_BACKTRACE", "1");
     let mut app = App::new();
     app.add_plugins(HttpAssetReaderPlugin {
-        id: "osm2world".into(),
-        base_url: "https://gltiles.osm2world.org/glb/lod1/15/".into(),
-        fake_slash: "NOT_A_DIR_SEPARATOR".into(),
+        base_url: "https://gltiles.osm2world.org/glb/".into(),
     });
     if std::env::args().any(|arg| arg == "xr") {
         #[cfg(all(feature = "xr", not(target_os = "macos")))]
@@ -30,8 +27,6 @@ pub fn main() {
     } else {
         app.add_plugins(DefaultPlugins);
     }
-    app.init_asset::<GzAsset>()
-        .init_asset_loader::<GzAssetLoader>();
     app.insert_resource(Msaa::Sample4) // Msaa::Sample4  Msaa::default()   -- Todo: tut nichts?
         .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
         .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)

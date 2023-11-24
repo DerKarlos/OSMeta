@@ -19,10 +19,12 @@ bevy = { version = "0.12", features = [
     "jpeg",
 ] } ## NOT the local file bevy, the one from the net
 bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" } ## control
-bevy_http = { git = "https://github.com/oli-obk/bevy_http.git" }
 flate2 = "1.0.28"
+futures-core = "0.3.29"
+futures-io = "0.3.29"
 ## bevy_config_cam = { git = "https://github.com/BlackPhlox/bevy_config_cam" } ## { version = "0.3.0"}
 glam = "0"
+surf = { version = "2.3.2", default-features = false, features = ["h1-client-rustls"] }
 
 [target.'cfg(not(target_os="macos"))'.dependencies]
 bevy_oxr = { git = "https://github.com/awtterpip/bevy_openxr", optional = true }
