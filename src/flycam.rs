@@ -54,7 +54,7 @@ fn setup(
     mut movement_settings: ResMut<MovementSettings>,
 ) {
     let transform =
-        Transform::from_xyz(3., 100., 400.).looking_at(Vec3::new(0.0, 0.3, 0.0), Vec3::Y);
+        Transform::from_xyz(0., 100., -300.).looking_at(Vec3::new(0.0, 0.3, 0.0), Vec3::Y);
 
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
