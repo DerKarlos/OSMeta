@@ -40,15 +40,32 @@ pub fn main() {
 
 fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
     // Just for testing:
-    const X0: i32 = 17437;
-    const Y0: i32 = 11371;
+    #[allow(unused_mut)]
+    let mut x: i32 = 17437;
+    #[allow(unused_mut)]
+    let mut y: i32 = 11371;
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        let window = web_sys::window().expect("no window exists");
+        let document = window.document().expect("no global document exist");
+        let location = document.location().expect("no location exists");
+        let raw_search = location.search().expect("no search exists");
+        info!(?location);
+        if let Some(addr) = raw_search.strip_prefix('?') {
+            let (l, r) = addr.split_once(',').unwrap();
+            x = l.parse().unwrap();
+            y = r.parse().unwrap();
+        }
+    }
+
     commands.spawn((
         TileMap::new(&mut meshes),
         SpatialBundle {
             transform: Transform::from_xyz(
-                -X0 as f32 * TileMap::TILE_SIZE,
+                -x as f32 * TileMap::TILE_SIZE,
                 0.,
-                -Y0 as f32 * TileMap::TILE_SIZE,
+                -y as f32 * TileMap::TILE_SIZE,
             ),
             ..default()
         },
