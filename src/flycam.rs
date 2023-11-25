@@ -1,11 +1,12 @@
 //! This module contains everything about the controls and rendering related
 //! to the non-VR "player".
 
+use bevy::window::CursorGrabMode;
 use bevy::{
     prelude::*,
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
-use bevy_flycam::{FlyCam, MovementSettings, NoCameraPlayerPlugin};
+use bevy_flycam::{FlyCam, KeyBindings, MovementSettings, NoCameraPlayerPlugin};
 
 use crate::LocalPlayer;
 
@@ -14,6 +15,7 @@ pub struct Plugin;
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
+            .add_systems(Update, grab_cursor)
             .add_plugins(NoCameraPlayerPlugin); // https://github.com/sburris0/bevy_flycam (bevy_config_cam dies not work wiht Bevy 12)
     }
 }
@@ -52,6 +54,7 @@ fn setup(
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut movement_settings: ResMut<MovementSettings>,
+    mut keys: ResMut<KeyBindings>,
 ) {
     let transform =
         Transform::from_xyz(0., 100., -300.).looking_at(Vec3::new(0.0, 0.3, 0.0), Vec3::Y);
@@ -102,4 +105,27 @@ fn setup(
     // regions where the floating point numbers become imprecise.
 
     movement_settings.speed = 100.0;
+    // Don't use ESC for grabbing/releasing the cursor. That's what browsers use, too, so it gets grabbed by bevy and released by the browser at the same time.
+    keys.toggle_grab_cursor = KeyCode::G;
+}
+
+fn grab_cursor(
+    mut windows: Query<&mut Window>,
+    btn: Res<Input<MouseButton>>,
+    key: Res<Input<KeyCode>>,
+) {
+    let mut window = windows.single_mut();
+
+    if btn.just_pressed(MouseButton::Left) {
+        // for a game that doesn't use the cursor (like a shooter):
+        // use `Locked` mode to keep the cursor in one place
+        window.cursor.grab_mode = CursorGrabMode::Locked;
+        // also hide the cursor
+        window.cursor.visible = false;
+    }
+
+    if key.just_pressed(KeyCode::Escape) {
+        window.cursor.grab_mode = CursorGrabMode::None;
+        window.cursor.visible = true;
+    }
 }
