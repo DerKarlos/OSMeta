@@ -60,7 +60,7 @@ fn setup(
         PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Box::default())),
             material: materials.add(StandardMaterial {
-                base_color: Color::hex("888888").unwrap(),
+                base_color: Color::hex("000088").unwrap(),
                 unlit: true,
                 cull_mode: None,
                 ..default()
