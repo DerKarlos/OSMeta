@@ -24,14 +24,20 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
         commands: &mut Commands,
         server: &AssetServer,
         origin: Vec3,
+        radius: f32,
     ) {
         let origin = origin.xz() / Self::TILE_SIZE;
         let origin = origin.as_ivec2();
         let mut best_score = f32::INFINITY;
         let mut best_pos = None;
-        for x_i in -1..=1 {
-            for y_i in -1..=1 {
+        let radius = radius / Self::TILE_SIZE;
+        let radius = radius.ceil() as i32;
+        for x_i in -radius..=radius {
+            for y_i in -radius..=radius {
                 let offset = IVec2::new(x_i, y_i);
+                if offset.length_squared() > radius * radius {
+                    continue;
+                }
                 let score = self.get_view_tile_score(origin, offset);
                 if score < best_score {
                     best_pos = Some(origin + offset);
