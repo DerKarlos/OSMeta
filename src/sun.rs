@@ -69,5 +69,9 @@ fn setup(
             ..default()
         },
         NotShadowCaster,
+        Sky,
     ));
 }
+
+#[derive(Component)]
+pub struct Sky;
