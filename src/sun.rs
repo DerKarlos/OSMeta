@@ -58,7 +58,7 @@ fn setup(
     // Sky
     commands.spawn((
         PbrBundle {
-            mesh: meshes.add(Mesh::from(shape::Box::default())),
+            mesh: meshes.add(shape::Icosphere::default().try_into().unwrap()),
             material: materials.add(StandardMaterial {
                 base_color: Color::hex("000088").unwrap(),
                 unlit: true,
