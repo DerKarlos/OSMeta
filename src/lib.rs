@@ -129,5 +129,6 @@ fn load_next_tile(
         // FIXME: Maybe use https://crates.io/crates/big_space in order to be able to remove
         // the translation from the tilemap and instead just use its real coordinates.
         pos - transform.translation,
+        sky_pos.single().scale.x,
     );
 }
