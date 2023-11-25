@@ -1,0 +1,37 @@
+name: deploy android/quest apk to gh-pages
+on:
+  workflow_run:
+    branches: [main]
+    workflows: [CI]
+    types: [completed]
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+      - name: Cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-wasm
+
+      - name: Install wasm libcore/libstd
+        run: rustup target install wasm32-unknown-unknown
+      - name: Install wasm-bindgen
+        run: cargo install wasm-bindgen-cli
+      - name: Build wasm
+        run: cargo build --release --target wasm32-unknown-unknown --bin demo && wasm-bindgen --out-dir ./web/ --target web ./target/wasm32-unknown-unknown/release/demo.wasm
+
+      - uses: peaceiris/actions-gh-pages@v3
+        if: github.ref == 'refs/heads/main'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./web
+          keep_files: true
