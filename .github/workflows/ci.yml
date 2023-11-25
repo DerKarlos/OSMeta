@@ -38,7 +38,11 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libopenxr-loader1 libopenxr-dev
       - name: Run cargo test
+        if: matrix.os == 'ubuntu-latest'
         run: cargo test
+      - name: Run cargo check
+        if: matrix.os != 'ubuntu-latest'
+        run: cargo check
 
   # Run cargo clippy -- -D warnings
   clippy:
