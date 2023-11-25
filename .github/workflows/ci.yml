@@ -39,25 +39,6 @@ jobs:
         run: sudo apt-get update; sudo apt-get install --no-install-recommends libasound2-dev libudev-dev libopenxr-loader1 libopenxr-dev
       - name: Run cargo test
         run: cargo test
-      - name: Install wasm libcore/libstd
-        if: matrix.os == 'ubuntu-latest'
-        run: rustup target install wasm32-unknown-unknown
-      - name: Install wasm-bindgen
-        if: matrix.os == 'ubuntu-latest'
-        run: cargo install wasm-bindgen-cli
-      - name: Build wasm
-        if: matrix.os == 'ubuntu-latest'
-        run: cargo build --release --target wasm32-unknown-unknown --bin demo && wasm-bindgen --out-dir ./web/ --target web ./target/wasm32-unknown-unknown/release/demo.wasm  
-      - name: Push to gh-pages
-        if: matrix.os == 'ubuntu-latest'
-        uses: s0/git-publish-subdir-action@develop
-        env:
-          SQUASH_HISTORY: true
-          REPO: self
-          BRANCH: gh-pages # The branch name where you want to push the assets
-          FOLDER: web # The directory where your assets are generated
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # GitHub will automatically add this - you don't need to bother getting a token
-          MESSAGE: "Build: ({sha}) {msg}" # The commit message
 
   # Run cargo clippy -- -D warnings
   clippy:
