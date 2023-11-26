@@ -14,15 +14,17 @@ use bevy_screen_diagnostics::{
 use http_assets::HttpAssetReaderPlugin;
 use sun::Sky;
 
+use crate::cam_map::{geopos::GeoPos, utils::TileName};
+
 type TileMap = tilemap::TileMap<8145>;
 
+mod cam_map;
 mod flycam;
 mod http_assets;
 mod sun;
 mod tilemap;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 mod xr;
-mod cam_map;
 
 #[bevy_main]
 pub fn main() {
@@ -63,6 +65,8 @@ fn setup(
     #[allow(unused_mut)]
     let mut y: i32 = 11371;
 
+    let mut args = vec![];
+
     #[cfg(target_arch = "wasm32")]
     {
         let window = web_sys::window().expect("no window exists");
@@ -71,10 +75,32 @@ fn setup(
         let raw_search = location.search().expect("no search exists");
         info!(?location);
         if let Some(addr) = raw_search.strip_prefix('?') {
-            let (l, r) = addr.split_once(',').unwrap();
-            x = l.parse().unwrap();
-            y = r.parse().unwrap();
+            args.extend(addr.split(','));
         }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        args.extend(std::env::args().skip(1));
+    }
+
+    let mut lat = None;
+    let mut lon = None;
+
+    for arg in args {
+        let (k, v) = arg
+            .split_once('=')
+            .expect("arguments must be `key=value` pairs");
+        match k {
+            "lat" => lat = Some(v.parse().unwrap()),
+            "lon" => lon = Some(v.parse().unwrap()),
+            other => panic!("unknown key `{other}`"),
+        }
+    }
+
+    if let Some((lat, lon)) = lat.zip(lon) {
+        let pos = GeoPos { lat, lon };
+        TileName { x, y } = pos.calc_tile_name(15);
     }
 
     commands.spawn((
