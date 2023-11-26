@@ -909,6 +909,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_screen_diagnostics"
+version = "0.4.0"
+source = "git+https://github.com/oli-obk/bevy_screen_diagnostics.git#86a7d759b3a6c40b0d728fc7ff2d9b418c0a2cef"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bevy_sprite"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2817,6 +2825,7 @@ dependencies = [
  "bevy",
  "bevy_flycam",
  "bevy_oxr",
+ "bevy_screen_diagnostics",
  "bevy_web_asset",
  "flate2",
  "futures-core",
