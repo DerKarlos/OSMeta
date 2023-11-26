@@ -48,8 +48,8 @@ pub static LAT_FAKT: f32 = 111100.0; // 111285; // exactly enough  111120 = 1.85
 #[derive(Debug, Clone, Copy)]
 pub   // type TileName = glam::Vec2; // BABYLON.Vector2
     struct TileName {
-        pub x: u32,
-        pub y: u32,
+        pub x: i32,
+        pub y: i32,
     }
 
 impl  TileName {
@@ -90,7 +90,7 @@ pub const PBF_ZOOM: u32 = 13;
 pub const VIEW_ZOOM: u32 = 13;
 
 /** Calculated factor between pbf zoom and view zoom. */
-pub const FACT_ZOOM: u32 = 2_u32.pow(VIEW_ZOOM - PBF_ZOOM);  // 3^2=8   (in zoom/zoom) powf can't be used for const
+pub const FACT_ZOOM: i32 = 2_i32.pow(VIEW_ZOOM - PBF_ZOOM);  // 3^2=8   (in zoom/zoom) powf can't be used for const
 
 /**
  * x/z dimentions of a tile: nord, latitude / east, Longitude  (y is not used)

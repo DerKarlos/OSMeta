@@ -1,7 +1,6 @@
-mod geopos;
-mod geoview;
-mod osmscene;
-mod utils;
+pub mod geopos;
+pub mod geoview;
+pub mod osmscene;
+pub mod utils;
 
 use utils::TileName;
-

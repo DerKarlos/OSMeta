@@ -46,7 +46,7 @@ impl GeoPos {
         TileName{
 
             // Longitude, (Längengrad) West/East "index"
-            x: ((self.lon + 180.) / 360. * pow_zoom).floor() as u32,
+            x: ((self.lon + 180.) / 360. * pow_zoom).floor() as i32,
 
             // y: Latitude, (Breitengrad) Nort/South "index"
             y: (
@@ -55,7 +55,7 @@ impl GeoPos {
                         (self.lat * PI / 180.).tan() + 1. / (self.lat * PI / 180.).cos()
                     ).ln() / PI
                 ) / 2. * pow_zoom
-            ).floor() as u32,
+            ).floor() as i32,
             // The Nort/South y tile name part is not linear, the tiles gets stretched to the poles
             // to compensate the stretching if the stretching of the West/East projection
 
