@@ -1,5 +1,5 @@
 [package]
-name = "osmeta"         # OSMeta ???  `#[warn(non_snake_case)]` on by default
+name = "osmeta"
 version = "0.1.0"
 edition = "2021"
 links = "openxr_loader"
@@ -15,14 +15,11 @@ opt-level = 3
 
 
 [dependencies]
-bevy = { version = "0.12", features = [
-    "jpeg",
-] } ## NOT the local file bevy, the one from the net
-bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" } ## control
+bevy = { version = "0.12", features = ["jpeg"] }
+bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" }
 flate2 = "1.0.28"
 futures-core = "0.3.29"
 futures-io = "0.3.29"
-## bevy_config_cam = { git = "https://github.com/BlackPhlox/bevy_config_cam" } ## { version = "0.3.0"}
 glam = "0"
 bevy_web_asset = { git = "https://github.com/oli-obk/bevy_web_asset.git", branch = "public" }
 bevy_screen_diagnostics = { git = "https://github.com/oli-obk/bevy_screen_diagnostics.git" }
@@ -38,14 +35,6 @@ bevy_oxr = { git = "https://github.com/awtterpip/bevy_openxr", optional = true }
 [features]
 xr = ["dep:bevy_oxr"]
 default = ["xr"]
-#jpeg = ["bevy_internal/jpeg"]
-
-
-# [[example]]
-# name = "test"
-# path = "examples/test.rs"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 
 # we need to split our crate into a lib and a binary, because android targets don't want a binary.
