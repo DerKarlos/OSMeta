@@ -1,8 +1,5 @@
-use std::f32::consts::PI;
-
 use super::utils::TileName;
-
-// import { OsmScene } from "./osmscene.js"
+use std::f32::consts::PI;
 
 /**
  * Geo-position on the (OSM-) world map (GPS position)
