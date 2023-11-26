@@ -24,8 +24,8 @@ impl GeoPos {
      * @param zoom  Zoom level of the OSM tile-name(x/y) system
      * @return tile-name(x/y)
      */
-    pub fn calc_tile_name(&self, zoom: u32) -> TileName {
-        let pow_zoom = 2_u32.pow(zoom) as f32;
+    pub fn calc_tile_name(&self, zoom: u8) -> TileName {
+        let pow_zoom = 2_u32.pow(zoom.into()) as f32;
 
         // return
         TileName{
