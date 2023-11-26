@@ -29,8 +29,8 @@ pub fn main() {
         app.add_plugins(DefaultPlugins);
     }
     app.insert_resource(Msaa::Sample4) // Msaa::Sample4  Msaa::default()   -- Todo: tut nichts?
-        .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
-        .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+    //  .add_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
+    //  .add_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
         .add_plugins(sun::Plugin)
         .add_plugins(flycam::Plugin)
         .add_systems(Startup, setup)
