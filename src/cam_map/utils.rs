@@ -9,9 +9,8 @@
  * even if it is an x/y coordinate in numbers.
  */
 #[derive(Debug, Clone, Copy)]
-pub   // type TileName = glam::Vec2; // BABYLON.Vector2
-    struct TileName {
-        pub x: i32,
-        pub y: i32,
-    }
-
+pub // type TileName = glam::Vec2; // BABYLON.Vector2
+struct TileName {
+    pub x: i32,
+    pub y: i32,
+}

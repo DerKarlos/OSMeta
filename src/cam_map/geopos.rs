@@ -4,7 +4,6 @@ use super::utils::TileName;
 
 // import { OsmScene } from "./osmscene.js"
 
-
 /**
  * Geo-position on the (OSM-) world map (GPS position)
  *
@@ -12,8 +11,8 @@ use super::utils::TileName;
  * and distance in meters from the tiles corner
  */
 
-#[derive(Default, Debug,Clone,Copy)]
- pub struct GeoPos {
+#[derive(Default, Debug, Clone, Copy)]
+pub struct GeoPos {
     pub lat: f32,
     pub lon: f32,
 }
@@ -28,22 +27,17 @@ impl GeoPos {
         let pow_zoom = 2_u32.pow(zoom.into()) as f32;
 
         // return
-        TileName{
-
+        TileName {
             // Longitude, (Längengrad) West/East "index"
             x: ((self.lon + 180.) / 360. * pow_zoom).floor() as i32,
 
             // y: Latitude, (Breitengrad) Nort/South "index"
-            y: (
-                (
-                    1. - (
-                        (self.lat * PI / 180.).tan() + 1. / (self.lat * PI / 180.).cos()
-                    ).ln() / PI
-                ) / 2. * pow_zoom
-            ).floor() as i32,
+            y: ((1. - ((self.lat * PI / 180.).tan() + 1. / (self.lat * PI / 180.).cos()).ln() / PI)
+                / 2.
+                * pow_zoom)
+                .floor() as i32,
             // The Nort/South y tile name part is not linear, the tiles gets stretched to the poles
             // to compensate the stretching if the stretching of the West/East projection
-
         }
     }
 }
