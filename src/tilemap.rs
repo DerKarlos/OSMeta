@@ -26,12 +26,25 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
         origin: Vec3,
         radius: f32,
     ) {
+        let radius = radius / Self::TILE_SIZE;
+        let radius = radius.abs().ceil().copysign(radius) as i32 + 1;
         let origin = origin.xz() / Self::TILE_SIZE;
         let origin = origin.as_ivec2();
+        self.tiles.retain(|&x, line| {
+            line.retain(|&y, tile| {
+                let offset = IVec2::new(x, y) - origin;
+                let oob = offset.length_squared() > radius * radius;
+                if oob {
+                    if let Some(entity) = commands.get_entity(*tile) {
+                        entity.despawn_recursive();
+                    }
+                }
+                !oob
+            });
+            !line.is_empty()
+        });
         let mut best_score = f32::INFINITY;
         let mut best_pos = None;
-        let radius = radius / Self::TILE_SIZE;
-        let radius = radius.ceil() as i32;
         for x_i in -radius..=radius {
             for y_i in -radius..=radius {
                 let offset = IVec2::new(x_i, y_i);
@@ -105,7 +118,7 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
     pub fn update(
         mut commands: Commands,
         server: Res<AssetServer>,
-        scenes: Res<Assets<Gltf>>,
+        scenes: ResMut<Assets<Gltf>>,
         mut tilemap: Query<(Entity, &mut Self)>,
     ) {
         for (id, mut tilemap) in &mut tilemap {
@@ -121,12 +134,10 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
                         // https://github.com/bevyengine/bevy/blob/main/examples/asset/processing/asset_processing.rs
 
                         // Done, remove dummy tile and insert the real one
-                        let entity = tilemap
-                            .tiles
-                            .entry(pos.x)
-                            .or_default()
-                            .get_mut(&pos.y)
-                            .unwrap();
+                        let Some(entity) = tilemap.tiles.entry(pos.x).or_default().get_mut(&pos.y)
+                        else {
+                            continue;
+                        };
 
                         let transform = Self::test_transform(pos);
                         let scene = scenes.get(scene).unwrap().scenes[0].clone();
@@ -142,7 +153,9 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
                             .id();
                         commands.entity(id).add_child(tile);
                         let dummy = std::mem::replace(entity, tile);
-                        commands.entity(dummy).despawn();
+                        if let Some(mut entity) = commands.get_entity(dummy) {
+                            entity.despawn();
+                        }
                     }
                     Failed => {
                         error!("failed to load tile {pos} from network");
