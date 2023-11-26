@@ -11,15 +11,14 @@ use bevy_screen_diagnostics::{
     Aggregate, ScreenDiagnostics, ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin,
     ScreenFrameDiagnosticsPlugin,
 };
+use geopos::GeoPos;
 use http_assets::HttpAssetReaderPlugin;
 use sun::Sky;
 
-use crate::cam_map::{geopos::GeoPos, utils::TileName};
-
 type TileMap = tilemap::TileMap<8145>;
 
-mod cam_map;
 mod flycam;
+mod geopos;
 mod http_assets;
 mod sun;
 mod tilemap;
@@ -61,9 +60,9 @@ fn setup(
 
     // Just for testing:
     #[allow(unused_mut)]
-    let mut x: i32 = 17437;
+    let mut x: f32 = 17437.0;
     #[allow(unused_mut)]
-    let mut y: i32 = 11371;
+    let mut y: f32 = 11371.0;
 
     let mut args = vec![];
 
@@ -100,7 +99,7 @@ fn setup(
 
     if let Some((lat, lon)) = lat.zip(lon) {
         let pos = GeoPos { lat, lon };
-        TileName { x, y } = pos.calc_tile_name(15);
+        Vec2 { x, y } = pos.to_tile_coordinates(15);
     }
 
     commands.spawn((
