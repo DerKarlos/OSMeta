@@ -114,11 +114,16 @@ fn grab_cursor(
     let mut window = windows.single_mut();
 
     if btn.just_pressed(MouseButton::Left) {
-        // for a game that doesn't use the cursor (like a shooter):
-        // use `Locked` mode to keep the cursor in one place
-        window.cursor.grab_mode = CursorGrabMode::Locked;
-        // also hide the cursor
-        window.cursor.visible = false;
+        if window.cursor.visible {
+            // for a game that doesn't use the cursor (like a shooter):
+            // use `Locked` mode to keep the cursor in one place
+            window.cursor.grab_mode = CursorGrabMode::Locked;
+            // also hide the cursor
+            window.cursor.visible = false;
+        } else {
+            window.cursor.grab_mode = CursorGrabMode::None;
+            window.cursor.visible = true;
+        }
     }
 
     if key.just_pressed(KeyCode::Escape) {
