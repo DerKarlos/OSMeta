@@ -75,7 +75,7 @@ fn setup(
         let raw_search = location.search().expect("no search exists");
         info!(?location);
         if let Some(addr) = raw_search.strip_prefix('?') {
-            args.extend(addr.split(','));
+            args.extend(addr.split('&'));
         }
     }
 
