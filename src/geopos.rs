@@ -25,7 +25,7 @@ impl GeoPos {
      * @param zoom  Zoom level of the OSM tile-name(x/y) system
      * @return coordinate in tile coordinates
      */
-    pub fn to_tile_coordinates(&self, zoom: u8) -> Vec2 {
+    pub fn to_tile_coordinates(self, zoom: u8) -> Vec2 {
         let pow_zoom = 2_u32.pow(zoom.into()) as f32;
 
         // return

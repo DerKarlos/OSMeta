@@ -105,11 +105,7 @@ fn setup(
     commands.spawn((
         TileMap::new(&mut meshes),
         SpatialBundle {
-            transform: Transform::from_xyz(
-                -x as f32 * TileMap::TILE_SIZE,
-                0.,
-                -y as f32 * TileMap::TILE_SIZE,
-            ),
+            transform: Transform::from_xyz(-x * TileMap::TILE_SIZE, 0., -y * TileMap::TILE_SIZE),
             ..default()
         },
     ));
