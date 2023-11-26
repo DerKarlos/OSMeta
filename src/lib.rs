@@ -22,6 +22,7 @@ mod sun;
 mod tilemap;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 mod xr;
+mod cam_map;
 
 #[bevy_main]
 pub fn main() {
