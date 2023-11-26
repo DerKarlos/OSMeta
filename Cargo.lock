@@ -1280,6 +1280,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_web_asset"
+version = "0.7.1"
+source = "git+https://github.com/oli-obk/bevy_web_asset.git?branch=android#938fbe7d39a88cad6a7648d84174dc14bf6ae729"
+dependencies = [
+ "bevy",
+ "js-sys",
+ "surf",
+ "wasm-bindgen",
+ "wasm-bindgen-futures",
+ "web-sys",
+]
+
+[[package]]
 name = "bevy_window"
 version = "0.12.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1953,12 +1966,12 @@ dependencies = [
 
 [[package]]
 name = "errno"
-version = "0.3.7"
+version = "0.3.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f258a7194e7f7c2a7837a8913aeab7fd8c383457034fa20ce4dd3dcb813e8eb8"
+checksum = "a258e46cdc063eb8519c00b9fc845fc47bcfca4130e2f08e88665ceda8474245"
 dependencies = [
  "libc",
- "windows-sys 0.48.0",
+ "windows-sys 0.52.0",
 ]
 
 [[package]]
@@ -3430,16 +3443,13 @@ dependencies = [
  "bevy_flycam",
  "bevy_oxr",
  "bevy_screen_diagnostics",
+ "bevy_web_asset",
  "directories",
  "flate2",
  "futures-core",
  "futures-io",
  "glam",
  "globe-rs",
- "js-sys",
- "surf",
- "wasm-bindgen",
- "wasm-bindgen-futures",
  "web-sys",
 ]
 

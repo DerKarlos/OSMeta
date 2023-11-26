@@ -67,7 +67,7 @@ pub fn main() {
     let mut app = App::new();
     app.insert_resource(StartingPosition(pos.to_cartesian()));
     app.add_plugins(HttpAssetReaderPlugin {
-        base_url: "https://gltiles.osm2world.org/glb/".into(),
+        base_url: "gltiles.osm2world.org/glb/".into(),
     });
     if std::env::args().any(|arg| arg == "xr") {
         #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
