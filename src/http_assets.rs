@@ -1,3 +1,5 @@
+// Taken from https://github.com/lizelive/bevy_http and modified.
+
 use bevy::{
     asset::{
         io::{
@@ -14,7 +16,10 @@ use std::{io::Read, path::Path};
 
 /// A custom asset reader implementation that wraps a given asset reader implementation
 pub struct HttpAssetReader {
+    #[cfg(target_arch = "wasm32")]
     base_url: String,
+    #[cfg(not(target_arch = "wasm32"))]
+    client: surf::Client,
     /// Whether to load tiles from this path
     tile: bool,
 }
@@ -22,10 +27,105 @@ pub struct HttpAssetReader {
 impl HttpAssetReader {
     /// Creates a new `HttpAssetReader`. The path provided will be used to build URLs to query for assets.
     pub fn new(base_url: &str, tile: bool) -> Self {
-        Self {
-            base_url: base_url.into(),
-            tile,
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let base_url = surf::Url::parse(base_url).expect("invalid base url");
+
+            let client = surf::Config::new().set_timeout(Some(std::time::Duration::from_secs(5)));
+            let client = client.set_base_url(base_url);
+
+            let client = client.try_into().expect("could not create http client");
+            Self { client, tile }
         }
+        #[cfg(target_arch = "wasm32")]
+        {
+            Self {
+                base_url: base_url.into(),
+                tile,
+            }
+        }
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    async fn fetch_bytes<'a>(&self, path: &str) -> Result<Box<Reader<'a>>, AssetReaderError> {
+        use js_sys::Uint8Array;
+        use wasm_bindgen::JsCast;
+        use wasm_bindgen_futures::JsFuture;
+        use web_sys::Response;
+
+        fn js_value_to_err<'a>(
+            context: &'a str,
+        ) -> impl FnOnce(wasm_bindgen::JsValue) -> std::io::Error + 'a {
+            move |value| {
+                let message = match js_sys::JSON::stringify(&value) {
+                    Ok(js_str) => format!("Failed to {context}: {js_str}"),
+                    Err(_) => {
+                        format!(
+                        "Failed to {context} and also failed to stringify the JSValue of the error"
+                    )
+                    }
+                };
+
+                std::io::Error::new(std::io::ErrorKind::Other, message)
+            }
+        }
+
+        let window = web_sys::window().unwrap();
+        let resp_value =
+            JsFuture::from(window.fetch_with_str(&format!("{}/{path}", self.base_url)))
+                .await
+                .map_err(js_value_to_err("fetch path"))?;
+        let resp = resp_value
+            .dyn_into::<Response>()
+            .map_err(js_value_to_err("convert fetch to Response"))?;
+        match resp.status() {
+            200 => {
+                let data = JsFuture::from(resp.array_buffer().unwrap()).await.unwrap();
+                let bytes = Uint8Array::new(&data).to_vec();
+                let reader: Box<Reader> = Box::new(VecReader::new(bytes));
+                Ok(reader)
+            }
+            404 => Err(AssetReaderError::NotFound(path.into())),
+            status => Err(AssetReaderError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("Encountered unexpected HTTP status {status}"),
+            ))),
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    async fn fetch_bytes<'a>(&self, path: &str) -> Result<Box<Reader<'a>>, AssetReaderError> {
+        let resp = self.client.get(path).await;
+
+        trace!("fetched {resp:?} ... ");
+        let mut resp = resp.map_err(|e| {
+            AssetReaderError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("error fetching {path}: {e}"),
+            ))
+        })?;
+
+        let status = resp.status();
+
+        if !status.is_success() {
+            let err = match status {
+                surf::StatusCode::NotFound => AssetReaderError::NotFound(path.into()),
+                _ => AssetReaderError::Io(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("bad status code: {status}"),
+                )),
+            };
+            return Err(err);
+        };
+
+        let bytes = resp.body_bytes().await.map_err(|e| {
+            AssetReaderError::Io(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("error getting bytes for {path}: {e}"),
+            ))
+        })?;
+        let reader = bevy::asset::io::VecReader::new(bytes);
+        Ok(Box::new(reader))
     }
 }
 
@@ -39,34 +139,22 @@ impl AssetReader for HttpAssetReader {
             let (x, rest) = path.split_once('_').unwrap();
             let path = format!("lod1/15/{x}/{rest}.gz");
             Box::pin(async move {
-                let mut bytes_compressed = vec![];
-                let path = format!("{}{}", self.base_url, path);
-                bevy_web_asset::WebAssetReader::Https
-                    .read(Path::new(&path))
+                let mut bytes_compressed = Vec::new();
+                self.fetch_bytes(&path)
                     .await?
                     .read_to_end(&mut bytes_compressed)
                     .await?;
 
                 let mut decoder = GzDecoder::new(bytes_compressed.as_slice());
 
-                let mut bytes_uncompressed = vec![];
+                let mut bytes_uncompressed = Vec::new();
 
                 decoder.read_to_end(&mut bytes_uncompressed)?;
 
                 Ok(Box::new(VecReader::new(bytes_uncompressed)) as Box<Reader<'static>>)
             })
         } else {
-            Box::pin(async move {
-                let path = format!("{}{}", self.base_url, path);
-                let mut bytes = vec![];
-                bevy_web_asset::WebAssetReader::Https
-                    .read(Path::new(&path))
-                    .await?
-                    .read_to_end(&mut bytes)
-                    .await?;
-
-                Ok(Box::new(VecReader::new(bytes)) as Box<Reader<'static>>)
-            })
+            Box::pin(async move { self.fetch_bytes(&path).await })
         }
     }
 

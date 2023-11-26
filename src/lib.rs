@@ -27,7 +27,7 @@ mod xr;
 pub fn main() {
     let mut app = App::new();
     app.add_plugins(HttpAssetReaderPlugin {
-        base_url: "gltiles.osm2world.org/glb/".into(),
+        base_url: "https://gltiles.osm2world.org/glb/".into(),
     });
     if std::env::args().any(|arg| arg == "xr") {
         #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
