@@ -55,3 +55,4 @@ crate-type = ["staticlib", "cdylib", "lib"]
 
 [lints.clippy]
 type_complexity = "allow"
+too_many_arguments = "allow"
