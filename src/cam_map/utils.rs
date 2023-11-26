@@ -1,3 +1,5 @@
+use bevy::prelude::*;
+
 /**
  * OSM x/y tile "name" - parts
  *
@@ -8,9 +10,4 @@
  * So we named this TypeScript variable/class-type as "Tile_Name",
  * even if it is an x/y coordinate in numbers.
  */
-#[derive(Debug, Clone, Copy)]
-pub // type TileName = glam::Vec2; // BABYLON.Vector2
-struct TileName {
-    pub x: i32,
-    pub y: i32,
-}
+pub type TileName = IVec2;
