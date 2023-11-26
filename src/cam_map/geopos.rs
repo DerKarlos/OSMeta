@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use crate::cam_map::TileName;
+use super::utils::TileName;
 
 // import { OsmScene } from "./osmscene.js"
 
