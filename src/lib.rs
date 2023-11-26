@@ -1,6 +1,9 @@
 //! Loads and renders a glTF file as a scene.
 
-use bevy::prelude::*;
+use bevy::{
+    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    prelude::*,
+};
 use bevy_flycam::FlyCam;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
@@ -104,7 +107,7 @@ fn load_next_tile(
             Without<Sky>,
         ),
     >,
-    mut sky_pos: Query<
+    mut sky: Query<
         &mut Transform,
         (
             With<Sky>,
@@ -113,6 +116,8 @@ fn load_next_tile(
             Without<FlyCam>,
         ),
     >,
+    diagnostics: Res<DiagnosticsStore>,
+    mut fog: Query<&mut FogSettings>,
 ) {
     let (id, mut tilemap, transform) = tilemap.single_mut();
     let pos = if let Ok(xr_pos) = xr_pos.get_single() {
@@ -120,7 +125,24 @@ fn load_next_tile(
     } else {
         flycam_pos.single().translation
     };
-    sky_pos.single_mut().translation = pos;
+    let mut sky = sky.single_mut();
+    sky.translation = pos;
+
+    if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+        if let Some(fps) = fps.smoothed() {
+            if fps < 40.0 {
+                sky.scale = Vec3::splat(sky.scale.x * 0.999)
+            } else if fps > 59.5 {
+                sky.scale = Vec3::splat(sky.scale.x * 1.001)
+            }
+            sky.scale = Vec3::splat(sky.scale.x.clamp(1000.0, 10000.0));
+            fog.single_mut().falloff = FogFalloff::from_visibility_colors(
+                sky.scale.x, // distance in world units up to which objects retain visibility (>= 5% contrast)
+                Color::rgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
+                Color::rgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
+            );
+        }
+    }
 
     tilemap.load_next(
         id,
@@ -129,6 +151,6 @@ fn load_next_tile(
         // FIXME: Maybe use https://crates.io/crates/big_space in order to be able to remove
         // the translation from the tilemap and instead just use its real coordinates.
         pos - transform.translation,
-        sky_pos.single().scale.x,
+        sky.scale.x,
     );
 }
