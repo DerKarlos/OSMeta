@@ -7,6 +7,10 @@ use bevy::{
 use bevy_flycam::FlyCam;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
+use bevy_screen_diagnostics::{
+    Aggregate, ScreenDiagnostics, ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin,
+    ScreenFrameDiagnosticsPlugin,
+};
 use http_assets::HttpAssetReaderPlugin;
 use sun::Sky;
 
@@ -32,8 +36,12 @@ pub fn main() {
         app.add_plugins(DefaultPlugins);
     }
     app.insert_resource(Msaa::Sample4) // Msaa::Sample4  Msaa::default()   -- Todo: tut nichts?
-        //dd_plugins(bevy::diagnostic::LogDiagnosticsPlugin::default())
-        //dd_plugins(bevy::diagnostic::FrameTimeDiagnosticsPlugin)
+        .add_plugins(ScreenDiagnosticsPlugin {
+            timestep: 1.0,
+            ..default()
+        })
+        .add_plugins(ScreenFrameDiagnosticsPlugin)
+        .add_plugins(ScreenEntityDiagnosticsPlugin)
         .add_plugins(sun::Plugin)
         .add_plugins(flycam::Plugin)
         .add_systems(Startup, setup)
@@ -41,7 +49,13 @@ pub fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands, mut meshes: ResMut<Assets<Mesh>>) {
+fn setup(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut diags: ResMut<ScreenDiagnostics>,
+) {
+    diags.modify("fps").aggregate(Aggregate::Average);
+
     // Just for testing:
     #[allow(unused_mut)]
     let mut x: i32 = 17437;
