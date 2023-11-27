@@ -5,9 +5,9 @@ use bevy::{gltf::Gltf, prelude::*};
 #[derive(Component, Default)]
 pub struct TileMap<const TILE_SIZE: u32> {
     /// All currently loaded tiles.
-    tiles: BTreeMap<i32, BTreeMap<i32, Entity>>,
+    tiles: BTreeMap<u32, BTreeMap<u32, Entity>>,
     /// The tile currently being loaded.
-    loading: Option<(IVec2, Handle<Gltf>)>,
+    loading: Option<(UVec2, Handle<Gltf>)>,
     /// Dummy square to show while a scene is loading
     dummy: Handle<Mesh>,
 }
@@ -29,10 +29,10 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
         let radius = radius / Self::TILE_SIZE;
         let radius = radius.abs().ceil().copysign(radius) as i32 + 1;
         let origin = origin.xz() / Self::TILE_SIZE;
-        let origin = origin.as_ivec2();
+        let origin = origin.as_uvec2();
         self.tiles.retain(|&x, line| {
             line.retain(|&y, tile| {
-                let offset = IVec2::new(x, y) - origin;
+                let offset = IVec2::new(x as i32, y as i32) - origin.as_ivec2();
                 let oob = offset.length_squared() > radius * radius;
                 if oob {
                     if let Some(entity) = commands.get_entity(*tile) {
@@ -51,9 +51,11 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
                 if offset.length_squared() > radius * radius {
                     continue;
                 }
-                let score = self.get_view_tile_score(origin, offset);
+
+                let pos = (origin.as_ivec2() + offset).as_uvec2();
+                let score = self.get_view_tile_score(pos, offset);
                 if score < best_score {
-                    best_pos = Some(origin + offset);
+                    best_pos = Some(pos);
                     best_score = score;
                 }
             }
@@ -66,9 +68,9 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
     /// Takes an offset to the player position and returns a score for how important
     /// to load it is. Lower values are better.
     // FIXME(#18): use a smarter algorithm
-    pub fn get_view_tile_score(&self, pos: IVec2, offset: IVec2) -> f32 {
-        if let Some(line) = self.tiles.get(&(pos.x + offset.x)) {
-            if line.get(&(pos.y + offset.y)).is_some() {
+    pub fn get_view_tile_score(&self, pos: UVec2, offset: IVec2) -> f32 {
+        if let Some(line) = self.tiles.get(&pos.x) {
+            if line.get(&pos.y).is_some() {
                 return f32::INFINITY;
             }
         }
@@ -85,7 +87,7 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
         tilemap_id: Entity,
         commands: &mut Commands,
         server: &AssetServer,
-        pos: IVec2,
+        pos: UVec2,
     ) {
         if self.loading.is_some() {
             return;
@@ -183,7 +185,7 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
         }
     }
 
-    fn test_transform(pos: IVec2) -> Transform {
+    fn test_transform(pos: UVec2) -> Transform {
         let pos = pos.as_vec2() * Self::TILE_SIZE;
         // OSM y => GPU z
         Transform::from_xyz(pos.x, 0., pos.y)
