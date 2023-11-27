@@ -14,6 +14,7 @@ use bevy_screen_diagnostics::{
 use geopos::GeoPos;
 use http_assets::HttpAssetReaderPlugin;
 use sun::Sky;
+use tilemap::TileCoord;
 
 type TileMap = tilemap::TileMap<8145>;
 
@@ -99,7 +100,7 @@ fn setup(
 
     if let Some((lat, lon)) = lat.zip(lon) {
         let pos = GeoPos { lat, lon };
-        Vec2 { x, y } = pos.to_tile_coordinates(15);
+        TileCoord(Vec2 { x, y }) = pos.to_tile_coordinates(15);
     }
 
     commands.spawn((

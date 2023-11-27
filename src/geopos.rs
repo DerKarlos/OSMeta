@@ -1,6 +1,8 @@
 use bevy::prelude::*;
 use std::f32::consts::PI;
 
+use crate::tilemap::TileCoord;
+
 /**
  * Geo-position on the (OSM-) world map (GPS position)
  *
@@ -25,11 +27,11 @@ impl GeoPos {
      * @param zoom  Zoom level of the OSM tile-name(x/y) system
      * @return coordinate in tile coordinates
      */
-    pub fn to_tile_coordinates(self, zoom: u8) -> Vec2 {
+    pub fn to_tile_coordinates(self, zoom: u8) -> TileCoord {
         let pow_zoom = 2_u32.pow(zoom.into()) as f32;
 
         // return
-        Vec2 {
+        TileCoord(Vec2 {
             // Longitude, (Längengrad) West/East "index"
             x: ((self.lon + 180.) / 360. * pow_zoom),
 
@@ -40,6 +42,6 @@ impl GeoPos {
                 * pow_zoom),
             // The Nort/South y tile name part is not linear, the tiles gets stretched to the poles
             // to compensate the stretching if the stretching of the West/East projection
-        }
+        })
     }
 }
