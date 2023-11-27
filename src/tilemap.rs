@@ -191,3 +191,6 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
         Transform::from_xyz(pos.x, 0., pos.y)
     }
 }
+
+/// A coordinate in the tile coordinate system. Allows for positions within a tile.
+pub struct TileCoord(pub Vec2);
