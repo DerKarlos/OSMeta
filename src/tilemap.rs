@@ -5,7 +5,7 @@ use bevy::{gltf::Gltf, prelude::*};
 use crate::geopos::GeoPos;
 
 #[derive(Component, Default)]
-pub struct TileMap<const TILE_SIZE: u32> {
+pub struct TileMap {
     /// All currently loaded tiles.
     tiles: BTreeMap<u32, BTreeMap<u32, Entity>>,
     /// The tile currently being loaded.
@@ -17,24 +17,21 @@ pub struct TileMap<const TILE_SIZE: u32> {
 #[derive(Component)]
 pub struct Tile;
 
-impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
-    pub const TILE_SIZE: f32 = TILE_SIZE as f32 / 10.0;
-
+impl TileMap {
     pub fn load_next(
         &mut self,
         tilemap_id: Entity,
         commands: &mut Commands,
         server: &AssetServer,
         origin: TileCoord,
-        radius: f32,
+        radius: Vec2,
     ) {
-        let radius = radius / Self::TILE_SIZE;
-        let radius = radius.abs().ceil().copysign(radius) as i32 + 1;
+        let radius = radius.abs().ceil().copysign(radius).as_ivec2();
         let origin = origin.0.floor().as_uvec2();
         self.tiles.retain(|&x, line| {
             line.retain(|&y, tile| {
                 let offset = IVec2::new(x as i32, y as i32) - origin.as_ivec2();
-                let oob = offset.length_squared() > radius * radius;
+                let oob = offset.length_squared() > radius.length_squared();
                 if oob {
                     if let Some(entity) = commands.get_entity(*tile) {
                         entity.despawn_recursive();
@@ -46,10 +43,10 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
         });
         let mut best_score = f32::INFINITY;
         let mut best_pos = None;
-        for x_i in -radius..=radius {
-            for y_i in -radius..=radius {
+        for x_i in -radius.x..=radius.x {
+            for y_i in -radius.y..=radius.y {
                 let offset = IVec2::new(x_i, y_i);
-                if offset.length_squared() > radius * radius {
+                if offset.length_squared() > radius.length_squared() {
                     continue;
                 }
 
@@ -169,7 +166,8 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
     }
 
     pub fn new(meshes: &mut Assets<Mesh>) -> Self {
-        let half = Self::TILE_SIZE / 2.0;
+        // FIXME: compute dummy tile size on the fly
+        let half = 814.5 / 2.0;
         Self {
             dummy: meshes.add(
                 shape::Box {

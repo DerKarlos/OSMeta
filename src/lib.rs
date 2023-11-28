@@ -14,8 +14,7 @@ use bevy_screen_diagnostics::{
 use geopos::GeoPos;
 use http_assets::HttpAssetReaderPlugin;
 use sun::Sky;
-
-type TileMap = tilemap::TileMap<8145>;
+use tilemap::TileMap;
 
 mod flycam;
 mod geopos;
@@ -177,6 +176,12 @@ fn load_next_tile(
     }
 
     let origin = GeoPos::from_cartesian(pos - transform.translation).to_tile_coordinates(15);
+    let (x, y) = pos.any_orthonormal_pair();
+    let radius =
+        GeoPos::from_cartesian(pos - transform.translation + x * sky.scale.x + y * sky.scale.x)
+            .to_tile_coordinates(15)
+            .0
+            - origin.0;
 
     tilemap.load_next(
         id,
@@ -185,6 +190,6 @@ fn load_next_tile(
         // FIXME: Maybe use https://crates.io/crates/big_space in order to be able to remove
         // the translation from the tilemap and instead just use its real coordinates.
         origin,
-        sky.scale.x,
+        radius,
     );
 }
