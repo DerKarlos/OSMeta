@@ -23,6 +23,8 @@ futures-io = "0.3.29"
 glam = "0"
 bevy_screen_diagnostics = { git = "https://github.com/oli-obk/bevy_screen_diagnostics.git" }
 globe-rs = "0.1.8"
+directories = "5.0.1"
+async-fs = "2.1.0"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 surf = { version = "2.3.2", default-features = false, features = [
