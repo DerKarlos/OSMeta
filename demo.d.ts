@@ -1,11 +1,244 @@
 /* tslint:disable */
 /* eslint-disable */
+/**
+* Represents a point using the Cartesian system of coordinates.
+*/
+export class CartesianPoint {
+  free(): void;
+/**
+* @param {number} x
+* @param {number} y
+* @param {number} z
+*/
+  constructor(x: number, y: number, z: number);
+/**
+* Returns the equivalent [`CartesianPoint`] of the given [`GeographicPoint`]
+* @param {GeographicPoint} point
+* @returns {CartesianPoint}
+*/
+  static from_geographic(point: GeographicPoint): CartesianPoint;
+/**
+* @returns {number}
+*/
+  x(): number;
+/**
+* @param {number} x
+*/
+  set_x(x: number): void;
+/**
+* @returns {number}
+*/
+  y(): number;
+/**
+* @param {number} y
+*/
+  set_y(y: number): void;
+/**
+* @returns {number}
+*/
+  z(): number;
+/**
+* @param {number} z
+*/
+  set_z(z: number): void;
+/**
+* Returns the distance between self and the given point.
+* @param {CartesianPoint} other
+* @returns {number}
+*/
+  distance(other: CartesianPoint): number;
+/**
+* Performs the cartesian product between self and the given point.
+* @param {CartesianPoint} other
+* @returns {CartesianPoint}
+*/
+  cross(other: CartesianPoint): CartesianPoint;
+/**
+* Rotates self in theta radians about the edge passing by the origin and the given axis point.
+* @param {CartesianPoint} axis
+* @param {number} theta
+*/
+  rotate(axis: CartesianPoint, theta: number): void;
+}
+/**
+* Represents a point using the geographic system of coordinates.
+*/
+export class GeographicPoint {
+  free(): void;
+/**
+* @param {number} longitude
+* @param {number} latitude
+* @param {number} altitude
+* @returns {GeographicPoint}
+*/
+  static new(longitude: number, latitude: number, altitude: number): GeographicPoint;
+/**
+* Returns the equivalent [`GeographicPoint`] of the given [`CartesianPoint`]
+* @param {CartesianPoint} point
+* @returns {GeographicPoint}
+*/
+  static from_cartesian(point: CartesianPoint): GeographicPoint;
+/**
+* Calls set_longitude on self and returns it.
+* @param {number} value
+* @returns {GeographicPoint}
+*/
+  with_longitude(value: number): GeographicPoint;
+/**
+* Calls set_latitude on self and returns it.
+* @param {number} value
+* @returns {GeographicPoint}
+*/
+  with_latitude(value: number): GeographicPoint;
+/**
+* Calls set_altitude on self and returns it.
+* @param {number} value
+* @returns {GeographicPoint}
+*/
+  with_altitude(value: number): GeographicPoint;
+/**
+* Sets the given longitude (in radiants) to the point.
+*
+* ## Definition
+* Since the longitude of a point on a sphere is the angle east (positive) or
+* west (negative) in reference of the maridian zero, the longitude value must
+* be in the range __[-π, +π)__. Any other value will be recomputed in order
+* to set its equivalent inside the range.
+*
+* ### Longitude adjustment
+* Both boundaries of the longitude range are consecutive, which means that
+* overflowing one is the same as continuing from the other in the same
+* direction.
+*
+* ## Example
+* ```
+* use globe_rs::GeographicPoint;
+* use std::f64::consts::PI;
+* use float_cmp::approx_eq;
+*
+* let mut point = GeographicPoint::default();
+* point.set_longitude(PI + 1_f64);
+*
+* assert!(approx_eq!(f64, point.longitude(), -PI + 1_f64, ulps = 2));
+* ```
+* @param {number} value
+*/
+  set_longitude(value: number): void;
+/**
+* Sets the given latitude (in radiants) to the point.
+*
+* ## Definition
+* Since the latitude of a point on a sphere is the angle between the
+* equatorial plane and the straight line that passes through that point and
+* through the center of the sphere, the latitude value must be in the range
+* __\[-π/2, +π/2\]__. Any other value will be recomputed in order to set its
+* equivalent inside the range. Notice that this action may recompute the
+* longitude as well.
+*
+* ### Latitude adjustment
+* Overflowing any of both boundaries of the latitude range behaves like
+* moving away from that point and getting closer to the oposite one.
+*
+* ### Longitude adjustment
+* Geometrically speaking, meridians are half of a circle going from the north
+* pole to the south one. The position of each meridian in the perimeter of
+* the sphere (horizontal axis) is set by the longitude itself. However, this
+* value may change when the latitude overflows its normalized range. This
+* happen since exceeding any of its established limits means moving from one
+* to the other half of the circle on which the meridian is drawn. And
+* therefore, the longitude gets increased by exactly `π` radiants.
+*
+* Of course, this mutation on the longitude only applies when the overflow of
+* the latitude is not enough to complete a full lap. If it is, the longitude
+* does not change at all.
+*
+* ## Example
+* ```
+* use globe_rs::GeographicPoint;
+* use std::f64::consts::PI;
+* use float_cmp::approx_eq;
+*
+* let mut point = GeographicPoint::default();
+* point.set_latitude(-5. * PI / 4.);
+*
+* assert!(approx_eq!(f64, point.latitude(), PI / 4., ulps = 2));
+* assert!(approx_eq!(f64, point.longitude(), -PI, ulps = 2));
+* ```
+* @param {number} value
+*/
+  set_latitude(value: number): void;
+/**
+* Sets the given altitude to the point.
+* @param {number} value
+*/
+  set_altitude(value: number): void;
+/**
+* Returns the longitude (in radiants) of the point.
+* @returns {number}
+*/
+  longitude(): number;
+/**
+* Returns the latitude (in radiants) of the point.
+* @returns {number}
+*/
+  latitude(): number;
+/**
+* Returns the altitude (in radiants) of the point.
+* @returns {number}
+*/
+  altitude(): number;
+/**
+* Returns the result of dividing `π` to the longitude of the point, resulting
+* in a value in the range __[-1.0, 1.0)__
+* @returns {number}
+*/
+  long_ratio(): number;
+/**
+* Returns the result of dividing `π/2` to the latitude of the point, resulting
+* in a value in the range __\[-1.0, 1.0\]__
+* @returns {number}
+*/
+  lat_ratio(): number;
+/**
+* Computes the [great-circle distance](https://en.wikipedia.org/wiki/Great-circle_distance) from self to the given point (in radiants).
+* @param {GeographicPoint} other
+* @returns {number}
+*/
+  distance(other: GeographicPoint): number;
+}
 
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
   readonly memory: WebAssembly.Memory;
   readonly main: (a: number, b: number) => number;
+  readonly __wbg_cartesianpoint_free: (a: number) => void;
+  readonly cartesianpoint_new: (a: number, b: number, c: number) => number;
+  readonly cartesianpoint_from_geographic: (a: number) => number;
+  readonly cartesianpoint_x: (a: number) => number;
+  readonly cartesianpoint_set_x: (a: number, b: number) => void;
+  readonly cartesianpoint_y: (a: number) => number;
+  readonly cartesianpoint_set_y: (a: number, b: number) => void;
+  readonly cartesianpoint_z: (a: number) => number;
+  readonly cartesianpoint_set_z: (a: number, b: number) => void;
+  readonly cartesianpoint_distance: (a: number, b: number) => number;
+  readonly cartesianpoint_cross: (a: number, b: number) => number;
+  readonly cartesianpoint_rotate: (a: number, b: number, c: number) => void;
+  readonly __wbg_geographicpoint_free: (a: number) => void;
+  readonly geographicpoint_new: (a: number, b: number, c: number) => number;
+  readonly geographicpoint_from_cartesian: (a: number) => number;
+  readonly geographicpoint_with_longitude: (a: number, b: number) => number;
+  readonly geographicpoint_with_latitude: (a: number, b: number) => number;
+  readonly geographicpoint_with_altitude: (a: number, b: number) => number;
+  readonly geographicpoint_set_longitude: (a: number, b: number) => void;
+  readonly geographicpoint_set_latitude: (a: number, b: number) => void;
+  readonly geographicpoint_set_altitude: (a: number, b: number) => void;
+  readonly geographicpoint_longitude: (a: number) => number;
+  readonly geographicpoint_latitude: (a: number) => number;
+  readonly geographicpoint_altitude: (a: number) => number;
+  readonly geographicpoint_long_ratio: (a: number) => number;
+  readonly geographicpoint_lat_ratio: (a: number) => number;
+  readonly geographicpoint_distance: (a: number, b: number) => number;
   readonly wgpu_compute_pass_set_pipeline: (a: number, b: number) => void;
   readonly wgpu_compute_pass_set_bind_group: (a: number, b: number, c: number, d: number, e: number) => void;
   readonly wgpu_compute_pass_set_push_constant: (a: number, b: number, c: number, d: number) => void;

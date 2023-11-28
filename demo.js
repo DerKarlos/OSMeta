@@ -234,6 +234,13 @@ function __wbg_adapter_60(arg0, arg1, arg2) {
     wasm.wasm_bindgen__convert__closures__invoke1_mut__ha49b025fdffdd60e(arg0, arg1, addHeapObject(arg2));
 }
 
+function _assertClass(instance, klass) {
+    if (!(instance instanceof klass)) {
+        throw new Error(`expected instance of ${klass.name}`);
+    }
+    return instance.ptr;
+}
+
 function handleError(f, args) {
     try {
         return f.apply(this, args);
@@ -274,6 +281,329 @@ function getArrayU32FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint32Memory0().subarray(ptr / 4, ptr / 4 + len);
 }
+/**
+* Represents a point using the Cartesian system of coordinates.
+*/
+export class CartesianPoint {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(CartesianPoint.prototype);
+        obj.__wbg_ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_cartesianpoint_free(ptr);
+    }
+    /**
+    * @param {number} x
+    * @param {number} y
+    * @param {number} z
+    */
+    constructor(x, y, z) {
+        const ret = wasm.cartesianpoint_new(x, y, z);
+        this.__wbg_ptr = ret >>> 0;
+        return this;
+    }
+    /**
+    * Returns the equivalent [`CartesianPoint`] of the given [`GeographicPoint`]
+    * @param {GeographicPoint} point
+    * @returns {CartesianPoint}
+    */
+    static from_geographic(point) {
+        _assertClass(point, GeographicPoint);
+        const ret = wasm.cartesianpoint_from_geographic(point.__wbg_ptr);
+        return CartesianPoint.__wrap(ret);
+    }
+    /**
+    * @returns {number}
+    */
+    x() {
+        const ret = wasm.cartesianpoint_x(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * @param {number} x
+    */
+    set_x(x) {
+        wasm.cartesianpoint_set_x(this.__wbg_ptr, x);
+    }
+    /**
+    * @returns {number}
+    */
+    y() {
+        const ret = wasm.cartesianpoint_y(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * @param {number} y
+    */
+    set_y(y) {
+        wasm.cartesianpoint_set_y(this.__wbg_ptr, y);
+    }
+    /**
+    * @returns {number}
+    */
+    z() {
+        const ret = wasm.cartesianpoint_z(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * @param {number} z
+    */
+    set_z(z) {
+        wasm.cartesianpoint_set_z(this.__wbg_ptr, z);
+    }
+    /**
+    * Returns the distance between self and the given point.
+    * @param {CartesianPoint} other
+    * @returns {number}
+    */
+    distance(other) {
+        _assertClass(other, CartesianPoint);
+        const ret = wasm.cartesianpoint_distance(this.__wbg_ptr, other.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * Performs the cartesian product between self and the given point.
+    * @param {CartesianPoint} other
+    * @returns {CartesianPoint}
+    */
+    cross(other) {
+        _assertClass(other, CartesianPoint);
+        const ret = wasm.cartesianpoint_cross(this.__wbg_ptr, other.__wbg_ptr);
+        return CartesianPoint.__wrap(ret);
+    }
+    /**
+    * Rotates self in theta radians about the edge passing by the origin and the given axis point.
+    * @param {CartesianPoint} axis
+    * @param {number} theta
+    */
+    rotate(axis, theta) {
+        _assertClass(axis, CartesianPoint);
+        var ptr0 = axis.__destroy_into_raw();
+        wasm.cartesianpoint_rotate(this.__wbg_ptr, ptr0, theta);
+    }
+}
+/**
+* Represents a point using the geographic system of coordinates.
+*/
+export class GeographicPoint {
+
+    static __wrap(ptr) {
+        ptr = ptr >>> 0;
+        const obj = Object.create(GeographicPoint.prototype);
+        obj.__wbg_ptr = ptr;
+
+        return obj;
+    }
+
+    __destroy_into_raw() {
+        const ptr = this.__wbg_ptr;
+        this.__wbg_ptr = 0;
+
+        return ptr;
+    }
+
+    free() {
+        const ptr = this.__destroy_into_raw();
+        wasm.__wbg_geographicpoint_free(ptr);
+    }
+    /**
+    * @param {number} longitude
+    * @param {number} latitude
+    * @param {number} altitude
+    * @returns {GeographicPoint}
+    */
+    static new(longitude, latitude, altitude) {
+        const ret = wasm.geographicpoint_new(longitude, latitude, altitude);
+        return GeographicPoint.__wrap(ret);
+    }
+    /**
+    * Returns the equivalent [`GeographicPoint`] of the given [`CartesianPoint`]
+    * @param {CartesianPoint} point
+    * @returns {GeographicPoint}
+    */
+    static from_cartesian(point) {
+        _assertClass(point, CartesianPoint);
+        const ret = wasm.geographicpoint_from_cartesian(point.__wbg_ptr);
+        return GeographicPoint.__wrap(ret);
+    }
+    /**
+    * Calls set_longitude on self and returns it.
+    * @param {number} value
+    * @returns {GeographicPoint}
+    */
+    with_longitude(value) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.geographicpoint_with_longitude(ptr, value);
+        return GeographicPoint.__wrap(ret);
+    }
+    /**
+    * Calls set_latitude on self and returns it.
+    * @param {number} value
+    * @returns {GeographicPoint}
+    */
+    with_latitude(value) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.geographicpoint_with_latitude(ptr, value);
+        return GeographicPoint.__wrap(ret);
+    }
+    /**
+    * Calls set_altitude on self and returns it.
+    * @param {number} value
+    * @returns {GeographicPoint}
+    */
+    with_altitude(value) {
+        const ptr = this.__destroy_into_raw();
+        const ret = wasm.geographicpoint_with_altitude(ptr, value);
+        return GeographicPoint.__wrap(ret);
+    }
+    /**
+    * Sets the given longitude (in radiants) to the point.
+    *
+    * ## Definition
+    * Since the longitude of a point on a sphere is the angle east (positive) or
+    * west (negative) in reference of the maridian zero, the longitude value must
+    * be in the range __[-π, +π)__. Any other value will be recomputed in order
+    * to set its equivalent inside the range.
+    *
+    * ### Longitude adjustment
+    * Both boundaries of the longitude range are consecutive, which means that
+    * overflowing one is the same as continuing from the other in the same
+    * direction.
+    *
+    * ## Example
+    * ```
+    * use globe_rs::GeographicPoint;
+    * use std::f64::consts::PI;
+    * use float_cmp::approx_eq;
+    *
+    * let mut point = GeographicPoint::default();
+    * point.set_longitude(PI + 1_f64);
+    *
+    * assert!(approx_eq!(f64, point.longitude(), -PI + 1_f64, ulps = 2));
+    * ```
+    * @param {number} value
+    */
+    set_longitude(value) {
+        wasm.geographicpoint_set_longitude(this.__wbg_ptr, value);
+    }
+    /**
+    * Sets the given latitude (in radiants) to the point.
+    *
+    * ## Definition
+    * Since the latitude of a point on a sphere is the angle between the
+    * equatorial plane and the straight line that passes through that point and
+    * through the center of the sphere, the latitude value must be in the range
+    * __\[-π/2, +π/2\]__. Any other value will be recomputed in order to set its
+    * equivalent inside the range. Notice that this action may recompute the
+    * longitude as well.
+    *
+    * ### Latitude adjustment
+    * Overflowing any of both boundaries of the latitude range behaves like
+    * moving away from that point and getting closer to the oposite one.
+    *
+    * ### Longitude adjustment
+    * Geometrically speaking, meridians are half of a circle going from the north
+    * pole to the south one. The position of each meridian in the perimeter of
+    * the sphere (horizontal axis) is set by the longitude itself. However, this
+    * value may change when the latitude overflows its normalized range. This
+    * happen since exceeding any of its established limits means moving from one
+    * to the other half of the circle on which the meridian is drawn. And
+    * therefore, the longitude gets increased by exactly `π` radiants.
+    *
+    * Of course, this mutation on the longitude only applies when the overflow of
+    * the latitude is not enough to complete a full lap. If it is, the longitude
+    * does not change at all.
+    *
+    * ## Example
+    * ```
+    * use globe_rs::GeographicPoint;
+    * use std::f64::consts::PI;
+    * use float_cmp::approx_eq;
+    *
+    * let mut point = GeographicPoint::default();
+    * point.set_latitude(-5. * PI / 4.);
+    *
+    * assert!(approx_eq!(f64, point.latitude(), PI / 4., ulps = 2));
+    * assert!(approx_eq!(f64, point.longitude(), -PI, ulps = 2));
+    * ```
+    * @param {number} value
+    */
+    set_latitude(value) {
+        wasm.geographicpoint_set_latitude(this.__wbg_ptr, value);
+    }
+    /**
+    * Sets the given altitude to the point.
+    * @param {number} value
+    */
+    set_altitude(value) {
+        wasm.geographicpoint_set_altitude(this.__wbg_ptr, value);
+    }
+    /**
+    * Returns the longitude (in radiants) of the point.
+    * @returns {number}
+    */
+    longitude() {
+        const ret = wasm.geographicpoint_longitude(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * Returns the latitude (in radiants) of the point.
+    * @returns {number}
+    */
+    latitude() {
+        const ret = wasm.geographicpoint_latitude(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * Returns the altitude (in radiants) of the point.
+    * @returns {number}
+    */
+    altitude() {
+        const ret = wasm.geographicpoint_altitude(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * Returns the result of dividing `π` to the longitude of the point, resulting
+    * in a value in the range __[-1.0, 1.0)__
+    * @returns {number}
+    */
+    long_ratio() {
+        const ret = wasm.geographicpoint_long_ratio(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * Returns the result of dividing `π/2` to the latitude of the point, resulting
+    * in a value in the range __\[-1.0, 1.0\]__
+    * @returns {number}
+    */
+    lat_ratio() {
+        const ret = wasm.geographicpoint_lat_ratio(this.__wbg_ptr);
+        return ret;
+    }
+    /**
+    * Computes the [great-circle distance](https://en.wikipedia.org/wiki/Great-circle_distance) from self to the given point (in radiants).
+    * @param {GeographicPoint} other
+    * @returns {number}
+    */
+    distance(other) {
+        _assertClass(other, GeographicPoint);
+        const ret = wasm.geographicpoint_distance(this.__wbg_ptr, other.__wbg_ptr);
+        return ret;
+    }
+}
 
 async function __wbg_load(module, imports) {
     if (typeof Response === 'function' && module instanceof Response) {
@@ -309,9 +639,6 @@ async function __wbg_load(module, imports) {
 function __wbg_get_imports() {
     const imports = {};
     imports.wbg = {};
-    imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
-        takeObject(arg0);
-    };
     imports.wbg.__wbindgen_cb_drop = function(arg0) {
         const obj = takeObject(arg0).original;
         if (obj.cnt-- == 1) {
@@ -320,6 +647,9 @@ function __wbg_get_imports() {
         }
         const ret = false;
         return ret;
+    };
+    imports.wbg.__wbindgen_object_drop_ref = function(arg0) {
+        takeObject(arg0);
     };
     imports.wbg.__wbindgen_object_clone_ref = function(arg0) {
         const ret = getObject(arg0);
@@ -1844,52 +2174,52 @@ function __wbg_get_imports() {
         const ret = wasm.memory;
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper3285 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1832, __wbg_adapter_34);
+    imports.wbg.__wbindgen_closure_wrapper3349 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1841, __wbg_adapter_34);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper3287 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1832, __wbg_adapter_37);
+    imports.wbg.__wbindgen_closure_wrapper3351 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1841, __wbg_adapter_37);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper3289 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1832, __wbg_adapter_34);
+    imports.wbg.__wbindgen_closure_wrapper3353 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1841, __wbg_adapter_34);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper3291 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1832, __wbg_adapter_34);
+    imports.wbg.__wbindgen_closure_wrapper3355 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1841, __wbg_adapter_34);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper3293 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1832, __wbg_adapter_34);
+    imports.wbg.__wbindgen_closure_wrapper3357 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1841, __wbg_adapter_34);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper3295 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1832, __wbg_adapter_34);
+    imports.wbg.__wbindgen_closure_wrapper3359 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1841, __wbg_adapter_34);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper3297 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1832, __wbg_adapter_34);
+    imports.wbg.__wbindgen_closure_wrapper3361 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1841, __wbg_adapter_34);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper3299 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1832, __wbg_adapter_34);
+    imports.wbg.__wbindgen_closure_wrapper3363 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1841, __wbg_adapter_34);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper3301 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 1832, __wbg_adapter_34);
+    imports.wbg.__wbindgen_closure_wrapper3365 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 1841, __wbg_adapter_34);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper4123 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 2324, __wbg_adapter_54);
+    imports.wbg.__wbindgen_closure_wrapper4187 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 2333, __wbg_adapter_54);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper31715 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 21887, __wbg_adapter_57);
+    imports.wbg.__wbindgen_closure_wrapper31779 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 21896, __wbg_adapter_57);
         return addHeapObject(ret);
     };
-    imports.wbg.__wbindgen_closure_wrapper61500 = function(arg0, arg1, arg2) {
-        const ret = makeMutClosure(arg0, arg1, 41549, __wbg_adapter_60);
+    imports.wbg.__wbindgen_closure_wrapper61564 = function(arg0, arg1, arg2) {
+        const ret = makeMutClosure(arg0, arg1, 41558, __wbg_adapter_60);
         return addHeapObject(ret);
     };
 
