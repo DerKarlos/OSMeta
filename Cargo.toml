@@ -16,12 +16,13 @@ opt-level = 3
 
 [dependencies]
 bevy = { version = "0.12", features = ["jpeg"] }
-bevy_flycam = { git = "https://github.com/sburris0/bevy_flycam" }
+bevy_flycam = { git = "https://github.com/oli-obk/bevy_flycam", branch = "arbitrary_up" }
 flate2 = "1.0.28"
 futures-core = "0.3.29"
 futures-io = "0.3.29"
 glam = "0"
 bevy_screen_diagnostics = { git = "https://github.com/oli-obk/bevy_screen_diagnostics.git" }
+globe-rs = "0.1.8"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 surf = { version = "2.3.2", default-features = false, features = [

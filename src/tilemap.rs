@@ -1,6 +1,8 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, f32::consts::PI};
 
 use bevy::{gltf::Gltf, prelude::*};
+
+use crate::geopos::GeoPos;
 
 #[derive(Component, Default)]
 pub struct TileMap<const TILE_SIZE: u32> {
@@ -23,13 +25,12 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
         tilemap_id: Entity,
         commands: &mut Commands,
         server: &AssetServer,
-        origin: Vec3,
+        origin: TileCoord,
         radius: f32,
     ) {
         let radius = radius / Self::TILE_SIZE;
         let radius = radius.abs().ceil().copysign(radius) as i32 + 1;
-        let origin = origin.xz() / Self::TILE_SIZE;
-        let origin = origin.as_uvec2();
+        let origin = origin.0.floor().as_uvec2();
         self.tiles.retain(|&x, line| {
             line.retain(|&y, tile| {
                 let offset = IVec2::new(x as i32, y as i32) - origin.as_ivec2();
@@ -186,11 +187,29 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
     }
 
     fn test_transform(pos: UVec2) -> Transform {
-        let pos = pos.as_vec2() * Self::TILE_SIZE;
-        // OSM y => GPU z
-        Transform::from_xyz(pos.x, 0., pos.y)
+        let coord = TileCoord(pos.as_vec2());
+        let pos = coord.to_geo_pos(15).to_cartesian();
+        let next = TileCoord(Vec2 {
+            x: coord.0.x,
+            y: coord.0.y - 1.0,
+        })
+        .to_geo_pos(15)
+        .to_cartesian();
+        Transform::from_translation(pos).looking_to(next - pos, pos.normalize())
     }
 }
 
 /// A coordinate in the tile coordinate system. Allows for positions within a tile.
+#[derive(Debug, Copy, Clone)]
 pub struct TileCoord(pub Vec2);
+
+impl TileCoord {
+    pub fn to_geo_pos(self, zoom: u8) -> GeoPos {
+        let pow_zoom = 2_u32.pow(zoom.into()) as f32;
+
+        let lon = self.0.x / pow_zoom * 360.0 - 180.0;
+        let lat_rad = (PI * (1. - 2. * self.0.y / pow_zoom)).sinh().atan();
+        let lat = lat_rad * 180.0 / PI;
+        GeoPos { lat, lon }
+    }
+}

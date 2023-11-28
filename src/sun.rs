@@ -23,8 +23,8 @@ fn animate_light_direction(
     for mut transform in &mut query {
         transform.rotation = Quat::from_euler(
             EulerRot::ZYX,
-            0.0,
             time.elapsed_seconds() * PI / 100.0,
+            0.0,
             -FRAC_PI_4,
         );
     }

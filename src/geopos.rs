@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use globe_rs::{CartesianPoint, GeographicPoint};
 use std::f32::consts::PI;
 
 use crate::tilemap::TileCoord;
@@ -30,7 +31,6 @@ impl GeoPos {
     pub fn to_tile_coordinates(self, zoom: u8) -> TileCoord {
         let pow_zoom = 2_u32.pow(zoom.into()) as f32;
 
-        // return
         TileCoord(Vec2 {
             // Longitude, (Längengrad) West/East "index"
             x: ((self.lon + 180.) / 360. * pow_zoom),
@@ -44,4 +44,26 @@ impl GeoPos {
             // to compensate the stretching if the stretching of the West/East projection
         })
     }
+
+    pub fn to_cartesian(self) -> Vec3 {
+        let geo = GeographicPoint::new(
+            self.lon as f64 / 180.0 * std::f64::consts::PI,
+            self.lat as f64 / 180.0 * std::f64::consts::PI,
+            EARTH_RADIUS as f64,
+        );
+        let cart = CartesianPoint::from_geographic(&geo);
+        Vec3::new(cart.x() as f32, cart.y() as f32, cart.z() as f32)
+    }
+
+    pub fn from_cartesian(pos: Vec3) -> Self {
+        let pos = pos.as_dvec3();
+        let cart = CartesianPoint::new(pos.x, pos.y, pos.z);
+        let geo = GeographicPoint::from_cartesian(&cart);
+        GeoPos {
+            lat: geo.latitude() as f32 / PI * 180.0,
+            lon: geo.longitude() as f32 / PI * 180.0,
+        }
+    }
 }
+
+pub const EARTH_RADIUS: f32 = 6378000.;
