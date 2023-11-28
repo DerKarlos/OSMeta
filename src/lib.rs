@@ -14,9 +14,7 @@ use bevy_screen_diagnostics::{
 use geopos::GeoPos;
 use http_assets::HttpAssetReaderPlugin;
 use sun::Sky;
-use tilemap::TileCoord;
-
-type TileMap = tilemap::TileMap<8145>;
+use tilemap::TileMap;
 
 mod flycam;
 mod geopos;
@@ -26,9 +24,48 @@ mod tilemap;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 mod xr;
 
+#[derive(Resource)]
+struct StartingPosition(Vec3);
+
 #[bevy_main]
 pub fn main() {
+    let mut args: Vec<String> = vec![];
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        let window = web_sys::window().expect("no window exists");
+        let document = window.document().expect("no global document exist");
+        let location = document.location().expect("no location exists");
+        let raw_search = location.search().expect("no search exists");
+        info!(?location);
+        if let Some(addr) = raw_search.strip_prefix('?') {
+            args.extend(addr.split('&').map(Into::into));
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        args.extend(std::env::args().skip(1));
+    }
+
+    let mut pos = GeoPos {
+        lat: 48.14077,
+        lon: 11.55741,
+    };
+
+    for arg in args {
+        let (k, v) = arg
+            .split_once('=')
+            .expect("arguments must be `key=value` pairs");
+        match k {
+            "lat" => pos.lat = v.parse().unwrap(),
+            "lon" => pos.lon = v.parse().unwrap(),
+            other => panic!("unknown key `{other}`"),
+        }
+    }
+
     let mut app = App::new();
+    app.insert_resource(StartingPosition(pos.to_cartesian()));
     app.add_plugins(HttpAssetReaderPlugin {
         base_url: "https://gltiles.osm2world.org/glb/".into(),
     });
@@ -56,57 +93,14 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut diags: ResMut<ScreenDiagnostics>,
+    pos: Res<StartingPosition>,
 ) {
     diags.modify("fps").aggregate(Aggregate::Average);
-
-    // Just for testing:
-    #[allow(unused_mut)]
-    let mut x: f32 = 17437.0;
-    #[allow(unused_mut)]
-    let mut y: f32 = 11371.0;
-
-    let mut args: Vec<String> = vec![];
-
-    #[cfg(target_arch = "wasm32")]
-    {
-        let window = web_sys::window().expect("no window exists");
-        let document = window.document().expect("no global document exist");
-        let location = document.location().expect("no location exists");
-        let raw_search = location.search().expect("no search exists");
-        info!(?location);
-        if let Some(addr) = raw_search.strip_prefix('?') {
-            args.extend(addr.split('&').map(Into::into));
-        }
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    {
-        args.extend(std::env::args().skip(1));
-    }
-
-    let mut lat = None;
-    let mut lon = None;
-
-    for arg in args {
-        let (k, v) = arg
-            .split_once('=')
-            .expect("arguments must be `key=value` pairs");
-        match k {
-            "lat" => lat = Some(v.parse().unwrap()),
-            "lon" => lon = Some(v.parse().unwrap()),
-            other => panic!("unknown key `{other}`"),
-        }
-    }
-
-    if let Some((lat, lon)) = lat.zip(lon) {
-        let pos = GeoPos { lat, lon };
-        TileCoord(Vec2 { x, y }) = pos.to_tile_coordinates(15);
-    }
 
     commands.spawn((
         TileMap::new(&mut meshes),
         SpatialBundle {
-            transform: Transform::from_xyz(-x * TileMap::TILE_SIZE, 0., -y * TileMap::TILE_SIZE),
+            transform: Transform::from_translation(-pos.0),
             ..default()
         },
     ));
@@ -181,13 +175,21 @@ fn load_next_tile(
         }
     }
 
+    let origin = GeoPos::from_cartesian(pos - transform.translation).to_tile_coordinates(15);
+    let (x, y) = pos.any_orthonormal_pair();
+    let radius =
+        GeoPos::from_cartesian(pos - transform.translation + x * sky.scale.x + y * sky.scale.x)
+            .to_tile_coordinates(15)
+            .0
+            - origin.0;
+
     tilemap.load_next(
         id,
         &mut commands,
         &server,
         // FIXME: Maybe use https://crates.io/crates/big_space in order to be able to remove
         // the translation from the tilemap and instead just use its real coordinates.
-        pos - transform.translation,
-        sky.scale.x,
+        origin,
+        radius,
     );
 }

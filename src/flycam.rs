@@ -53,9 +53,12 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut movement_settings: ResMut<MovementSettings>,
     mut keys: ResMut<KeyBindings>,
+    pos: Res<crate::StartingPosition>,
 ) {
+    let pos = pos.0.normalize();
     let transform =
-        Transform::from_xyz(0., 100., -300.).looking_at(Vec3::new(0.0, 0.3, 0.0), Vec3::Y);
+        Transform::from_translation(pos * 300.0).looking_at(Vec3::new(0.0, 0.3, 0.0), pos);
+    movement_settings.up = pos;
 
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),

@@ -1,9 +1,11 @@
-use std::collections::BTreeMap;
+use std::{collections::BTreeMap, f32::consts::PI};
 
 use bevy::{gltf::Gltf, prelude::*};
 
+use crate::geopos::GeoPos;
+
 #[derive(Component, Default)]
-pub struct TileMap<const TILE_SIZE: u32> {
+pub struct TileMap {
     /// All currently loaded tiles.
     tiles: BTreeMap<u32, BTreeMap<u32, Entity>>,
     /// The tile currently being loaded.
@@ -15,25 +17,21 @@ pub struct TileMap<const TILE_SIZE: u32> {
 #[derive(Component)]
 pub struct Tile;
 
-impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
-    pub const TILE_SIZE: f32 = TILE_SIZE as f32 / 10.0;
-
+impl TileMap {
     pub fn load_next(
         &mut self,
         tilemap_id: Entity,
         commands: &mut Commands,
         server: &AssetServer,
-        origin: Vec3,
-        radius: f32,
+        origin: TileCoord,
+        radius: Vec2,
     ) {
-        let radius = radius / Self::TILE_SIZE;
-        let radius = radius.abs().ceil().copysign(radius) as i32 + 1;
-        let origin = origin.xz() / Self::TILE_SIZE;
-        let origin = origin.as_uvec2();
+        let radius = radius.abs().ceil().copysign(radius).as_ivec2();
+        let origin = origin.0.floor().as_uvec2();
         self.tiles.retain(|&x, line| {
             line.retain(|&y, tile| {
                 let offset = IVec2::new(x as i32, y as i32) - origin.as_ivec2();
-                let oob = offset.length_squared() > radius * radius;
+                let oob = offset.length_squared() > radius.length_squared();
                 if oob {
                     if let Some(entity) = commands.get_entity(*tile) {
                         entity.despawn_recursive();
@@ -45,10 +43,10 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
         });
         let mut best_score = f32::INFINITY;
         let mut best_pos = None;
-        for x_i in -radius..=radius {
-            for y_i in -radius..=radius {
+        for x_i in -radius.x..=radius.x {
+            for y_i in -radius.y..=radius.y {
                 let offset = IVec2::new(x_i, y_i);
-                if offset.length_squared() > radius * radius {
+                if offset.length_squared() > radius.length_squared() {
                     continue;
                 }
 
@@ -168,7 +166,8 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
     }
 
     pub fn new(meshes: &mut Assets<Mesh>) -> Self {
-        let half = Self::TILE_SIZE / 2.0;
+        // FIXME: compute dummy tile size on the fly
+        let half = 814.5 / 2.0;
         Self {
             dummy: meshes.add(
                 shape::Box {
@@ -186,11 +185,29 @@ impl<const TILE_SIZE: u32> TileMap<TILE_SIZE> {
     }
 
     fn test_transform(pos: UVec2) -> Transform {
-        let pos = pos.as_vec2() * Self::TILE_SIZE;
-        // OSM y => GPU z
-        Transform::from_xyz(pos.x, 0., pos.y)
+        let coord = TileCoord(pos.as_vec2());
+        let pos = coord.to_geo_pos(15).to_cartesian();
+        let next = TileCoord(Vec2 {
+            x: coord.0.x,
+            y: coord.0.y - 1.0,
+        })
+        .to_geo_pos(15)
+        .to_cartesian();
+        Transform::from_translation(pos).looking_to(next - pos, pos.normalize())
     }
 }
 
 /// A coordinate in the tile coordinate system. Allows for positions within a tile.
+#[derive(Debug, Copy, Clone)]
 pub struct TileCoord(pub Vec2);
+
+impl TileCoord {
+    pub fn to_geo_pos(self, zoom: u8) -> GeoPos {
+        let pow_zoom = 2_u32.pow(zoom.into()) as f32;
+
+        let lon = self.0.x / pow_zoom * 360.0 - 180.0;
+        let lat_rad = (PI * (1. - 2. * self.0.y / pow_zoom)).sinh().atan();
+        let lat = lat_rad * 180.0 / PI;
+        GeoPos { lat, lon }
+    }
+}
