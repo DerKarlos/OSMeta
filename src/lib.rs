@@ -65,7 +65,7 @@ fn setup(
     #[allow(unused_mut)]
     let mut y: f32 = 11371.0;
 
-    let mut args = vec![];
+    let mut args: Vec<String> = vec![];
 
     #[cfg(target_arch = "wasm32")]
     {
@@ -75,7 +75,7 @@ fn setup(
         let raw_search = location.search().expect("no search exists");
         info!(?location);
         if let Some(addr) = raw_search.strip_prefix('?') {
-            args.extend(addr.split('&'));
+            args.extend(addr.split('&').map(Into::into));
         }
     }
 
