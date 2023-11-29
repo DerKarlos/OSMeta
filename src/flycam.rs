@@ -60,7 +60,7 @@ fn setup(
     let view = 30.0_f32.to_radians(); // default camera view 30 degrees down from horizontal. Todo: user parameter "view"
     let target_x = dist * view.cos();
     let transform =
-        Transform::from_translation(pos * dist).looking_at(Vec3::new( target_x, 0.3, 0.0), pos);
+        Transform::from_translation(pos * dist).looking_at(Vec3::new(target_x, 0.3, 0.0), pos);
     movement_settings.up = pos;
 
     let material = materials.add(StandardMaterial {
