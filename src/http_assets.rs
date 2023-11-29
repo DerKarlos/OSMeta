@@ -5,7 +5,7 @@ use bevy::{
             AssetReader, AssetReaderError, AssetSource, AssetSourceId, PathStream, Reader,
             VecReader,
         },
-        AsyncReadExt, AsyncWriteExt,
+        AsyncReadExt,
     },
     prelude::*,
     utils::BoxedFuture,
@@ -76,9 +76,7 @@ impl AssetReader for HttpAssetReader {
                 // Write asset to cache, but ensure only one HttpAssetReader writes at any given point in time
                 if self.sync.write().unwrap().insert(cache_path.clone()) {
                     async_fs::create_dir_all(cache_path.parent().unwrap()).await?;
-                    let mut file = File::create(&cache_path).await?;
-                    file.write_all(&bytes).await?;
-                    file.flush().await?;
+                    async_fs::write(cache_path, &bytes).await?;
                 }
             }
             Ok(Box::new(VecReader::new(bytes)) as Box<Reader<'static>>)
