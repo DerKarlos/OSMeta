@@ -1282,10 +1282,11 @@ dependencies = [
 [[package]]
 name = "bevy_web_asset"
 version = "0.7.1"
-source = "git+https://github.com/oli-obk/bevy_web_asset.git?branch=android#938fbe7d39a88cad6a7648d84174dc14bf6ae729"
+source = "git+https://github.com/oli-obk/bevy_web_asset.git?branch=android#dfe8f5b6e7bf1dbbde2c1a8a577f5a381c6a6e77"
 dependencies = [
  "bevy",
  "js-sys",
+ "pin-project",
  "surf",
  "wasm-bindgen",
  "wasm-bindgen-futures",
