@@ -20,24 +20,15 @@ use std::{
 
 /// A custom asset reader implementation that wraps a given asset reader implementation
 struct HttpAssetReader {
-    base_url: String,
+    pub base_url: String,
     /// Whether to load tiles from this path
-    tile: bool,
+    pub tile: bool,
     /// Used to ensure the same asset doesn't get its cache file written twice at the same time,
     /// as that depends on the OS whether it succeeds (could result in broken cache files).
-    sync: Arc<RwLock<HashSet<PathBuf>>>,
+    pub sync: Arc<RwLock<HashSet<PathBuf>>>,
+    pub cache_path: Option<PathBuf>,
 }
-
-impl HttpAssetReader {
-    /// Creates a new `HttpAssetReader`. The path provided will be used to build URLs to query for assets.
-    fn new(base_url: &str, tile: bool, sync: Arc<RwLock<HashSet<PathBuf>>>) -> Self {
-        Self {
-            base_url: base_url.into(),
-            tile,
-            sync,
-        }
-    }
-}
+impl HttpAssetReader {}
 
 impl AssetReader for HttpAssetReader {
     fn read<'a>(
@@ -45,10 +36,9 @@ impl AssetReader for HttpAssetReader {
         path: &'a Path,
     ) -> BoxedFuture<'a, Result<Box<Reader<'a>>, AssetReaderError>> {
         Box::pin(async move {
-            let cache_path = directories::ProjectDirs::from("org", "osmeta", "OSMeta")
-                .map(|dirs| dirs.cache_dir().join(path));
+            let cache_path = self.cache_path.as_ref().map(|p| p.join(path));
             // Load from cache if the asset exists there.
-            if let Some(cache_path) = cache_path.clone() {
+            if let Some(cache_path) = &cache_path {
                 if cache_path.exists() {
                     let file = File::open(&cache_path).await?;
                     return Ok(Box::new(file) as Box<Reader>);
@@ -125,17 +115,31 @@ impl Plugin for HttpAssetReaderPlugin {
         let base_url = self.base_url.clone();
         let sync = Arc::new(RwLock::new(HashSet::new()));
         let sync2 = sync.clone();
+        let cache_path = directories::ProjectDirs::from("org", "osmeta", "OSMeta")
+            .map(|dirs| dirs.cache_dir().to_owned());
+        let cache_path2 = cache_path.clone();
         app.register_asset_source(
             AssetSourceId::Default,
             AssetSource::build().with_reader(move || {
-                Box::new(HttpAssetReader::new(&base_url, false, sync.clone()))
+                Box::new(HttpAssetReader {
+                    base_url: base_url.clone(),
+                    tile: false,
+                    sync: sync.clone(),
+                    cache_path: cache_path2.clone(),
+                })
             }),
         );
         let base_url = self.base_url.clone();
         app.register_asset_source(
             AssetSourceId::Name("tile".into()),
             AssetSource::build().with_reader(move || {
-                Box::new(HttpAssetReader::new(&base_url, true, sync2.clone()))
+                info!(?cache_path);
+                Box::new(HttpAssetReader {
+                    base_url: base_url.clone(),
+                    tile: true,
+                    sync: sync2.clone(),
+                    cache_path: cache_path.clone(),
+                })
             }),
         );
     }
