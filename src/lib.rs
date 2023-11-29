@@ -162,9 +162,9 @@ fn load_next_tile(
     if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
         if let Some(fps) = fps.smoothed() {
             if fps < 40.0 {
-                sky.scale = Vec3::splat(sky.scale.x * 0.999)
+                sky.scale = Vec3::splat(sky.scale.x * 0.99)
             } else if fps > 59.5 {
-                sky.scale = Vec3::splat(sky.scale.x * 1.001)
+                sky.scale = Vec3::splat(sky.scale.x * 1.01)
             }
             sky.scale = Vec3::splat(sky.scale.x.clamp(1000.0, 10000.0));
             fog.single_mut().falloff = FogFalloff::from_visibility_colors(
