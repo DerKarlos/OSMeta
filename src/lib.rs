@@ -166,7 +166,7 @@ fn load_next_tile(
             } else if fps > 59.5 {
                 sky.scale = Vec3::splat(sky.scale.x * 1.01)
             }
-            sky.scale = Vec3::splat(sky.scale.x.clamp(1000.0, 10000.0));
+            sky.scale = Vec3::splat(sky.scale.x.clamp(1000.0, 3000.0));
             fog.single_mut().falloff = FogFalloff::from_visibility_colors(
                 sky.scale.x, // distance in world units up to which objects retain visibility (>= 5% contrast)
                 Color::rgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
@@ -175,13 +175,10 @@ fn load_next_tile(
         }
     }
 
-    let origin = GeoPos::from_cartesian(pos - transform.translation).to_tile_coordinates(15);
-    let (x, y) = pos.any_orthonormal_pair();
-    let radius =
-        GeoPos::from_cartesian(pos - transform.translation + x * sky.scale.x + y * sky.scale.x)
-            .to_tile_coordinates(15)
-            .0
-            - origin.0;
+    let origin = GeoPos::from_cartesian(pos - transform.translation);
+    let tile_size = origin.tile_size(15);
+    let radius = sky.scale.x / tile_size;
+    let origin = origin.to_tile_coordinates(15);
 
     tilemap.load_next(
         id,
