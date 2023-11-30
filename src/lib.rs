@@ -124,7 +124,7 @@ fn load_next_tile(
         &Transform,
         (
             With<OpenXRTrackingRoot>,
-            Without<OpenXRTrackingRoot>,
+            Without<Sky>,
             Without<TileMap>,
             Without<FlyCam>,
         ),
