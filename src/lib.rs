@@ -14,7 +14,7 @@ use bevy_screen_diagnostics::{
 use geopos::{GeoPos, EARTH_RADIUS};
 use http_assets::HttpAssetReaderPlugin;
 use sun::Sky;
-use tilemap::TileMap;
+use tilemap::{TileMap, TILE_ZOOM};
 
 mod flycam;
 mod geopos;
@@ -181,9 +181,9 @@ fn load_next_tile(
     }
 
     let origin = GeoPos::from_cartesian(pos - transform.translation);
-    let tile_size = origin.tile_size(15);
+    let tile_size = origin.tile_size(TILE_ZOOM);
     let radius = sky.scale.x / tile_size;
-    let origin = origin.to_tile_coordinates(15);
+    let origin = origin.to_tile_coordinates(TILE_ZOOM);
 
     tilemap.load_next(
         id,

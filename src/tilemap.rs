@@ -14,6 +14,8 @@ pub struct TileMap {
     dummy: Handle<Mesh>,
 }
 
+pub const TILE_ZOOM: u8 = 15;
+
 #[derive(Component)]
 pub struct Tile;
 
@@ -34,6 +36,7 @@ impl TileMap {
                 let oob = offset.length_squared() > radius.length_squared();
                 if oob {
                     if let Some(entity) = commands.get_entity(*tile) {
+                        debug!("despawn: {}/{}",x,y);
                         entity.despawn_recursive();
                     }
                 }
@@ -185,18 +188,18 @@ impl TileMap {
 
     fn test_transform(pos: UVec2) -> Transform {
         let coord = TileCoord(pos.as_vec2());
-        let pos = coord.to_geo_pos(15).to_cartesian();
+        let pos = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
         let next = TileCoord(Vec2 {
             x: coord.0.x,
             y: coord.0.y - 1.0,
         })
-        .to_geo_pos(15)
+        .to_geo_pos(TILE_ZOOM)
         .to_cartesian();
         Transform::from_translation(pos).looking_to(next - pos, pos.normalize())
     }
 }
 
-/// A coordinate in the tile coordinate system. Allows for positions within a tile.
+/// A coordinate in the OWM tile coordinate system. Allows for positions within a tile. ???
 #[derive(Debug, Copy, Clone)]
 pub struct TileCoord(pub Vec2);
 
