@@ -209,7 +209,7 @@ impl TileCoord {
 
         let lon = self.0.x / pow_zoom * 360.0 - 180.0;
         let lat_rad = (PI * (1. - 2. * self.0.y / pow_zoom)).sinh().atan();
-        let lat = lat_rad * 180.0 / PI;
+        let lat = lat_rad.to_degrees();
         GeoPos { lat, lon }
     }
 }
