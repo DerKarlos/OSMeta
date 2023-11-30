@@ -37,6 +37,24 @@
 			"group": {
 				"kind": "build"
 			}
+		},
+		{
+			"label": "fmt",
+			"type": "shell",
+			"command": "cargo fmt --all -- --check",
+			"problemMatcher": [],
+			"group": {
+				"kind": "test"
+			}
+		},
+		{
+			"type": "cargo",
+			"command": "test",
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "test",
+			"label": "rust: cargo test"
 		}
 	]
 }

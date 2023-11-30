@@ -36,7 +36,7 @@ impl TileMap {
                 let oob = offset.length_squared() > radius.length_squared();
                 if oob {
                     if let Some(entity) = commands.get_entity(*tile) {
-                        debug!("despawn: {}/{}",x,y);
+                        debug!("despawn: {}/{}", x, y);
                         entity.despawn_recursive();
                     }
                 }
