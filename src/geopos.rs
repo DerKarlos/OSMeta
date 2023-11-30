@@ -36,8 +36,7 @@ impl GeoPos {
             x: ((self.lon + 180.) / 360. * pow_zoom),
 
             // y: Latitude, (Breitengrad) Nort/South "index"
-            y: ((1.
-                - ((self.lat * PI / 180.).tan() + 1. / (self.lat * PI / 180.).cos()).ln() / PI)
+            y: ((1. - (self.lat.to_radians().tan() + 1. / self.lat.to_radians().cos()).ln() / PI)
                 / 2.
                 * pow_zoom),
             // The Nort/South y tile name part is not linear, the tiles gets stretched to the poles
@@ -47,8 +46,8 @@ impl GeoPos {
 
     pub fn to_cartesian(self) -> Vec3 {
         let geo = GeographicPoint::new(
-            self.lon as f64 / 180.0 * std::f64::consts::PI,
-            self.lat as f64 / 180.0 * std::f64::consts::PI,
+            (self.lon as f64).to_radians(),
+            (self.lat as f64).to_radians(),
             EARTH_RADIUS as f64,
         );
         let cart = CartesianPoint::from_geographic(&geo);
@@ -60,8 +59,8 @@ impl GeoPos {
         let cart = CartesianPoint::new(pos.x, pos.y, pos.z);
         let geo = GeographicPoint::from_cartesian(&cart);
         GeoPos {
-            lat: geo.latitude() as f32 / PI * 180.0,
-            lon: geo.longitude() as f32 / PI * 180.0,
+            lat: (geo.latitude() as f32).to_degrees(),
+            lon: (geo.longitude() as f32).to_degrees(),
         }
     }
 
