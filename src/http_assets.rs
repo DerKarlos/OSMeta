@@ -41,7 +41,7 @@ impl AssetReader for HttpAssetReader {
             let cache_path = self.cache_path.as_ref().map(|p| p.join(path));
             // Load from cache if the asset exists there.
             if let Some(cache_path) = &cache_path {
-                info!("READ: {:?}", path);
+                debug!("READ: {:?}",path);
                 if cache_path.exists() {
                     let file = File::open(&cache_path).await?;
                     return Ok(Box::new(file) as Box<Reader>);
@@ -56,7 +56,7 @@ impl AssetReader for HttpAssetReader {
                 let (x, rest) = path.split_once('_').unwrap();
                 // The tile servers we're using have their files gzipped, so we download that and unzip it
                 // transparently and act as if there's a .glb file there.
-                let path = format!("{}lod1/{}/{x}/{rest}.gz", TILE_ZOOM, self.base_url);
+                let path = format!("{}lod1/{}/{x}/{rest}.gz", self.base_url, TILE_ZOOM);
                 let mut bytes_compressed = Vec::new();
                 bevy_web_asset::WebAssetReader::Https
                     .read(Path::new(&path))
@@ -78,7 +78,7 @@ impl AssetReader for HttpAssetReader {
             if let Some(cache_path) = cache_path {
                 // Write asset to cache, but ensure only one HttpAssetReader writes at any given point in time
                 if self.sync.write().unwrap().insert(cache_path.clone()) {
-                    debug!("write: {:?}", path);
+                    debug!("write: {path}");
                     async_fs::create_dir_all(cache_path.parent().unwrap()).await?;
                     async_fs::write(cache_path, &bytes).await?;
                 }

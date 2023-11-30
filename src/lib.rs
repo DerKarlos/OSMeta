@@ -182,7 +182,7 @@ fn load_next_tile(
 
     let origin = GeoPos::from_cartesian(pos - transform.translation);
     let tile_size = origin.tile_size(TILE_ZOOM);
-    let radius = sky.scale.x / tile_size;
+    let radius = sky.scale.x / tile_size + 0.5;
     let origin = origin.to_tile_coordinates(TILE_ZOOM);
 
     tilemap.load_next(
