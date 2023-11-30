@@ -4,14 +4,14 @@ use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     prelude::*,
 };
-use bevy_flycam::FlyCam;
+use bevy_flycam::{FlyCam, MovementSettings};
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 use bevy_screen_diagnostics::{
     Aggregate, ScreenDiagnostics, ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin,
     ScreenFrameDiagnosticsPlugin,
 };
-use geopos::GeoPos;
+use geopos::{GeoPos, EARTH_RADIUS};
 use http_assets::HttpAssetReaderPlugin;
 use sun::Sky;
 use tilemap::TileMap;
@@ -53,6 +53,8 @@ pub fn main() {
         lon: 11.55741,
     };
 
+    let mut xr = false;
+
     for arg in args {
         let (k, v) = arg
             .split_once('=')
@@ -60,6 +62,7 @@ pub fn main() {
         match k {
             "lat" => pos.lat = v.parse().unwrap(),
             "lon" => pos.lon = v.parse().unwrap(),
+            "xr" => xr = v.parse().unwrap(),
             other => panic!("unknown key `{other}`"),
         }
     }
@@ -69,9 +72,10 @@ pub fn main() {
     app.add_plugins(HttpAssetReaderPlugin {
         base_url: "gltiles.osm2world.org/glb/".into(),
     });
-    if std::env::args().any(|arg| arg == "xr") {
+    if xr {
         #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
         app.add_plugins(xr::Plugin);
+        app.add_systems(Update, pull_to_ground);
     } else {
         app.add_plugins(DefaultPlugins);
     }
@@ -86,6 +90,7 @@ pub fn main() {
         .add_plugins(flycam::Plugin)
         .add_systems(Startup, setup)
         .add_systems(Update, (load_next_tile, TileMap::update))
+        .add_systems(Update, update_camera_orientations)
         .run();
 }
 
@@ -189,4 +194,36 @@ fn load_next_tile(
         origin,
         radius,
     );
+}
+
+fn update_camera_orientations(
+    mut movement_settings: ResMut<MovementSettings>,
+    fly_cam: Query<&Transform, (With<FlyCam>, Without<TileMap>)>,
+    tilemap: Query<&Transform, (With<TileMap>, Without<FlyCam>)>,
+) {
+    movement_settings.up =
+        (fly_cam.single().translation - tilemap.single().translation).normalize();
+}
+
+fn pull_to_ground(
+    time: Res<Time>,
+    mut tracking_root_query: Query<&mut Transform, (With<OpenXRTrackingRoot>, Without<TileMap>)>,
+    tilemap: Query<&Transform, (With<TileMap>, Without<OpenXRTrackingRoot>)>,
+) {
+    let Ok(mut root) = tracking_root_query.get_single_mut() else {
+        return;
+    };
+    let tilemap = tilemap.single();
+
+    let adjustment_rate = (time.delta_seconds() * 10.0).min(1.0);
+
+    // Lower player onto sphere
+    let real_pos = root.translation.as_dvec3() - tilemap.translation.as_dvec3();
+    let up = real_pos.normalize();
+    let diff = up * EARTH_RADIUS as f64 - real_pos;
+    root.translation += diff.as_vec3() * adjustment_rate;
+
+    // Rotate player to be upright on sphere
+    let angle_diff = Quat::from_rotation_arc(root.up(), up.as_vec3());
+    root.rotate(Quat::IDENTITY.slerp(angle_diff, adjustment_rate));
 }

@@ -967,7 +967,7 @@ dependencies = [
 [[package]]
 name = "bevy_oxr"
 version = "0.1.0"
-source = "git+https://github.com/awtterpip/bevy_openxr#44b9e02130168c3066832edafd108fc6fa2fc350"
+source = "git+https://github.com/oli-obk/vrtest?branch=arbitrary_up#8515337bdf2ca750dd8099dbf2fc7945376a4532"
 dependencies = [
  "anyhow",
  "ash",
