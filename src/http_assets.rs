@@ -41,7 +41,7 @@ impl AssetReader for HttpAssetReader {
             let cache_path = self.cache_path.as_ref().map(|p| p.join(path));
             // Load from cache if the asset exists there.
             if let Some(cache_path) = &cache_path {
-                debug!("READ: {:?}",path);
+                debug!("READ: {:?}", path);
                 if cache_path.exists() {
                     let file = File::open(&cache_path).await?;
                     return Ok(Box::new(file) as Box<Reader>);
