@@ -66,12 +66,18 @@ impl GeoPos {
 
     /// Tile width and height in meters
     pub fn tile_size(self, zoom: u8) -> Vec2 {
-        let pow_zoom = 2_u32.pow(zoom.into()) as f32;
-        let tile_width = EQUATOR_METERS / pow_zoom;
-        let tile_height = tile_width * self.lat.cos();
-        Vec2::new(tile_width, tile_height.abs())
+        let coord = self.to_tile_coordinates(zoom);
+        let pos = self.to_cartesian();
+        let x = TileCoord(coord.0 + Vec2::X)
+            .to_geo_pos(zoom)
+            .to_cartesian()
+            .distance(pos);
+        let y = TileCoord(coord.0 + Vec2::Y)
+            .to_geo_pos(zoom)
+            .to_cartesian()
+            .distance(pos);
+        Vec2 { x, y }
     }
 }
 
 pub const EARTH_RADIUS: f32 = 6378000.;
-pub const EQUATOR_METERS: f32 = 40_075_016.686;
