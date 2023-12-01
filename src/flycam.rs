@@ -8,11 +8,14 @@ use bevy::{
 };
 use bevy_flycam::{FlyCam, KeyBindings, MovementSettings, NoCameraPlayerPlugin};
 
+use crate::tilemap::TileMap;
+
 pub struct Plugin;
 
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
+            .add_systems(Update, update_camera_speed)
             .add_systems(Update, grab_cursor)
             .add_plugins(NoCameraPlayerPlugin); // https://github.com/sburris0/bevy_flycam (bevy_config_cam dies not work wiht Bevy 12)
     }
@@ -111,6 +114,18 @@ fn setup(
     // Don't use ESC for grabbing/releasing the cursor. That's what browsers use, too, so it gets grabbed by bevy and released by the browser at the same time.
     keys.toggle_grab_cursor = KeyCode::G;
 }
+
+
+fn update_camera_speed(
+    mut movement_settings: ResMut<MovementSettings>,
+    fly_cam: Query<&Transform, (With<FlyCam>, Without<TileMap>)>,
+    tilemap: Query<&Transform, (With<TileMap>, Without<FlyCam>)>,
+) {
+    let speed = 1. * (fly_cam.single().translation.distance(tilemap.single().translation) - crate::geopos::EARTH_RADIUS);
+    movement_settings.speed = speed.clamp(0.1,1000.);
+}
+
+// Todo ? Merge both to fn update? To many different parameters?
 
 fn grab_cursor(
     mut windows: Query<&mut Window>,
