@@ -1,6 +1,10 @@
 use std::{collections::BTreeMap, f32::consts::PI};
 
-use bevy::{gltf::Gltf, prelude::*};
+use bevy::{
+    gltf::Gltf,
+    prelude::*,
+    render::{mesh::Indices, render_resource::PrimitiveTopology},
+};
 
 use crate::geopos::GeoPos;
 
@@ -10,8 +14,6 @@ pub struct TileMap {
     tiles: BTreeMap<u32, BTreeMap<u32, Entity>>,
     /// The tile currently being loaded.
     loading: Option<(UVec2, Handle<Gltf>)>,
-    /// Dummy square to show while a scene is loading
-    dummy: Handle<Mesh>,
 }
 
 pub const TILE_ZOOM: u8 = 15;
@@ -25,6 +27,7 @@ impl TileMap {
         tilemap_id: Entity,
         commands: &mut Commands,
         server: &AssetServer,
+        meshes: &mut Assets<Mesh>,
         origin: TileCoord,
         radius: Vec2,
     ) {
@@ -62,7 +65,7 @@ impl TileMap {
             }
         }
         if let Some(best_pos) = best_pos {
-            self.load(tilemap_id, commands, server, best_pos);
+            self.load(tilemap_id, commands, server, meshes, best_pos);
         }
     }
 
@@ -88,6 +91,7 @@ impl TileMap {
         tilemap_id: Entity,
         commands: &mut Commands,
         server: &AssetServer,
+        meshes: &mut Assets<Mesh>,
         pos: UVec2,
     ) {
         if self.loading.is_some() {
@@ -103,15 +107,9 @@ impl TileMap {
             .or_default()
             .entry(pos.y)
             .or_insert_with(|| {
-                let transform = Self::test_transform(pos);
+                let mesh = meshes.add(flat_tile(pos).1);
 
-                let id = commands
-                    .spawn(PbrBundle {
-                        mesh: self.dummy.clone(),
-                        transform,
-                        ..default()
-                    })
-                    .id();
+                let id = commands.spawn(PbrBundle { mesh, ..default() }).id();
                 commands.entity(tilemap_id).add_child(id);
                 id
             });
@@ -167,25 +165,6 @@ impl TileMap {
         }
     }
 
-    pub fn new(meshes: &mut Assets<Mesh>) -> Self {
-        // FIXME: compute dummy tile size on the fly
-        let half = 814.5 / 2.0;
-        Self {
-            dummy: meshes.add(
-                shape::Box {
-                    min_x: -half,
-                    max_x: half,
-                    min_y: 0.0,
-                    max_y: 1.0,
-                    min_z: -half,
-                    max_z: half,
-                }
-                .into(),
-            ),
-            ..default()
-        }
-    }
-
     fn test_transform(pos: UVec2) -> Transform {
         let coord = TileCoord(pos.as_vec2() + 0.5);
         let pos = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
@@ -197,6 +176,40 @@ impl TileMap {
         .to_cartesian();
         Transform::from_translation(pos).looking_to(next - pos, pos.normalize())
     }
+}
+
+// Compute a square mesh at the position for the given tile.
+fn flat_tile(pos: UVec2) -> (TileCoord, Mesh) {
+    let coord = TileCoord(pos.as_vec2());
+
+    // Four corners of the tile in cartesian coordinates relative to the
+    // planet's center.
+    let a = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
+    let b = TileCoord(pos.as_vec2() + Vec2::X)
+        .to_geo_pos(TILE_ZOOM)
+        .to_cartesian();
+    let c = TileCoord(pos.as_vec2() + 1.)
+        .to_geo_pos(TILE_ZOOM)
+        .to_cartesian();
+    let d = TileCoord(pos.as_vec2() + Vec2::Y)
+        .to_geo_pos(TILE_ZOOM)
+        .to_cartesian();
+
+    // Normals on a sphere are just the position on the sphere normalized.
+    let normal = a.normalize();
+
+    let positions = vec![a.to_array(), b.to_array(), c.to_array(), d.to_array()];
+    let normals = vec![normal; 4];
+    let uvs = vec![Vec2::ZERO, Vec2::X, Vec2::splat(1.0), Vec2::Y];
+
+    let indices = Indices::U32(vec![0, 3, 2, 2, 1, 0]);
+
+    let mesh = Mesh::new(PrimitiveTopology::TriangleList)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
+        .with_indices(Some(indices));
+    (coord, mesh)
 }
 
 /// A coordinate in the OWM tile coordinate system. Allows for positions within a tile. ???
