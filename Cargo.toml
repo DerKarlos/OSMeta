@@ -17,7 +17,6 @@ opt-level = 3
 [dependencies]
 bevy = { version = "0.12", features = ["jpeg"] }
 bevy_flycam = { git = "https://github.com/oli-obk/bevy_flycam", branch = "arbitrary_up" }
-flate2 = "1.0.28"
 futures-core = "0.3.29"
 futures-io = "0.3.29"
 glam = "0"
