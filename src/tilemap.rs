@@ -187,7 +187,7 @@ impl TileMap {
     }
 
     fn test_transform(pos: UVec2) -> Transform {
-        let coord = TileCoord(pos.as_vec2());
+        let coord = TileCoord(pos.as_vec2() + 0.5);
         let pos = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
         let next = TileCoord(Vec2 {
             x: coord.0.x,
