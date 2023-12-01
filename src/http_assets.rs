@@ -56,7 +56,16 @@ impl AssetReader for HttpAssetReader {
                 let (x, rest) = path.split_once('_').unwrap();
                 // The tile servers we're using have their files gzipped, so we download that and unzip it
                 // transparently and act as if there's a .glb file there.
-                let path = format!("{}lod1/{}/{x}/{rest}.gz", self.base_url, TILE_ZOOM);
+                let ext = if cfg!(target_arch = "wasm32") {
+                    // The server signals the websocket to add .gz and unpack, but does that for `.gz` files, too.
+                    // So if we try to download a `.gz` file, we get an error because we get the decompressed
+                    // version of the file?!
+                    ""
+                } else {
+                    ".gz"
+                };
+                let path = format!("{}lod1/{}/{x}/{rest}{ext}", self.base_url, TILE_ZOOM);
+                info!("loading {path}");
                 let mut bytes_compressed = Vec::new();
                 bevy_web_asset::WebAssetReader::Https
                     .read(Path::new(&path))
@@ -64,9 +73,13 @@ impl AssetReader for HttpAssetReader {
                     .read_to_end(&mut bytes_compressed)
                     .await?;
 
-                let mut decoder = GzDecoder::new(bytes_compressed.as_slice());
+                if cfg!(target_arch = "wasm32") {
+                    bytes = bytes_compressed;
+                } else {
+                    let mut decoder = GzDecoder::new(bytes_compressed.as_slice());
 
-                decoder.read_to_end(&mut bytes)?;
+                    decoder.read_to_end(&mut bytes)?;
+                }
             } else {
                 let path = format!("{}{path}", self.base_url);
                 bevy_web_asset::WebAssetReader::Https
