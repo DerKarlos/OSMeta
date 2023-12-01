@@ -48,20 +48,25 @@ impl AssetReader for HttpAssetReader {
             }
             let path = path.display().to_string();
 
-            let path = if self.tile {
+            let mut bytes = vec![];
+            if self.tile {
                 // `tile://` urls are special for now, because we can't use `/` in the tile paths,
                 // as that will cause texture loading to be attempted in the subfolders instead of the root.
                 let (x, rest) = path.split_once('_').unwrap();
-                format!("{}lod1/{}/{x}/{rest}", self.base_url, TILE_ZOOM)
+                let path = format!("{}lod1/{}/{x}/{rest}", self.base_url, TILE_ZOOM);
+                bevy_web_asset::WebAssetReader::Https
+                    .read(Path::new(&path))
+                    .await?
+                    .read_to_end(&mut bytes)
+                    .await?;
             } else {
-                format!("{}{path}", self.base_url)
+                let path = format!("{}{path}", self.base_url);
+                bevy_web_asset::WebAssetReader::Https
+                    .read(Path::new(&path))
+                    .await?
+                    .read_to_end(&mut bytes)
+                    .await?;
             };
-            let mut bytes = vec![];
-            bevy_web_asset::WebAssetReader::Https
-                .read(Path::new(&path))
-                .await?
-                .read_to_end(&mut bytes)
-                .await?;
             if let Some(cache_path) = cache_path {
                 // Write asset to cache, but ensure only one HttpAssetReader writes at any given point in time
                 if self.sync.write().unwrap().insert(cache_path.clone()) {
