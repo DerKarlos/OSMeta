@@ -94,16 +94,11 @@ pub fn main() {
         .run();
 }
 
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut diags: ResMut<ScreenDiagnostics>,
-    pos: Res<StartingPosition>,
-) {
+fn setup(mut commands: Commands, mut diags: ResMut<ScreenDiagnostics>, pos: Res<StartingPosition>) {
     diags.modify("fps").aggregate(Aggregate::Average);
 
     commands.spawn((
-        TileMap::new(&mut meshes),
+        TileMap::default(),
         SpatialBundle {
             transform: Transform::from_translation(-pos.0),
             ..default()
@@ -152,6 +147,7 @@ fn load_next_tile(
             Without<FlyCam>,
         ),
     >,
+    mut meshes: ResMut<Assets<Mesh>>,
     diagnostics: Res<DiagnosticsStore>,
     mut fog: Query<&mut FogSettings>,
 ) {
@@ -189,6 +185,7 @@ fn load_next_tile(
         id,
         &mut commands,
         &server,
+        &mut meshes,
         // FIXME: Maybe use https://crates.io/crates/big_space in order to be able to remove
         // the translation from the tilemap and instead just use its real coordinates.
         origin,
