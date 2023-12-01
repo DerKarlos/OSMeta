@@ -171,7 +171,7 @@ fn load_next_tile(
             } else if fps > 59.5 {
                 sky.scale = Vec3::splat(sky.scale.x * 1.01)
             }
-            sky.scale = Vec3::splat(sky.scale.x.clamp(1000.0, 3000.0));
+            sky.scale = Vec3::splat(sky.scale.x.clamp(1000.0, 10000.0));
             fog.single_mut().falloff = FogFalloff::from_visibility_colors(
                 sky.scale.x, // distance in world units up to which objects retain visibility (>= 5% contrast)
                 Color::rgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
