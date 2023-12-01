@@ -119,6 +119,8 @@ impl TileMap {
         mut commands: Commands,
         server: Res<AssetServer>,
         scenes: ResMut<Assets<Gltf>>,
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut materials: ResMut<Assets<StandardMaterial>>,
         mut tilemap: Query<(Entity, &mut Self)>,
     ) {
         for (id, mut tilemap) in &mut tilemap {
@@ -129,7 +131,7 @@ impl TileMap {
                     NotLoaded | Loading => {
                         tilemap.loading = Some((pos, scene));
                     }
-                    Loaded => {
+                    state @ (Loaded | Failed) => {
                         // FIXME: implement caching of downloaded assets by implementing something like
                         // https://github.com/bevyengine/bevy/blob/main/examples/asset/processing/asset_processing.rs
 
@@ -139,26 +141,50 @@ impl TileMap {
                             continue;
                         };
 
-                        let transform = Self::test_transform(pos);
-                        let scene = scenes.get(scene).unwrap().scenes[0].clone();
-                        let tile = commands
-                            .spawn((
-                                SceneBundle {
-                                    scene, // "models/17430_11371.glb#Scene0"
-                                    transform,
+                        let tile = match state {
+                            NotLoaded | Loading => unreachable!(),
+                            Loaded => {
+                                let transform = Self::test_transform(pos);
+                                let scene = scenes.get(scene).unwrap().scenes[0].clone();
+                                commands
+                                    .spawn((
+                                        SceneBundle {
+                                            scene, // "models/17430_11371.glb#Scene0"
+                                            transform,
+                                            ..default()
+                                        },
+                                        Tile,
+                                    ))
+                                    .id()
+                            }
+                            Failed => {
+                                warn!("failed to load tile {pos} from network, switching to flat tile");
+
+                                let (coord, mesh) = flat_tile(pos);
+                                let mesh = meshes.add(mesh);
+                                let image: Handle<Image> = server.load(format!(
+                                    "https://a.tile.openstreetmap.org/{TILE_ZOOM}/{}/{}.png",
+                                    coord.0.x, coord.0.y
+                                ));
+                                let material = materials.add(StandardMaterial {
+                                    base_color_texture: Some(image),
+                                    perceptual_roughness: 1.0,
                                     ..default()
-                                },
-                                Tile,
-                            ))
-                            .id();
+                                });
+                                commands
+                                    .spawn(PbrBundle {
+                                        mesh,
+                                        material,
+                                        ..default()
+                                    })
+                                    .id()
+                            }
+                        };
                         commands.entity(id).add_child(tile);
                         let dummy = std::mem::replace(entity, tile);
                         if let Some(mut entity) = commands.get_entity(dummy) {
                             entity.despawn();
                         }
-                    }
-                    Failed => {
-                        error!("failed to load tile {pos} from network");
                     }
                 }
             }
