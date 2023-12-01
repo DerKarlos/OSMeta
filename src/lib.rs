@@ -72,6 +72,9 @@ pub fn main() {
     app.add_plugins(HttpAssetReaderPlugin {
         base_url: "gltiles.osm2world.org/glb/".into(),
     });
+    app.add_plugins(bevy_web_asset::WebAssetPlugin {
+        user_agent: Some("osmeta 0.1.0".into()),
+    });
     if xr {
         #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
         app.add_plugins(xr::Plugin);

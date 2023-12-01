@@ -1282,7 +1282,7 @@ dependencies = [
 [[package]]
 name = "bevy_web_asset"
 version = "0.7.1"
-source = "git+https://github.com/oli-obk/bevy_web_asset.git?branch=android#dfe8f5b6e7bf1dbbde2c1a8a577f5a381c6a6e77"
+source = "git+https://github.com/oli-obk/bevy_web_asset.git?branch=user-agent#bf804cc5a87b7d0a7aa90810d77c4b2279034390"
 dependencies = [
  "bevy",
  "js-sys",
