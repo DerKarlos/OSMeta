@@ -3446,6 +3446,7 @@ dependencies = [
  "bevy_screen_diagnostics",
  "bevy_web_asset",
  "directories",
+ "flate2",
  "futures-core",
  "futures-io",
  "glam",
