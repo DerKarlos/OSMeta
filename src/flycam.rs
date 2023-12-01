@@ -115,14 +115,18 @@ fn setup(
     keys.toggle_grab_cursor = KeyCode::G;
 }
 
-
 fn update_camera_speed(
     mut movement_settings: ResMut<MovementSettings>,
     fly_cam: Query<&Transform, (With<FlyCam>, Without<TileMap>)>,
     tilemap: Query<&Transform, (With<TileMap>, Without<FlyCam>)>,
 ) {
-    let speed = 1. * (fly_cam.single().translation.distance(tilemap.single().translation) - crate::geopos::EARTH_RADIUS);
-    movement_settings.speed = speed.clamp(0.1,1000.);
+    let speed = 1.
+        * (fly_cam
+            .single()
+            .translation
+            .distance(tilemap.single().translation)
+            - crate::geopos::EARTH_RADIUS);
+    movement_settings.speed = speed.clamp(0.1, 1000.);
 }
 
 // Todo ? Merge both to fn update? To many different parameters?
