@@ -200,7 +200,8 @@ impl TileMap {
         })
         .to_geo_pos(TILE_ZOOM)
         .to_cartesian();
-        Transform::from_translation(pos).looking_to(next - pos, pos.normalize())
+        Transform::from_translation(pos.as_vec3())
+            .looking_to((next - pos).as_vec3(), pos.normalize().as_vec3())
     }
 }
 
@@ -210,16 +211,19 @@ fn flat_tile(pos: UVec2) -> (TileCoord, Mesh) {
 
     // Four corners of the tile in cartesian coordinates relative to the
     // planet's center.
-    let a = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
+    let a = coord.to_geo_pos(TILE_ZOOM).to_cartesian().as_vec3();
     let b = TileCoord(pos.as_vec2() + Vec2::X)
         .to_geo_pos(TILE_ZOOM)
-        .to_cartesian();
+        .to_cartesian()
+        .as_vec3();
     let c = TileCoord(pos.as_vec2() + 1.)
         .to_geo_pos(TILE_ZOOM)
-        .to_cartesian();
+        .to_cartesian()
+        .as_vec3();
     let d = TileCoord(pos.as_vec2() + Vec2::Y)
         .to_geo_pos(TILE_ZOOM)
-        .to_cartesian();
+        .to_cartesian()
+        .as_vec3();
 
     // Normals on a sphere are just the position on the sphere normalized.
     let normal = a.normalize();

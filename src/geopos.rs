@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use glam::DVec3;
 use globe_rs::{CartesianPoint, GeographicPoint};
 use std::f32::consts::PI;
 
@@ -44,14 +45,14 @@ impl GeoPos {
         })
     }
 
-    pub fn to_cartesian(self) -> Vec3 {
+    pub fn to_cartesian(self) -> DVec3 {
         let geo = GeographicPoint::new(
             (self.lon as f64).to_radians(),
             (self.lat as f64).to_radians(),
             EARTH_RADIUS as f64,
         );
         let cart = CartesianPoint::from_geographic(&geo);
-        Vec3::new(cart.x() as f32, cart.y() as f32, cart.z() as f32)
+        DVec3::new(cart.x(), cart.y(), cart.z())
     }
 
     pub fn from_cartesian(pos: Vec3) -> Self {
@@ -71,11 +72,11 @@ impl GeoPos {
         let x = TileCoord(coord.0 + Vec2::X)
             .to_geo_pos(zoom)
             .to_cartesian()
-            .distance(pos);
+            .distance(pos) as f32;
         let y = TileCoord(coord.0 + Vec2::Y)
             .to_geo_pos(zoom)
             .to_cartesian()
-            .distance(pos);
+            .distance(pos) as f32;
         Vec2 { x, y }
     }
 }

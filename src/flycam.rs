@@ -58,7 +58,7 @@ fn setup(
     mut keys: ResMut<KeyBindings>,
     pos: Res<crate::StartingPosition>,
 ) {
-    let pos = pos.0.normalize();
+    let pos = pos.0.normalize().as_vec3();
     let dist = 300.0; // Todo: user parameter "dist"
     let view = 30.0_f32.to_radians(); // default camera view 30 degrees down from horizontal. Todo: user parameter "view"
     let target_x = dist * view.cos();

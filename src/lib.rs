@@ -12,6 +12,7 @@ use bevy_screen_diagnostics::{
     ScreenFrameDiagnosticsPlugin,
 };
 use geopos::{GeoPos, EARTH_RADIUS};
+use glam::DVec3;
 use http_assets::HttpAssetReaderPlugin;
 use sun::Sky;
 use tilemap::{TileMap, TILE_ZOOM};
@@ -25,7 +26,7 @@ mod tilemap;
 mod xr;
 
 #[derive(Resource)]
-struct StartingPosition(Vec3);
+struct StartingPosition(DVec3);
 
 #[bevy_main]
 pub fn main() {
@@ -103,7 +104,7 @@ fn setup(mut commands: Commands, mut diags: ResMut<ScreenDiagnostics>, pos: Res<
     commands.spawn((
         TileMap::default(),
         SpatialBundle {
-            transform: Transform::from_translation(-pos.0),
+            transform: Transform::from_translation(-pos.0.as_vec3()),
             ..default()
         },
     ));
