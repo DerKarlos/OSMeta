@@ -11,9 +11,10 @@ use bevy_screen_diagnostics::{
     Aggregate, ScreenDiagnostics, ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin,
     ScreenFrameDiagnosticsPlugin,
 };
+use big_space::{FloatingOriginPlugin, FloatingOriginSettings, GridCell};
 use geopos::{GeoPos, EARTH_RADIUS};
+use glam::DVec3;
 use http_assets::HttpAssetReaderPlugin;
-use sun::Sky;
 use tilemap::{TileMap, TILE_ZOOM};
 
 mod flycam;
@@ -24,12 +25,20 @@ mod tilemap;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 mod xr;
 
+type GridPrecision = i64;
+type GalacticGrid = GridCell<GridPrecision>;
+
 #[derive(Resource)]
-struct StartingPosition(Vec3);
+struct Args {
+    starting_position: DVec3,
+    xr: bool,
+}
 
 #[bevy_main]
 pub fn main() {
     let mut args: Vec<String> = vec![];
+
+    std::env::set_var("RUST_BACKTRACE", "1");
 
     #[cfg(target_arch = "wasm32")]
     {
@@ -68,7 +77,11 @@ pub fn main() {
     }
 
     let mut app = App::new();
-    app.insert_resource(StartingPosition(pos.to_cartesian()));
+    app.insert_resource(Args {
+        starting_position: pos.to_cartesian(),
+        xr,
+    });
+    app.insert_resource(ViewDistance(2000.0));
     app.add_plugins(HttpAssetReaderPlugin {
         base_url: "gltiles.osm2world.org/glb/".into(),
     });
@@ -80,8 +93,9 @@ pub fn main() {
         app.add_plugins(xr::Plugin);
         app.add_systems(Update, pull_to_ground);
     } else {
-        app.add_plugins(DefaultPlugins);
+        app.add_plugins(DefaultPlugins.build().disable::<TransformPlugin>());
     }
+    app.add_plugins(FloatingOriginPlugin::<GridPrecision>::default());
     app.insert_resource(Msaa::Sample4) // Msaa::Sample4  Msaa::default()   -- Todo: tut nichts?
         .add_plugins(ScreenDiagnosticsPlugin {
             timestep: 1.0,
@@ -91,22 +105,15 @@ pub fn main() {
         .add_plugins(ScreenEntityDiagnosticsPlugin)
         .add_plugins(sun::Plugin)
         .add_plugins(flycam::Plugin)
+        .insert_resource(TileMap::default())
         .add_systems(Startup, setup)
         .add_systems(Update, (load_next_tile, TileMap::update))
         .add_systems(Update, update_camera_orientations)
         .run();
 }
 
-fn setup(mut commands: Commands, mut diags: ResMut<ScreenDiagnostics>, pos: Res<StartingPosition>) {
+fn setup(mut diags: ResMut<ScreenDiagnostics>) {
     diags.modify("fps").aggregate(Aggregate::Average);
-
-    commands.spawn((
-        TileMap::default(),
-        SpatialBundle {
-            transform: Transform::from_translation(-pos.0),
-            ..default()
-        },
-    ));
 }
 
 #[cfg(not(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32")))))]
@@ -116,79 +123,48 @@ fn setup(mut commands: Commands, mut diags: ResMut<ScreenDiagnostics>, pos: Res<
 #[derive(Component)]
 pub struct OpenXRTrackingRoot;
 
+#[derive(Resource)]
+pub struct ViewDistance(f32);
+
 fn load_next_tile(
     mut commands: Commands,
     server: Res<AssetServer>,
-    mut tilemap: Query<
-        (Entity, &mut TileMap, &Transform),
-        (Without<OpenXRTrackingRoot>, Without<FlyCam>, Without<Sky>),
-    >,
-    xr_pos: Query<
-        &Transform,
-        (
-            With<OpenXRTrackingRoot>,
-            Without<Sky>,
-            Without<TileMap>,
-            Without<FlyCam>,
-        ),
-    >,
-    flycam_pos: Query<
-        &Transform,
-        (
-            With<FlyCam>,
-            Without<OpenXRTrackingRoot>,
-            Without<TileMap>,
-            Without<Sky>,
-        ),
-    >,
-    mut sky: Query<
-        &mut Transform,
-        (
-            With<Sky>,
-            Without<OpenXRTrackingRoot>,
-            Without<TileMap>,
-            Without<FlyCam>,
-        ),
-    >,
+    mut tilemap: ResMut<TileMap>,
+    xr_pos: Query<(&Transform, &GalacticGrid), (With<OpenXRTrackingRoot>, Without<FlyCam>)>,
+    flycam_pos: Query<(&Transform, &GalacticGrid), (With<FlyCam>, Without<OpenXRTrackingRoot>)>,
     mut meshes: ResMut<Assets<Mesh>>,
     diagnostics: Res<DiagnosticsStore>,
-    mut fog: Query<&mut FogSettings>,
+    mut view_distance: ResMut<ViewDistance>,
+    space: Res<FloatingOriginSettings>,
 ) {
-    let (id, mut tilemap, transform) = tilemap.single_mut();
-    let pos = if let Ok(xr_pos) = xr_pos.get_single() {
-        xr_pos.translation
+    let (pos, grid) = if let Ok(xr_pos) = xr_pos.get_single() {
+        xr_pos
     } else {
-        flycam_pos.single().translation
+        flycam_pos.single()
     };
-    let mut sky = sky.single_mut();
-    sky.translation = pos;
 
     if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
         if let Some(fps) = fps.smoothed() {
             if fps < 40.0 {
-                sky.scale = Vec3::splat(sky.scale.x * 0.99)
+                view_distance.0 *= 0.99;
             } else if fps > 59.5 {
-                sky.scale = Vec3::splat(sky.scale.x * 1.01)
+                view_distance.0 *= 1.01;
             }
-            sky.scale = Vec3::splat(sky.scale.x.clamp(1000.0, 10000.0));
-            fog.single_mut().falloff = FogFalloff::from_visibility_colors(
-                sky.scale.x, // distance in world units up to which objects retain visibility (>= 5% contrast)
-                Color::rgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
-                Color::rgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
-            );
+            view_distance.0 = view_distance.0.clamp(1000.0, 10000.0);
         }
     }
 
-    let origin = GeoPos::from_cartesian(pos - transform.translation);
+    let pos = space.grid_position_double(grid, pos);
+    let origin = GeoPos::from_cartesian(pos);
     let tile_size = origin.tile_size(TILE_ZOOM);
-    let radius = sky.scale.x / tile_size + 0.5;
+    let radius = view_distance.0 / tile_size + 0.5;
     let origin = origin.to_tile_coordinates(TILE_ZOOM);
 
     tilemap.load_next(
-        id,
         &mut commands,
         &server,
         &mut meshes,
+        &space,
         // FIXME: Maybe use https://crates.io/crates/big_space in order to be able to remove
         // the translation from the tilemap and instead just use its real coordinates.
         origin,
@@ -198,27 +174,29 @@ fn load_next_tile(
 
 fn update_camera_orientations(
     mut movement_settings: ResMut<MovementSettings>,
-    fly_cam: Query<&Transform, (With<FlyCam>, Without<TileMap>)>,
-    tilemap: Query<&Transform, (With<TileMap>, Without<FlyCam>)>,
+    fly_cam: Query<(&Transform, &GalacticGrid), With<FlyCam>>,
+    space: Res<FloatingOriginSettings>,
 ) {
-    movement_settings.up =
-        (fly_cam.single().translation - tilemap.single().translation).normalize();
+    let (transform, grid) = fly_cam.single();
+    movement_settings.up = space
+        .grid_position_double(grid, transform)
+        .normalize()
+        .as_vec3();
 }
 
 fn pull_to_ground(
     time: Res<Time>,
-    mut tracking_root_query: Query<&mut Transform, (With<OpenXRTrackingRoot>, Without<TileMap>)>,
-    tilemap: Query<&Transform, (With<TileMap>, Without<OpenXRTrackingRoot>)>,
+    mut tracking_root_query: Query<(&mut Transform, &GalacticGrid), With<OpenXRTrackingRoot>>,
+    space: Res<FloatingOriginSettings>,
 ) {
-    let Ok(mut root) = tracking_root_query.get_single_mut() else {
+    let Ok((mut root, grid)) = tracking_root_query.get_single_mut() else {
         return;
     };
-    let tilemap = tilemap.single();
 
     let adjustment_rate = (time.delta_seconds() * 10.0).min(1.0);
 
     // Lower player onto sphere
-    let real_pos = root.translation.as_dvec3() - tilemap.translation.as_dvec3();
+    let real_pos = space.grid_position_double(grid, &root);
     let up = real_pos.normalize();
     let diff = up * EARTH_RADIUS as f64 - real_pos;
     root.translation += diff.as_vec3() * adjustment_rate;

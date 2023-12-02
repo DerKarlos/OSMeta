@@ -5,10 +5,11 @@ use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
 };
+use big_space::FloatingOriginSettings;
 
-use crate::geopos::GeoPos;
+use crate::{geopos::GeoPos, GalacticGrid};
 
-#[derive(Component, Default)]
+#[derive(Resource, Default)]
 pub struct TileMap {
     /// All currently loaded tiles.
     tiles: BTreeMap<u32, BTreeMap<u32, Entity>>,
@@ -24,10 +25,10 @@ pub struct Tile;
 impl TileMap {
     pub fn load_next(
         &mut self,
-        tilemap_id: Entity,
         commands: &mut Commands,
         server: &AssetServer,
         meshes: &mut Assets<Mesh>,
+        space: &FloatingOriginSettings,
         origin: TileCoord,
         radius: Vec2,
     ) {
@@ -65,7 +66,7 @@ impl TileMap {
             }
         }
         if let Some(best_pos) = best_pos {
-            self.load(tilemap_id, commands, server, meshes, best_pos);
+            self.load(commands, server, meshes, space, best_pos);
         }
     }
 
@@ -88,10 +89,10 @@ impl TileMap {
     /// Silently does nothing if another tile is already being loaded.
     pub fn load(
         &mut self,
-        tilemap_id: Entity,
         commands: &mut Commands,
         server: &AssetServer,
         meshes: &mut Assets<Mesh>,
+        space: &FloatingOriginSettings,
         pos: UVec2,
     ) {
         if self.loading.is_some() {
@@ -107,11 +108,10 @@ impl TileMap {
             .or_default()
             .entry(pos.y)
             .or_insert_with(|| {
-                let mesh = meshes.add(flat_tile(pos).1);
+                let (grid, _coord, mesh) = flat_tile(pos, space);
+                let mesh = meshes.add(mesh);
 
-                let id = commands.spawn(PbrBundle { mesh, ..default() }).id();
-                commands.entity(tilemap_id).add_child(id);
-                id
+                commands.spawn((PbrBundle { mesh, ..default() }, grid)).id()
             });
     }
 
@@ -121,91 +121,106 @@ impl TileMap {
         scenes: ResMut<Assets<Gltf>>,
         mut meshes: ResMut<Assets<Mesh>>,
         mut materials: ResMut<Assets<StandardMaterial>>,
-        mut tilemap: Query<(Entity, &mut Self)>,
+        mut tilemap: ResMut<Self>,
+        space: Res<FloatingOriginSettings>,
     ) {
-        for (id, mut tilemap) in &mut tilemap {
-            // check if the currently loading tile is done
-            if let Some((pos, scene)) = tilemap.loading.take() {
-                use bevy::asset::LoadState::*;
-                match server.get_load_state(&scene).unwrap() {
-                    NotLoaded | Loading => {
-                        tilemap.loading = Some((pos, scene));
-                    }
-                    state @ (Loaded | Failed) => {
-                        // FIXME: implement caching of downloaded assets by implementing something like
-                        // https://github.com/bevyengine/bevy/blob/main/examples/asset/processing/asset_processing.rs
+        // check if the currently loading tile is done
+        if let Some((pos, scene)) = tilemap.loading.take() {
+            use bevy::asset::LoadState::*;
+            match server.get_load_state(&scene).unwrap() {
+                NotLoaded | Loading => {
+                    tilemap.loading = Some((pos, scene));
+                }
+                state @ (Loaded | Failed) => {
+                    // FIXME: implement caching of downloaded assets by implementing something like
+                    // https://github.com/bevyengine/bevy/blob/main/examples/asset/processing/asset_processing.rs
 
-                        // Done, remove dummy tile and insert the real one
-                        let Some(entity) = tilemap.tiles.entry(pos.x).or_default().get_mut(&pos.y)
-                        else {
-                            continue;
-                        };
+                    // Done, remove dummy tile and insert the real one
+                    let Some(entity) = tilemap.tiles.entry(pos.x).or_default().get_mut(&pos.y)
+                    else {
+                        return;
+                    };
 
-                        let tile = match state {
-                            NotLoaded | Loading => unreachable!(),
-                            Loaded => {
-                                let transform = Self::test_transform(pos);
-                                let scene = scenes.get(scene).unwrap().scenes[0].clone();
-                                commands
-                                    .spawn((
-                                        SceneBundle {
-                                            scene, // "models/17430_11371.glb#Scene0"
-                                            transform,
-                                            ..default()
-                                        },
-                                        Tile,
-                                    ))
-                                    .id()
-                            }
-                            Failed => {
-                                warn!("failed to load tile {pos} from network, switching to flat tile");
+                    let tile = match state {
+                        NotLoaded | Loading => unreachable!(),
+                        Loaded => {
+                            let (grid, transform) = Self::test_transform(pos, &space);
+                            let scene = scenes.get(scene).unwrap().scenes[0].clone();
+                            commands
+                                .spawn((
+                                    SceneBundle {
+                                        scene, // "models/17430_11371.glb#Scene0"
+                                        transform,
+                                        ..default()
+                                    },
+                                    Tile,
+                                    grid,
+                                ))
+                                .id()
+                        }
+                        Failed => {
+                            warn!("failed to load tile {pos} from network, switching to flat tile");
 
-                                let (coord, mesh) = flat_tile(pos);
-                                let mesh = meshes.add(mesh);
-                                let image: Handle<Image> = server.load(format!(
-                                    "https://a.tile.openstreetmap.org/{TILE_ZOOM}/{}/{}.png",
-                                    coord.0.x, coord.0.y
-                                ));
-                                let material = materials.add(StandardMaterial {
-                                    base_color_texture: Some(image),
-                                    perceptual_roughness: 1.0,
-                                    ..default()
-                                });
-                                commands
-                                    .spawn(PbrBundle {
+                            let (grid, coord, mesh) = flat_tile(pos, &space);
+                            let mesh = meshes.add(mesh);
+                            let image: Handle<Image> = server.load(format!(
+                                "https://a.tile.openstreetmap.org/{TILE_ZOOM}/{}/{}.png",
+                                coord.0.x, coord.0.y
+                            ));
+                            let material = materials.add(StandardMaterial {
+                                base_color_texture: Some(image),
+                                perceptual_roughness: 1.0,
+                                ..default()
+                            });
+                            commands
+                                .spawn((
+                                    PbrBundle {
                                         mesh,
                                         material,
                                         ..default()
-                                    })
-                                    .id()
-                            }
-                        };
-                        commands.entity(id).add_child(tile);
-                        let dummy = std::mem::replace(entity, tile);
-                        if let Some(mut entity) = commands.get_entity(dummy) {
-                            entity.despawn();
+                                    },
+                                    grid,
+                                ))
+                                .id()
                         }
+                    };
+                    let dummy = std::mem::replace(entity, tile);
+                    if let Some(mut entity) = commands.get_entity(dummy) {
+                        entity.despawn();
                     }
                 }
             }
         }
     }
 
-    fn test_transform(pos: UVec2) -> Transform {
+    fn test_transform(pos: UVec2, space: &FloatingOriginSettings) -> (GalacticGrid, Transform) {
         let coord = TileCoord(pos.as_vec2() + 0.5);
         let pos = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
+        let up = pos.normalize().as_vec3();
         let next = TileCoord(Vec2 {
             x: coord.0.x,
             y: coord.0.y - 1.0,
         })
         .to_geo_pos(TILE_ZOOM)
         .to_cartesian();
-        Transform::from_translation(pos).looking_to(next - pos, pos.normalize())
+        let (grid, pos) = space.translation_to_grid(pos);
+        let (grid_next, next) = space.translation_to_grid(next);
+        let diff = grid_next - grid;
+        let diff = Vec3 {
+            x: diff.x as f32 * space.grid_edge_length(),
+            y: diff.y as f32 * space.grid_edge_length(),
+            z: diff.z as f32 * space.grid_edge_length(),
+        };
+        let next = next + diff;
+        (
+            grid,
+            Transform::from_translation(pos).looking_to(next - pos, up),
+        )
     }
 }
 
 // Compute a square mesh at the position for the given tile.
-fn flat_tile(pos: UVec2) -> (TileCoord, Mesh) {
+fn flat_tile(pos: UVec2, space: &FloatingOriginSettings) -> (GalacticGrid, TileCoord, Mesh) {
     let coord = TileCoord(pos.as_vec2());
 
     // Four corners of the tile in cartesian coordinates relative to the
@@ -213,13 +228,20 @@ fn flat_tile(pos: UVec2) -> (TileCoord, Mesh) {
     let a = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
     let b = TileCoord(pos.as_vec2() + Vec2::X)
         .to_geo_pos(TILE_ZOOM)
-        .to_cartesian();
+        .to_cartesian()
+        - a;
     let c = TileCoord(pos.as_vec2() + 1.)
         .to_geo_pos(TILE_ZOOM)
-        .to_cartesian();
+        .to_cartesian()
+        - a;
     let d = TileCoord(pos.as_vec2() + Vec2::Y)
         .to_geo_pos(TILE_ZOOM)
-        .to_cartesian();
+        .to_cartesian()
+        - a;
+    let (grid, a) = space.translation_to_grid(a);
+    let b = a + b.as_vec3();
+    let c = a + c.as_vec3();
+    let d = a + d.as_vec3();
 
     // Normals on a sphere are just the position on the sphere normalized.
     let normal = a.normalize();
@@ -235,7 +257,7 @@ fn flat_tile(pos: UVec2) -> (TileCoord, Mesh) {
         .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
         .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
         .with_indices(Some(indices));
-    (coord, mesh)
+    (grid, coord, mesh)
 }
 
 /// A coordinate in the OWM tile coordinate system. Allows for positions within a tile. ???

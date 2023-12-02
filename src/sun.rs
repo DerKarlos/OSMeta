@@ -6,6 +6,8 @@ use bevy::{
 };
 use std::f32::consts::*;
 
+use crate::{geopos::EARTH_RADIUS, GalacticGrid};
+
 pub struct Plugin;
 
 impl bevy::prelude::Plugin for Plugin {
@@ -55,23 +57,46 @@ fn setup(
         ..default()
     });
 
+    let mesh = meshes.add(
+        shape::Icosphere {
+            radius: 1.0,
+            subdivisions: 20,
+        }
+        .try_into()
+        .unwrap(),
+    );
+
     // Sky
     commands.spawn((
         PbrBundle {
-            mesh: meshes.add(shape::Icosphere::default().try_into().unwrap()),
+            mesh: mesh.clone(),
             material: materials.add(StandardMaterial {
                 base_color: Color::hex("000088").unwrap(),
+                unlit: true,
+                cull_mode: Some(bevy::render::render_resource::Face::Front),
+                ..default()
+            }),
+            transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + 200000.0)),
+            ..default()
+        },
+        NotShadowCaster,
+        GalacticGrid::ZERO,
+    ));
+
+    // ground
+    commands.spawn((
+        PbrBundle {
+            mesh,
+            material: materials.add(StandardMaterial {
+                base_color: Color::hex("533621").unwrap(),
                 unlit: true,
                 cull_mode: None,
                 ..default()
             }),
-            transform: Transform::from_scale(Vec3::splat(2000.0)),
+            transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS)),
             ..default()
         },
         NotShadowCaster,
-        Sky,
+        GalacticGrid::ZERO,
     ));
 }
-
-#[derive(Component)]
-pub struct Sky;

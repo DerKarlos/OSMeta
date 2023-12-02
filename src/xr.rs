@@ -21,12 +21,15 @@ use bevy_oxr::xr_input::{
     xr_camera::XRProjection,
 };
 use bevy_oxr::DefaultXrPlugins;
+use big_space::FloatingOrigin;
+
+use crate::GalacticGrid;
 
 pub struct Plugin;
 
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(DefaultXrPlugins)
+        app.add_plugins(DefaultXrPlugins.build().disable::<TransformPlugin>())
             .add_systems(Update, proto_locomotion)
             .insert_resource(PrototypeLocomotionConfig {
                 locomotion_speed: 10.0,
@@ -69,6 +72,8 @@ fn spawn_controllers_example(mut commands: Commands) {
         XRRayInteractor,
         AimPose(Transform::default()),
         XRInteractorState::default(),
+        FloatingOrigin,
+        GalacticGrid::ZERO,
     ));
     //right hand
     commands.spawn((

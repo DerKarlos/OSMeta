@@ -1335,6 +1335,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "big_space"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e188fd79effffde07875b26a2999f6fabbc0695ef25316948dd09d29b6abe74d"
+dependencies = [
+ "bevy",
+]
+
+[[package]]
 name = "bindgen"
 version = "0.69.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3445,6 +3454,7 @@ dependencies = [
  "bevy_oxr",
  "bevy_screen_diagnostics",
  "bevy_web_asset",
+ "big_space",
  "directories",
  "flate2",
  "futures-core",
