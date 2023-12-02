@@ -55,13 +55,12 @@ impl GeoPos {
         DVec3::new(cart.x(), cart.y(), cart.z())
     }
 
-    pub fn from_cartesian(pos: Vec3) -> Self {
-        let pos = pos.as_dvec3();
+    pub fn from_cartesian(pos: DVec3) -> Self {
         let cart = CartesianPoint::new(pos.x, pos.y, pos.z);
         let geo = GeographicPoint::from_cartesian(&cart);
         GeoPos {
-            lat: (geo.latitude() as f32).to_degrees(),
-            lon: (geo.longitude() as f32).to_degrees(),
+            lat: geo.latitude().to_degrees() as f32,
+            lon: geo.longitude().to_degrees() as f32,
         }
     }
 

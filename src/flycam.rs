@@ -7,8 +7,10 @@ use bevy::{
     render::render_resource::{Extent3d, TextureDimension, TextureFormat},
 };
 use bevy_flycam::{FlyCam, KeyBindings, MovementSettings, NoCameraPlayerPlugin};
+use big_space::{FloatingOrigin, FloatingOriginSettings};
 
-use crate::tilemap::TileMap;
+use crate::geopos::EARTH_RADIUS;
+use crate::GalacticGrid;
 
 pub struct Plugin;
 
@@ -56,14 +58,16 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut movement_settings: ResMut<MovementSettings>,
     mut keys: ResMut<KeyBindings>,
-    pos: Res<crate::StartingPosition>,
+    args: Res<crate::Args>,
+    space: Res<FloatingOriginSettings>,
 ) {
-    let pos = pos.0.normalize().as_vec3();
+    let pos = args.starting_position.normalize().as_vec3();
     let dist = 300.0; // Todo: user parameter "dist"
     let view = 30.0_f32.to_radians(); // default camera view 30 degrees down from horizontal. Todo: user parameter "view"
     let target_x = dist * view.cos();
-    let transform =
-        Transform::from_translation(pos * dist).looking_at(Vec3::new(target_x, 0.3, 0.0), pos);
+    let (grid, subgrid): (GalacticGrid, _) = space.translation_to_grid(args.starting_position);
+    let transform = Transform::from_translation(subgrid + pos * dist)
+        .looking_at(subgrid + Vec3::new(target_x, 0.3, 0.0), pos);
     movement_settings.up = pos;
 
     let material = materials.add(StandardMaterial {
@@ -86,26 +90,29 @@ fn setup(
         })
         .id();
 
-    commands
-        .spawn((
-            Camera3dBundle {
-                transform,
-                ..default()
-            },
-            InheritedVisibility::default(),
-            FlyCam,
-            FogSettings {
-                color: Color::rgba(0.35, 0.48, 0.66, 1.0),
-                directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
-                directional_light_exponent: 30.0,
-                falloff: FogFalloff::from_visibility_colors(
-                    10000.0, // distance in world units up to which objects retain visibility (>= 5% contrast)
-                    Color::rgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
-                    Color::rgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
-                ),
-            },
-        ))
-        .add_child(sphere);
+    let mut camera = commands.spawn((
+        Camera3dBundle {
+            transform,
+            ..default()
+        },
+        InheritedVisibility::default(),
+        FlyCam,
+        grid,
+        FogSettings {
+            color: Color::rgba(0.35, 0.48, 0.66, 1.0),
+            directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
+            directional_light_exponent: 30.0,
+            falloff: FogFalloff::from_visibility_colors(
+                EARTH_RADIUS * 2.0, // distance in world units up to which objects retain visibility (>= 5% contrast)
+                Color::rgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
+                Color::rgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
+            ),
+        },
+    ));
+    camera.add_child(sphere);
+    if !args.xr {
+        camera.insert(FloatingOrigin);
+    }
     // FIXME: attach the camera bundle to the world, so when we move the world, the player is automatically moved with it.
     // We'll need this when the player moves very far or teleports to another place, as we need to ensure we don't go into
     // regions where the floating point numbers become imprecise.
@@ -117,16 +124,13 @@ fn setup(
 
 fn update_camera_speed(
     mut movement_settings: ResMut<MovementSettings>,
-    fly_cam: Query<&Transform, (With<FlyCam>, Without<TileMap>)>,
-    tilemap: Query<&Transform, (With<TileMap>, Without<FlyCam>)>,
+    fly_cam: Query<(&Transform, &GalacticGrid), With<FlyCam>>,
+    space: Res<FloatingOriginSettings>,
 ) {
-    let speed = 1.
-        * (fly_cam
-            .single()
-            .translation
-            .distance(tilemap.single().translation)
-            - crate::geopos::EARTH_RADIUS);
-    movement_settings.speed = speed.clamp(0.1, 1000.);
+    let (transform, grid) = fly_cam.single();
+    let elevation = space.grid_position_double(grid, transform).length() as f32;
+    let speed = (1. * (elevation - crate::geopos::EARTH_RADIUS - 300.0)).max(100.0);
+    movement_settings.speed = speed;
 }
 
 // Todo ? Merge both to fn update? To many different parameters?
