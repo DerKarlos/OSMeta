@@ -38,8 +38,6 @@ struct Args {
 pub fn main() {
     let mut args: Vec<String> = vec![];
 
-    std::env::set_var("RUST_BACKTRACE", "1");
-
     #[cfg(target_arch = "wasm32")]
     {
         let window = web_sys::window().expect("no window exists");
@@ -54,6 +52,7 @@ pub fn main() {
 
     #[cfg(not(target_arch = "wasm32"))]
     {
+        std::env::set_var("RUST_BACKTRACE", "1");
         args.extend(std::env::args().skip(1));
     }
 
