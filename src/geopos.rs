@@ -32,17 +32,20 @@ impl GeoPos {
     pub fn to_tile_coordinates(self, zoom: u8) -> TileCoord {
         let pow_zoom = 2_u32.pow(zoom.into()) as f32;
 
-        TileCoord(Vec2 {
-            // Longitude, (Längengrad) West/East "index"
-            x: ((self.lon + 180.) / 360. * pow_zoom),
+        TileCoord {
+            pos: Vec2 {
+                // Longitude, (Längengrad) West/East "index"
+                x: ((self.lon + 180.) / 360. * pow_zoom),
 
-            // y: Latitude, (Breitengrad) Nort/South "index"
-            y: ((1. - (self.lat.to_radians().tan() + 1. / self.lat.to_radians().cos()).ln() / PI)
-                / 2.
-                * pow_zoom),
-            // The Nort/South y tile name part is not linear, the tiles gets stretched to the poles
-            // to compensate the stretching if the stretching of the West/East projection
-        })
+                // y: Latitude, (Breitengrad) Nort/South "index"
+                y: ((1.
+                    - (self.lat.to_radians().tan() + 1. / self.lat.to_radians().cos()).ln() / PI)
+                    / 2.
+                    * pow_zoom),
+                // The Nort/South y tile name part is not linear, the tiles gets stretched to the poles
+                // to compensate the stretching if the stretching of the West/East projection
+            },
+        }
     }
 
     pub fn to_cartesian(self) -> DVec3 {
@@ -68,14 +71,18 @@ impl GeoPos {
     pub fn tile_size(self, zoom: u8) -> Vec2 {
         let coord = self.to_tile_coordinates(zoom);
         let pos = self.to_cartesian();
-        let x = TileCoord(coord.0 + Vec2::X)
-            .to_geo_pos(zoom)
-            .to_cartesian()
-            .distance(pos) as f32;
-        let y = TileCoord(coord.0 + Vec2::Y)
-            .to_geo_pos(zoom)
-            .to_cartesian()
-            .distance(pos) as f32;
+        let x = TileCoord {
+            pos: coord.pos + Vec2::X,
+        }
+        .to_geo_pos(zoom)
+        .to_cartesian()
+        .distance(pos) as f32;
+        let y = TileCoord {
+            pos: coord.pos + Vec2::Y,
+        }
+        .to_geo_pos(zoom)
+        .to_cartesian()
+        .distance(pos) as f32;
         Vec2 { x, y }
     }
 }
