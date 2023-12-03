@@ -168,6 +168,7 @@ fn load_next_tile(
         // the translation from the tilemap and instead just use its real coordinates.
         origin,
         radius,
+        TILE_ZOOM,
     );
 }
 
