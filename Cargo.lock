@@ -777,7 +777,7 @@ dependencies = [
 [[package]]
 name = "bevy_flycam"
 version = "0.12.0"
-source = "git+https://github.com/oli-obk/bevy_flycam?branch=arbitrary_up#b54563a208c13774819b7cd26a5d4f265eb0d381"
+source = "git+https://github.com/oli-obk/bevy_flycam?branch=arbitrary_up#29296f18036da8ef29f86fefb0b408ffe2b28e6d"
 dependencies = [
  "bevy",
 ]
