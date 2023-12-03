@@ -14,6 +14,15 @@
 			}
 		},
 		{
+			"label": "run LOG=Debug",
+			"type": "shell",
+			"command": "RUST_LOG=debug cargo run",
+			"problemMatcher": [],
+			"group": {
+				"kind": "build"
+			}
+		},
+		{
 			"label": "run WASM",
 			"type": "shell",
 			"command": "cargo run --target wasm32-unknown-unknown",
