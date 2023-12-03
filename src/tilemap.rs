@@ -12,12 +12,13 @@ use crate::{geopos::GeoPos, GalacticGrid};
 #[derive(Resource, Default)]
 pub struct TileMap {
     /// All currently loaded tiles.
-    tiles: BTreeMap<u32, BTreeMap<u32, Entity>>,
+    tiles: [BTreeMap<u32, BTreeMap<u32, Entity>>; MAX_TILE_ZOOM as usize],
     /// The tile currently being loaded.
     loading: Option<(TileIndex, Handle<Gltf>)>,
 }
 
 pub const TILE_ZOOM: u8 = 15;
+pub const MAX_TILE_ZOOM: u8 = 16;
 
 #[derive(Component)]
 pub struct Tile;
@@ -31,10 +32,11 @@ impl TileMap {
         space: &FloatingOriginSettings,
         origin: TileCoord,
         radius: Vec2,
+        zoom: u8,
     ) {
         let radius = radius.abs().ceil().copysign(radius).as_ivec2();
         let origin = origin.pos.floor().as_uvec2();
-        self.tiles.retain(|&x, line| {
+        self.tiles[usize::from(zoom)].retain(|&x, line| {
             line.retain(|&y, tile| {
                 let offset = IVec2::new(x as i32, y as i32) - origin.as_ivec2();
                 let oob = offset.length_squared() > radius.length_squared();
@@ -77,7 +79,7 @@ impl TileMap {
     /// to load it is. Lower values are better.
     // FIXME(#18): use a smarter algorithm
     pub fn get_view_tile_score(&self, pos: TileIndex, offset: IVec2) -> f32 {
-        if let Some(line) = self.tiles.get(&pos.idx.x) {
+        if let Some(line) = self.tiles[usize::from(pos.zoom)].get(&pos.idx.x) {
             if line.get(&pos.idx.y).is_some() {
                 return f32::INFINITY;
             }
@@ -106,7 +108,7 @@ impl TileMap {
         // Start loading next tile
         self.loading = Some((pos, server.load(name))); // "models/17430_11371.glb#Scene0"
                                                        // Insert dummy tile while loading.
-        self.tiles
+        self.tiles[usize::from(pos.zoom)]
             .entry(pos.idx.x)
             .or_default()
             .entry(pos.idx.y)
@@ -139,8 +141,7 @@ impl TileMap {
                     // https://github.com/bevyengine/bevy/blob/main/examples/asset/processing/asset_processing.rs
 
                     // Done, remove dummy tile and insert the real one
-                    let Some(entity) = tilemap
-                        .tiles
+                    let Some(entity) = tilemap.tiles[usize::from(pos.zoom)]
                         .entry(pos.idx.x)
                         .or_default()
                         .get_mut(&pos.idx.y)
