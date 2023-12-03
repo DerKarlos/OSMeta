@@ -226,25 +226,34 @@ fn flat_tile(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, T
     // Four corners of the tile in cartesian coordinates relative to the
     // planet's center.
     let a = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
-    let b = pos.right().as_coord().to_geo_pos(TILE_ZOOM).to_cartesian() - a;
+    let b = pos.right().as_coord().to_geo_pos(TILE_ZOOM).to_cartesian();
     let c = pos
         .down()
         .right()
         .as_coord()
         .to_geo_pos(TILE_ZOOM)
-        .to_cartesian()
-        - a;
-    let d = pos.down().as_coord().to_geo_pos(TILE_ZOOM).to_cartesian() - a;
+        .to_cartesian();
+    let d = pos.down().as_coord().to_geo_pos(TILE_ZOOM).to_cartesian();
+
+    // Normals on a sphere are just the position on the sphere normalized.
+    let normals = vec![
+        a.normalize().as_vec3(),
+        b.normalize().as_vec3(),
+        c.normalize().as_vec3(),
+        d.normalize().as_vec3(),
+    ];
+
+    // `a` is our anchor point, all others are relative
+    let b = b - a;
+    let c = c - a;
+    let d = d - a;
+
     let (grid, a) = space.translation_to_grid(a);
     let b = a + b.as_vec3();
     let c = a + c.as_vec3();
     let d = a + d.as_vec3();
 
-    // Normals on a sphere are just the position on the sphere normalized.
-    let normal = a.normalize();
-
     let positions = vec![a.to_array(), b.to_array(), c.to_array(), d.to_array()];
-    let normals = vec![normal; 4];
     let uvs = vec![Vec2::ZERO, Vec2::X, Vec2::splat(1.0), Vec2::Y];
 
     let indices = Indices::U32(vec![0, 3, 2, 2, 1, 0]);
