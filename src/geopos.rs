@@ -45,6 +45,7 @@ impl GeoPos {
                 // The Nort/South y tile name part is not linear, the tiles gets stretched to the poles
                 // to compensate the stretching if the stretching of the West/East projection
             },
+            zoom,
         }
     }
 
@@ -73,14 +74,16 @@ impl GeoPos {
         let pos = self.to_cartesian();
         let x = TileCoord {
             pos: coord.pos + Vec2::X,
+            zoom,
         }
-        .to_geo_pos(zoom)
+        .to_geo_pos()
         .to_cartesian()
         .distance(pos) as f32;
         let y = TileCoord {
             pos: coord.pos + Vec2::Y,
+            zoom,
         }
-        .to_geo_pos(zoom)
+        .to_geo_pos()
         .to_cartesian()
         .distance(pos) as f32;
         Vec2 { x, y }

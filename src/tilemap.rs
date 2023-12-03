@@ -59,6 +59,7 @@ impl TileMap {
 
                 let pos = TileIndex {
                     idx: (origin.as_ivec2() + offset).as_uvec2(),
+                    zoom: TILE_ZOOM,
                 };
                 let score = self.get_view_tile_score(pos, offset);
                 if score < best_score {
@@ -201,15 +202,16 @@ impl TileMap {
 
     fn test_transform(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, Transform) {
         let coord = pos.as_coord().center();
-        let pos = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
+        let pos = coord.to_geo_pos().to_cartesian();
         let up = pos.normalize().as_vec3();
         let next = TileCoord {
             pos: Vec2 {
                 x: coord.pos.x,
                 y: coord.pos.y - 1.0,
             },
+            zoom: coord.zoom,
         }
-        .to_geo_pos(TILE_ZOOM)
+        .to_geo_pos()
         .to_cartesian();
         let (grid, pos) = space.translation_to_grid(pos);
         let (grid_next, next) = space.translation_to_grid(next);
@@ -233,15 +235,10 @@ fn flat_tile(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, T
 
     // Four corners of the tile in cartesian coordinates relative to the
     // planet's center.
-    let a = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
-    let b = pos.right().as_coord().to_geo_pos(TILE_ZOOM).to_cartesian();
-    let c = pos
-        .down()
-        .right()
-        .as_coord()
-        .to_geo_pos(TILE_ZOOM)
-        .to_cartesian();
-    let d = pos.down().as_coord().to_geo_pos(TILE_ZOOM).to_cartesian();
+    let a = coord.to_geo_pos().to_cartesian();
+    let b = pos.right().as_coord().to_geo_pos().to_cartesian();
+    let c = pos.down().right().as_coord().to_geo_pos().to_cartesian();
+    let d = pos.down().as_coord().to_geo_pos().to_cartesian();
 
     // Normals on a sphere are just the position on the sphere normalized.
     let normals = vec![
@@ -280,11 +277,12 @@ fn flat_tile(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, T
 #[derive(Debug, Copy, Clone)]
 pub struct TileCoord {
     pub pos: Vec2,
+    pub zoom: u8,
 }
 
 impl TileCoord {
-    pub fn to_geo_pos(self, zoom: u8) -> GeoPos {
-        let pow_zoom = 2_u32.pow(zoom.into()) as f32;
+    pub fn to_geo_pos(self) -> GeoPos {
+        let pow_zoom = 2_u32.pow(self.zoom.into()) as f32;
 
         let lon = self.pos.x / pow_zoom * 360.0 - 180.0;
         let lat_rad = (PI * (1. - 2. * self.pos.y / pow_zoom)).sinh().atan();
@@ -297,6 +295,7 @@ impl TileCoord {
     fn center(&self) -> Self {
         Self {
             pos: self.pos + 0.5,
+            zoom: self.zoom,
         }
     }
 }
@@ -305,22 +304,26 @@ impl TileCoord {
 #[derive(Debug, Copy, Clone)]
 pub struct TileIndex {
     idx: UVec2,
+    zoom: u8,
 }
 
 impl TileIndex {
     pub fn as_coord(self) -> TileCoord {
         TileCoord {
             pos: self.idx.as_vec2(),
+            zoom: self.zoom,
         }
     }
     pub fn right(self) -> Self {
         Self {
             idx: self.idx + UVec2::X,
+            ..self
         }
     }
     pub fn down(self) -> Self {
         Self {
             idx: self.idx + UVec2::Y,
+            ..self
         }
     }
 }
