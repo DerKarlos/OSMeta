@@ -33,7 +33,7 @@ impl TileMap {
         radius: Vec2,
     ) {
         let radius = radius.abs().ceil().copysign(radius).as_ivec2();
-        let origin = origin.0.floor().as_uvec2();
+        let origin = origin.pos.floor().as_uvec2();
         self.tiles.retain(|&x, line| {
             line.retain(|&y, tile| {
                 let offset = IVec2::new(x as i32, y as i32) - origin.as_ivec2();
@@ -57,7 +57,9 @@ impl TileMap {
                     continue;
                 }
 
-                let pos = TileIndex((origin.as_ivec2() + offset).as_uvec2());
+                let pos = TileIndex {
+                    idx: (origin.as_ivec2() + offset).as_uvec2(),
+                };
                 let score = self.get_view_tile_score(pos, offset);
                 if score < best_score {
                     best_pos = Some(pos);
@@ -74,8 +76,8 @@ impl TileMap {
     /// to load it is. Lower values are better.
     // FIXME(#18): use a smarter algorithm
     pub fn get_view_tile_score(&self, pos: TileIndex, offset: IVec2) -> f32 {
-        if let Some(line) = self.tiles.get(&pos.0.x) {
-            if line.get(&pos.0.y).is_some() {
+        if let Some(line) = self.tiles.get(&pos.idx.x) {
+            if line.get(&pos.idx.y).is_some() {
                 return f32::INFINITY;
             }
         }
@@ -99,14 +101,14 @@ impl TileMap {
             return;
         }
         // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
-        let name: String = format!("tile://{}_{}.glb", pos.0.x, pos.0.y);
+        let name: String = format!("tile://{}_{}.glb", pos.idx.x, pos.idx.y);
         // Start loading next tile
         self.loading = Some((pos, server.load(name))); // "models/17430_11371.glb#Scene0"
                                                        // Insert dummy tile while loading.
         self.tiles
-            .entry(pos.0.x)
+            .entry(pos.idx.x)
             .or_default()
-            .entry(pos.0.y)
+            .entry(pos.idx.y)
             .or_insert_with(|| {
                 let (grid, _coord, mesh) = flat_tile(pos, space);
                 let mesh = meshes.add(mesh);
@@ -136,7 +138,11 @@ impl TileMap {
                     // https://github.com/bevyengine/bevy/blob/main/examples/asset/processing/asset_processing.rs
 
                     // Done, remove dummy tile and insert the real one
-                    let Some(entity) = tilemap.tiles.entry(pos.0.x).or_default().get_mut(&pos.0.y)
+                    let Some(entity) = tilemap
+                        .tiles
+                        .entry(pos.idx.x)
+                        .or_default()
+                        .get_mut(&pos.idx.y)
                     else {
                         return;
                     };
@@ -165,7 +171,7 @@ impl TileMap {
                             let mesh = meshes.add(mesh);
                             let image: Handle<Image> = server.load(format!(
                                 "https://a.tile.openstreetmap.org/{TILE_ZOOM}/{}/{}.png",
-                                coord.0.x, coord.0.y
+                                coord.pos.x, coord.pos.y
                             ));
                             let material = materials.add(StandardMaterial {
                                 base_color_texture: Some(image),
@@ -197,10 +203,12 @@ impl TileMap {
         let coord = pos.as_coord().center();
         let pos = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
         let up = pos.normalize().as_vec3();
-        let next = TileCoord(Vec2 {
-            x: coord.0.x,
-            y: coord.0.y - 1.0,
-        })
+        let next = TileCoord {
+            pos: Vec2 {
+                x: coord.pos.x,
+                y: coord.pos.y - 1.0,
+            },
+        }
         .to_geo_pos(TILE_ZOOM)
         .to_cartesian();
         let (grid, pos) = space.translation_to_grid(pos);
@@ -270,14 +278,16 @@ fn flat_tile(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, T
 /// We use floats instead of integers so we can specify positions of objects
 /// within a tile. E.g. (0.5, 0.5) is the position in the middle of tile (0, 0).
 #[derive(Debug, Copy, Clone)]
-pub struct TileCoord(pub Vec2);
+pub struct TileCoord {
+    pub pos: Vec2,
+}
 
 impl TileCoord {
     pub fn to_geo_pos(self, zoom: u8) -> GeoPos {
         let pow_zoom = 2_u32.pow(zoom.into()) as f32;
 
-        let lon = self.0.x / pow_zoom * 360.0 - 180.0;
-        let lat_rad = (PI * (1. - 2. * self.0.y / pow_zoom)).sinh().atan();
+        let lon = self.pos.x / pow_zoom * 360.0 - 180.0;
+        let lat_rad = (PI * (1. - 2. * self.pos.y / pow_zoom)).sinh().atan();
         let lat = lat_rad.to_degrees();
         GeoPos { lat, lon }
     }
@@ -285,28 +295,38 @@ impl TileCoord {
     /// Offset this position by half a tile size. If you started out with a left upper
     /// corner position, you'll now be in the middle of the tile.
     fn center(&self) -> Self {
-        Self(self.0 + 0.5)
+        Self {
+            pos: self.pos + 0.5,
+        }
     }
 }
 
 /// An x/y index of an OWM tile.
 #[derive(Debug, Copy, Clone)]
-pub struct TileIndex(pub UVec2);
+pub struct TileIndex {
+    idx: UVec2,
+}
 
 impl TileIndex {
     pub fn as_coord(self) -> TileCoord {
-        TileCoord(self.0.as_vec2())
+        TileCoord {
+            pos: self.idx.as_vec2(),
+        }
     }
     pub fn right(self) -> Self {
-        Self(self.0 + UVec2::X)
+        Self {
+            idx: self.idx + UVec2::X,
+        }
     }
     pub fn down(self) -> Self {
-        Self(self.0 + UVec2::Y)
+        Self {
+            idx: self.idx + UVec2::Y,
+        }
     }
 }
 
 impl Display for TileIndex {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.0.fmt(f)
+        self.idx.fmt(f)
     }
 }
