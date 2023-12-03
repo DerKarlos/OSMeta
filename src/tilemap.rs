@@ -171,8 +171,8 @@ impl TileMap {
                             let (grid, coord, mesh) = flat_tile(pos, &space);
                             let mesh = meshes.add(mesh);
                             let image: Handle<Image> = server.load(format!(
-                                "https://a.tile.openstreetmap.org/{TILE_ZOOM}/{}/{}.png",
-                                coord.pos.x, coord.pos.y
+                                "https://a.tile.openstreetmap.org/{}/{}/{}.png",
+                                coord.zoom, coord.pos.x, coord.pos.y
                             ));
                             let material = materials.add(StandardMaterial {
                                 base_color_texture: Some(image),
