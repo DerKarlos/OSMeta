@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, f32::consts::PI};
+use std::{collections::BTreeMap, f32::consts::PI, fmt::Display};
 
 use bevy::{
     gltf::Gltf,
@@ -14,7 +14,7 @@ pub struct TileMap {
     /// All currently loaded tiles.
     tiles: BTreeMap<u32, BTreeMap<u32, Entity>>,
     /// The tile currently being loaded.
-    loading: Option<(UVec2, Handle<Gltf>)>,
+    loading: Option<(TileIndex, Handle<Gltf>)>,
 }
 
 pub const TILE_ZOOM: u8 = 15;
@@ -57,7 +57,7 @@ impl TileMap {
                     continue;
                 }
 
-                let pos = (origin.as_ivec2() + offset).as_uvec2();
+                let pos = TileIndex((origin.as_ivec2() + offset).as_uvec2());
                 let score = self.get_view_tile_score(pos, offset);
                 if score < best_score {
                     best_pos = Some(pos);
@@ -73,9 +73,9 @@ impl TileMap {
     /// Takes an offset to the player position and returns a score for how important
     /// to load it is. Lower values are better.
     // FIXME(#18): use a smarter algorithm
-    pub fn get_view_tile_score(&self, pos: UVec2, offset: IVec2) -> f32 {
-        if let Some(line) = self.tiles.get(&pos.x) {
-            if line.get(&pos.y).is_some() {
+    pub fn get_view_tile_score(&self, pos: TileIndex, offset: IVec2) -> f32 {
+        if let Some(line) = self.tiles.get(&pos.0.x) {
+            if line.get(&pos.0.y).is_some() {
                 return f32::INFINITY;
             }
         }
@@ -93,20 +93,20 @@ impl TileMap {
         server: &AssetServer,
         meshes: &mut Assets<Mesh>,
         space: &FloatingOriginSettings,
-        pos: UVec2,
+        pos: TileIndex,
     ) {
         if self.loading.is_some() {
             return;
         }
         // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
-        let name: String = format!("tile://{}_{}.glb", pos.x, pos.y);
+        let name: String = format!("tile://{}_{}.glb", pos.0.x, pos.0.y);
         // Start loading next tile
         self.loading = Some((pos, server.load(name))); // "models/17430_11371.glb#Scene0"
                                                        // Insert dummy tile while loading.
         self.tiles
-            .entry(pos.x)
+            .entry(pos.0.x)
             .or_default()
-            .entry(pos.y)
+            .entry(pos.0.y)
             .or_insert_with(|| {
                 let (grid, _coord, mesh) = flat_tile(pos, space);
                 let mesh = meshes.add(mesh);
@@ -136,7 +136,7 @@ impl TileMap {
                     // https://github.com/bevyengine/bevy/blob/main/examples/asset/processing/asset_processing.rs
 
                     // Done, remove dummy tile and insert the real one
-                    let Some(entity) = tilemap.tiles.entry(pos.x).or_default().get_mut(&pos.y)
+                    let Some(entity) = tilemap.tiles.entry(pos.0.x).or_default().get_mut(&pos.0.y)
                     else {
                         return;
                     };
@@ -193,8 +193,8 @@ impl TileMap {
         }
     }
 
-    fn test_transform(pos: UVec2, space: &FloatingOriginSettings) -> (GalacticGrid, Transform) {
-        let coord = TileCoord(pos.as_vec2() + 0.5);
+    fn test_transform(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, Transform) {
+        let coord = pos.as_coord().center();
         let pos = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
         let up = pos.normalize().as_vec3();
         let next = TileCoord(Vec2 {
@@ -220,24 +220,21 @@ impl TileMap {
 }
 
 // Compute a square mesh at the position for the given tile.
-fn flat_tile(pos: UVec2, space: &FloatingOriginSettings) -> (GalacticGrid, TileCoord, Mesh) {
-    let coord = TileCoord(pos.as_vec2());
+fn flat_tile(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, TileCoord, Mesh) {
+    let coord = pos.as_coord();
 
     // Four corners of the tile in cartesian coordinates relative to the
     // planet's center.
     let a = coord.to_geo_pos(TILE_ZOOM).to_cartesian();
-    let b = TileCoord(pos.as_vec2() + Vec2::X)
+    let b = pos.right().as_coord().to_geo_pos(TILE_ZOOM).to_cartesian() - a;
+    let c = pos
+        .down()
+        .right()
+        .as_coord()
         .to_geo_pos(TILE_ZOOM)
         .to_cartesian()
         - a;
-    let c = TileCoord(pos.as_vec2() + 1.)
-        .to_geo_pos(TILE_ZOOM)
-        .to_cartesian()
-        - a;
-    let d = TileCoord(pos.as_vec2() + Vec2::Y)
-        .to_geo_pos(TILE_ZOOM)
-        .to_cartesian()
-        - a;
+    let d = pos.down().as_coord().to_geo_pos(TILE_ZOOM).to_cartesian() - a;
     let (grid, a) = space.translation_to_grid(a);
     let b = a + b.as_vec3();
     let c = a + c.as_vec3();
@@ -260,7 +257,9 @@ fn flat_tile(pos: UVec2, space: &FloatingOriginSettings) -> (GalacticGrid, TileC
     (grid, coord, mesh)
 }
 
-/// A coordinate in the OWM tile coordinate system. Allows for positions within a tile. ???
+/// A coordinate in the OWM tile coordinate system.
+/// We use floats instead of integers so we can specify positions of objects
+/// within a tile. E.g. (0.5, 0.5) is the position in the middle of tile (0, 0).
 #[derive(Debug, Copy, Clone)]
 pub struct TileCoord(pub Vec2);
 
@@ -272,5 +271,33 @@ impl TileCoord {
         let lat_rad = (PI * (1. - 2. * self.0.y / pow_zoom)).sinh().atan();
         let lat = lat_rad.to_degrees();
         GeoPos { lat, lon }
+    }
+
+    /// Offset this position by half a tile size. If you started out with a left upper
+    /// corner position, you'll now be in the middle of the tile.
+    fn center(&self) -> Self {
+        Self(self.0 + 0.5)
+    }
+}
+
+/// An x/y index of an OWM tile.
+#[derive(Debug, Copy, Clone)]
+pub struct TileIndex(pub UVec2);
+
+impl TileIndex {
+    pub fn as_coord(self) -> TileCoord {
+        TileCoord(self.0.as_vec2())
+    }
+    pub fn right(self) -> Self {
+        Self(self.0 + UVec2::X)
+    }
+    pub fn down(self) -> Self {
+        Self(self.0 + UVec2::Y)
+    }
+}
+
+impl Display for TileIndex {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }
