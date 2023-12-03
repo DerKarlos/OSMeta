@@ -18,8 +18,6 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use crate::tilemap::TILE_ZOOM;
-
 /// A custom asset reader implementation that wraps a given asset reader implementation
 struct HttpAssetReader {
     pub base_url: String,
@@ -53,7 +51,9 @@ impl AssetReader for HttpAssetReader {
             if self.tile {
                 // `tile://` urls are special for now, because we can't use `/` in the tile paths,
                 // as that will cause texture loading to be attempted in the subfolders instead of the root.
-                let (x, rest) = path.split_once('_').unwrap();
+                let [zoom, x, rest] = *path.splitn(3, '_').collect::<Vec<_>>() else {
+                    unreachable!()
+                };
                 // The tile servers we're using have their files gzipped, so we download that and unzip it
                 // transparently and act as if there's a .glb file there.
                 let ext = if cfg!(target_arch = "wasm32") {
@@ -64,7 +64,7 @@ impl AssetReader for HttpAssetReader {
                 } else {
                     ".gz"
                 };
-                let path = format!("{}lod1/{}/{x}/{rest}{ext}", self.base_url, TILE_ZOOM);
+                let path = format!("{}lod1/{zoom}/{x}/{rest}{ext}", self.base_url);
                 info!("loading {path}");
                 let mut bytes_compressed = Vec::new();
                 bevy_web_asset::WebAssetReader::Https
