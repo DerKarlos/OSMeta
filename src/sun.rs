@@ -3,6 +3,7 @@
 use bevy::{
     pbr::{CascadeShadowConfigBuilder, DirectionalLightShadowMap, NotShadowCaster},
     prelude::*,
+    render::texture::{ImageAddressMode, ImageSampler, ImageSamplerDescriptor},
 };
 use std::f32::consts::*;
 
@@ -36,6 +37,8 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
+    server: Res<AssetServer>,
+    mut images: ResMut<Assets<Image>>,
 ) {
     // Sun
     commands.spawn(DirectionalLightBundle {
@@ -58,9 +61,10 @@ fn setup(
     });
 
     let mesh = meshes.add(
-        shape::Icosphere {
+        shape::UVSphere {
             radius: 1.0,
-            subdivisions: 20,
+            sectors: 64,
+            stacks: 32,
         }
         .try_into()
         .unwrap(),
@@ -83,6 +87,17 @@ fn setup(
         GalacticGrid::ZERO,
     ));
 
+    let image =
+        server.load("https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg");
+    if let Some(image) = images.get_mut(image.clone()) {
+        image.sampler = ImageSampler::Descriptor(ImageSamplerDescriptor {
+            address_mode_u: ImageAddressMode::Repeat,
+            address_mode_v: ImageAddressMode::Repeat,
+            address_mode_w: ImageAddressMode::Repeat,
+            ..default()
+        });
+    }
+
     // ground
     commands.spawn((
         PbrBundle {
@@ -91,6 +106,9 @@ fn setup(
                 base_color: Color::hex("533621").unwrap(),
                 unlit: true,
                 cull_mode: None,
+                base_color_texture: Some(image),
+                perceptual_roughness: 1.0,
+                fog_enabled: false,
                 ..default()
             }),
             transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS)),
