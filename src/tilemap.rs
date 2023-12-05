@@ -35,11 +35,15 @@ impl TileMap {
         zoom: u8,
     ) {
         let radius = radius.abs().ceil().copysign(radius).as_ivec2();
-        let origin = origin.pos.floor().as_uvec2();
+        let origin = origin.as_tile_index();
         self.tiles[usize::from(zoom)].retain(|&x, line| {
             line.retain(|&y, tile| {
-                let offset = IVec2::new(x as i32, y as i32) - origin.as_ivec2();
-                let oob = offset.length_squared() > radius.length_squared();
+                let offset = TileIndex {
+                    idx: UVec2 { x, y },
+                    zoom,
+                }
+                .distance_squared(origin);
+                let oob = offset > radius.as_uvec2().length_squared();
                 if oob {
                     if let Some(entity) = commands.get_entity(*tile) {
                         debug!("despawn: {x}/{y}");
@@ -59,10 +63,7 @@ impl TileMap {
                     continue;
                 }
 
-                let pos = TileIndex {
-                    idx: (origin.as_ivec2() + offset).as_uvec2(),
-                    zoom: TILE_ZOOM,
-                };
+                let pos = origin.offset(offset);
                 let score = self.get_view_tile_score(pos, offset);
                 if score < best_score {
                     best_pos = Some(pos);
@@ -302,6 +303,13 @@ impl TileCoord {
             zoom: self.zoom,
         }
     }
+
+    fn as_tile_index(&self) -> TileIndex {
+        TileIndex {
+            idx: self.pos.as_uvec2(),
+            zoom: self.zoom,
+        }
+    }
 }
 
 /// An x/y index of an OWM tile.
@@ -328,6 +336,33 @@ impl TileIndex {
         Self {
             idx: self.idx + UVec2::Y,
             ..self
+        }
+    }
+
+    fn distance_squared(&self, origin: TileIndex) -> u32 {
+        assert_eq!(self.zoom, origin.zoom);
+        let max_tiles = 2_u32.pow(self.zoom.into());
+        let mut x = self.idx.x.abs_diff(origin.idx.x);
+        x = x.min(max_tiles - x);
+        let mut y = self.idx.y.abs_diff(origin.idx.y);
+        y = y.min(max_tiles - y);
+        x * x + y * y
+    }
+
+    fn offset(self, offset: IVec2) -> TileIndex {
+        let max_tiles = 2_i32.pow(self.zoom.into());
+        let mut idx = self.idx.as_ivec2() + offset;
+        if idx.x < 0 {
+            idx.x += max_tiles;
+        }
+        idx.x %= max_tiles;
+        if idx.y < 0 {
+            idx.y += max_tiles;
+        }
+        idx.y %= max_tiles;
+        TileIndex {
+            idx: idx.as_uvec2(),
+            zoom: self.zoom,
         }
     }
 }
