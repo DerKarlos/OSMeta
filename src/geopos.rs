@@ -32,10 +32,10 @@ impl GeoPos {
     pub fn to_tile_coordinates(self, zoom: u8) -> TileCoord {
         let pow_zoom = 2_u32.pow(zoom.into()) as f32;
 
-        TileCoord {
+        let mut coord = TileCoord {
             pos: Vec2 {
                 // Longitude, (Längengrad) West/East "index"
-                x: ((self.lon + 180.) / 360. * pow_zoom),
+                x: ((self.lon + 180.) / 360. * pow_zoom).rem_euclid(pow_zoom),
 
                 // y: Latitude, (Breitengrad) Nort/South "index"
                 y: ((1.
@@ -46,7 +46,20 @@ impl GeoPos {
                 // to compensate the stretching if the stretching of the West/East projection
             },
             zoom,
+        };
+        // If out of bounds, wrap around the globe.
+        // Note: only works if the gps coordinates weren't out of bounds enough to wrap around the planet beyond the equator.
+        if coord.pos.y > pow_zoom {
+            coord.pos.y = pow_zoom - coord.pos.y.rem_euclid(pow_zoom);
+            coord.pos.x = (coord.pos.x + pow_zoom / 2.0).rem_euclid(pow_zoom);
+        } else if coord.pos.y.is_sign_negative() {
+            coord.pos.y = coord.pos.y.abs();
+            coord.pos.x = (coord.pos.x + pow_zoom / 2.0).rem_euclid(pow_zoom);
         }
+        if coord.pos.x > pow_zoom || coord.pos.y > pow_zoom {
+            panic!("{self:?} @ zoom {zoom} -> {coord:?}");
+        }
+        coord
     }
 
     pub fn to_cartesian(self) -> DVec3 {
