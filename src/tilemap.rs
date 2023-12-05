@@ -167,14 +167,17 @@ impl TileMap {
                                 .id()
                         }
                         Failed => {
-                            warn!("failed to load tile {pos} from network, switching to flat tile");
-
                             let (grid, coord, mesh) = flat_tile(pos, &space);
                             let mesh = meshes.add(mesh);
-                            let image: Handle<Image> = server.load(format!(
+                            let url = format!(
                                 "https://a.tile.openstreetmap.org/{}/{}/{}.png",
                                 coord.zoom, coord.pos.x, coord.pos.y
-                            ));
+                            );
+                            debug!(
+                                ?url,
+                                "failed to load tile {pos} from network, switching to flat tile"
+                            );
+                            let image: Handle<Image> = server.load(url);
                             let material = materials.add(StandardMaterial {
                                 base_color_texture: Some(image),
                                 perceptual_roughness: 1.0,
