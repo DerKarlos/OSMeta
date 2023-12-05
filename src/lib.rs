@@ -1,5 +1,7 @@
 //! Loads and renders a glTF file as a scene.
 
+use std::f32::consts::FRAC_PI_2;
+
 use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     prelude::*,
@@ -111,8 +113,61 @@ pub fn main() {
         .run();
 }
 
-fn setup(mut diags: ResMut<ScreenDiagnostics>) {
+fn setup(
+    mut diags: ResMut<ScreenDiagnostics>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
     diags.modify("fps").aggregate(Aggregate::Average);
+    let rot = Quat::from_axis_angle(Vec3::X, FRAC_PI_2);
+    let transform =
+        Transform::from_translation(Vec3::NEG_Z * EARTH_RADIUS * 1.5).with_rotation(rot);
+
+    let material = materials.add(StandardMaterial {
+        fog_enabled: false,
+        ..default()
+    });
+
+    // Rotational axis
+    let mesh = meshes.add(
+        shape::Cylinder {
+            radius: 1000.0,
+            height: EARTH_RADIUS * 6.0,
+            resolution: 16,
+            segments: 1,
+        }
+        .into(),
+    );
+    commands.spawn((
+        PbrBundle {
+            mesh,
+            transform,
+            material: material.clone(),
+            ..default()
+        },
+        GalacticGrid::ZERO,
+    ));
+
+    // Equator
+    let mesh = meshes.add(
+        shape::Cylinder {
+            radius: EARTH_RADIUS + 1000.0,
+            height: 1.0,
+            resolution: 64,
+            segments: 1,
+        }
+        .into(),
+    );
+    commands.spawn((
+        PbrBundle {
+            mesh,
+            transform: Transform::from_rotation(rot),
+            material,
+            ..default()
+        },
+        GalacticGrid::ZERO,
+    ));
 }
 
 #[cfg(not(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32")))))]
