@@ -56,11 +56,11 @@ impl GeoPos {
             EARTH_RADIUS as f64,
         );
         let cart = CartesianPoint::from_geographic(&geo);
-        DVec3::new(cart.x(), cart.y(), cart.z())
+        DVec3::new(-cart.x(), -cart.y(), cart.z())
     }
 
     pub fn from_cartesian(pos: DVec3) -> Self {
-        let cart = CartesianPoint::new(pos.x, pos.y, pos.z);
+        let cart = CartesianPoint::new(-pos.x, -pos.y, pos.z);
         let geo = GeographicPoint::from_cartesian(&cart);
         GeoPos {
             lat: geo.latitude().to_degrees() as f32,
