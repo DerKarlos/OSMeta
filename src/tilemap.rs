@@ -121,75 +121,73 @@ impl TileMap {
         let Some((pos, scene)) = tilemap.loading.take() else {
             return;
         };
+        let state = server.get_load_state(&scene).unwrap();
         use bevy::asset::LoadState::*;
-        match server.get_load_state(&scene).unwrap() {
-            NotLoaded | Loading => {
-                tilemap.loading = Some((pos, scene));
-            }
-            state @ (Loaded | Failed) => {
-                // FIXME: implement caching of downloaded assets by implementing something like
-                // https://github.com/bevyengine/bevy/blob/main/examples/asset/processing/asset_processing.rs
+        if let NotLoaded | Loading = state {
+            tilemap.loading = Some((pos, scene));
+            return;
+        }
+        // FIXME: implement caching of downloaded assets by implementing something like
+        // https://github.com/bevyengine/bevy/blob/main/examples/asset/processing/asset_processing.rs
 
-                // Done, remove dummy tile and insert the real one
-                let Some(entity) = tilemap.tiles[usize::from(pos.zoom)]
-                    .entry(pos.idx.x)
-                    .or_default()
-                    .get_mut(&pos.idx.y)
-                else {
-                    return;
-                };
+        // Done, remove dummy tile and insert the real one
+        let Some(entity) = tilemap.tiles[usize::from(pos.zoom)]
+            .entry(pos.idx.x)
+            .or_default()
+            .get_mut(&pos.idx.y)
+        else {
+            return;
+        };
 
-                let tile = match state {
-                    NotLoaded | Loading => unreachable!(),
-                    Loaded => {
-                        let (grid, transform) = Self::test_transform(pos, &space);
-                        let scene = scenes.get(scene).unwrap().scenes[0].clone();
-                        commands
-                            .spawn((
-                                SceneBundle {
-                                    scene, // "models/17430_11371.glb#Scene0"
-                                    transform,
-                                    ..default()
-                                },
-                                pos,
-                                grid,
-                            ))
-                            .id()
-                    }
-                    Failed => {
-                        let (grid, coord, mesh) = flat_tile(pos, &space);
-                        let mesh = meshes.add(mesh);
-                        let url = format!(
-                            "https://a.tile.openstreetmap.org/{}/{}/{}.png",
-                            coord.zoom, coord.pos.x, coord.pos.y
-                        );
-                        debug!(
-                            ?url,
-                            "failed to load tile {pos} from network, switching to flat tile"
-                        );
-                        let image: Handle<Image> = server.load(url);
-                        let material = materials.add(StandardMaterial {
-                            base_color_texture: Some(image),
-                            perceptual_roughness: 1.0,
+        let tile = match state {
+            NotLoaded | Loading => unreachable!(),
+            Loaded => {
+                let (grid, transform) = Self::test_transform(pos, &space);
+                let scene = scenes.get(scene).unwrap().scenes[0].clone();
+                commands
+                    .spawn((
+                        SceneBundle {
+                            scene, // "models/17430_11371.glb#Scene0"
+                            transform,
                             ..default()
-                        });
-                        commands
-                            .spawn((
-                                PbrBundle {
-                                    mesh,
-                                    material,
-                                    ..default()
-                                },
-                                grid,
-                            ))
-                            .id()
-                    }
-                };
-                let dummy = std::mem::replace(entity, tile);
-                if let Some(mut entity) = commands.get_entity(dummy) {
-                    entity.despawn();
-                }
+                        },
+                        pos,
+                        grid,
+                    ))
+                    .id()
             }
+            Failed => {
+                let (grid, coord, mesh) = flat_tile(pos, &space);
+                let mesh = meshes.add(mesh);
+                let url = format!(
+                    "https://a.tile.openstreetmap.org/{}/{}/{}.png",
+                    coord.zoom, coord.pos.x, coord.pos.y
+                );
+                debug!(
+                    ?url,
+                    "failed to load tile {pos} from network, switching to flat tile"
+                );
+                let image: Handle<Image> = server.load(url);
+                let material = materials.add(StandardMaterial {
+                    base_color_texture: Some(image),
+                    perceptual_roughness: 1.0,
+                    ..default()
+                });
+                commands
+                    .spawn((
+                        PbrBundle {
+                            mesh,
+                            material,
+                            ..default()
+                        },
+                        grid,
+                    ))
+                    .id()
+            }
+        };
+        let dummy = std::mem::replace(entity, tile);
+        if let Some(mut entity) = commands.get_entity(dummy) {
+            entity.despawn();
         }
     }
 
