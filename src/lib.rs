@@ -17,7 +17,7 @@ use big_space::{FloatingOriginPlugin, FloatingOriginSettings, GridCell};
 use geopos::{GeoPos, EARTH_RADIUS};
 use glam::DVec3;
 use http_assets::HttpAssetReaderPlugin;
-use tilemap::{TileMap, TILE_ZOOM};
+use tilemap::{TileIndex, TileMap, TILE_ZOOM};
 
 mod flycam;
 mod geopos;
@@ -108,7 +108,13 @@ pub fn main() {
         .add_plugins(flycam::Plugin)
         .insert_resource(TileMap::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, (load_next_tile, TileMap::update))
+        .add_systems(
+            Update,
+            (
+                load_next_tile.pipe(TileMap::hide_faraway_tiles),
+                TileMap::update,
+            ),
+        )
         .add_systems(Update, update_camera_orientations)
         .run();
 }
@@ -190,7 +196,7 @@ fn load_next_tile(
     diagnostics: Res<DiagnosticsStore>,
     mut view_distance: ResMut<ViewDistance>,
     space: Res<FloatingOriginSettings>,
-) {
+) -> (TileIndex, Vec2) {
     let (pos, grid) = if let Ok(xr_pos) = xr_pos.get_single() {
         xr_pos
     } else {
@@ -223,8 +229,8 @@ fn load_next_tile(
         // the translation from the tilemap and instead just use its real coordinates.
         origin,
         radius,
-        TILE_ZOOM,
     );
+    (origin.as_tile_index(), radius)
 }
 
 fn update_camera_orientations(

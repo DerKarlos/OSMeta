@@ -20,10 +20,23 @@ pub struct TileMap {
 pub const TILE_ZOOM: u8 = 15;
 pub const MAX_TILE_ZOOM: u8 = 16;
 
-#[derive(Component)]
-pub struct Tile;
-
 impl TileMap {
+    pub fn hide_faraway_tiles(
+        In((origin, radius)): In<(TileIndex, Vec2)>,
+        mut tiles: Query<(&TileIndex, &mut Visibility)>,
+    ) {
+        for (tile, mut vis) in tiles.iter_mut() {
+            // FIXME: use tile zoom level to increase view distance for lower zoom tiles.
+            let offset = tile.distance_squared(origin);
+            let oob = offset > radius.as_uvec2().length_squared();
+            if oob {
+                *vis = Visibility::Hidden;
+            } else {
+                *vis = Visibility::Inherited;
+            }
+        }
+    }
+
     pub fn load_next(
         &mut self,
         commands: &mut Commands,
@@ -32,28 +45,9 @@ impl TileMap {
         space: &FloatingOriginSettings,
         origin: TileCoord,
         radius: Vec2,
-        zoom: u8,
     ) {
         let radius = radius.abs().ceil().copysign(radius).as_ivec2();
         let origin = origin.as_tile_index();
-        self.tiles[usize::from(zoom)].retain(|&x, line| {
-            line.retain(|&y, tile| {
-                let offset = TileIndex {
-                    idx: UVec2 { x, y },
-                    zoom,
-                }
-                .distance_squared(origin);
-                let oob = offset > radius.as_uvec2().length_squared();
-                if oob {
-                    if let Some(entity) = commands.get_entity(*tile) {
-                        debug!("despawn: {x}/{y}");
-                        entity.despawn_recursive();
-                    }
-                }
-                !oob
-            });
-            !line.is_empty()
-        });
         let mut best_score = f32::INFINITY;
         let mut best_pos = None;
         for x_i in -radius.x..=radius.x {
@@ -162,7 +156,7 @@ impl TileMap {
                                         transform,
                                         ..default()
                                     },
-                                    Tile,
+                                    pos,
                                     grid,
                                 ))
                                 .id()
@@ -304,7 +298,7 @@ impl TileCoord {
         }
     }
 
-    fn as_tile_index(&self) -> TileIndex {
+    pub fn as_tile_index(&self) -> TileIndex {
         TileIndex {
             idx: self.pos.as_uvec2(),
             zoom: self.zoom,
@@ -313,7 +307,7 @@ impl TileCoord {
 }
 
 /// An x/y index of an OWM tile.
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Component)]
 pub struct TileIndex {
     idx: UVec2,
     zoom: u8,
