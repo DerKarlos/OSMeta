@@ -38,7 +38,7 @@ struct Clouds {
 
 #[derive(Resource, Default)]
 struct Earth {
-    image: Option<Handle<Image>>,
+    images: Vec<Handle<Image>>,
 }
 
 fn animate_light_direction(
@@ -93,6 +93,28 @@ fn setup(
         .unwrap(),
     );
 
+    // Stars
+    let image = server.load("https://www.solarsystemscope.com/textures/download/2k_stars.jpg");
+    earth.images.push(image.clone());
+    commands.spawn((
+        PbrBundle {
+            mesh: mesh.clone(),
+            material: materials.add(StandardMaterial {
+                base_color: Color::WHITE,
+                unlit: true,
+                alpha_mode: AlphaMode::Blend,
+                cull_mode: None,
+                base_color_texture: Some(image),
+                fog_enabled: false,
+                ..default()
+            }),
+            transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + 100000000.0)),
+            ..default()
+        },
+        NotShadowCaster,
+        GalacticGrid::ZERO,
+    ));
+
     // Clouds visible from earth and space
     let image =
         server.load("https://www.solarsystemscope.com/textures/download/2k_earth_clouds.jpg");
@@ -134,7 +156,7 @@ fn setup(
 
     let image =
         server.load("https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg");
-    earth.image = Some(image.clone());
+    earth.images.push(image.clone());
 
     // ground
     commands.spawn((
@@ -188,17 +210,18 @@ fn set_earth_repeat(
     mut earth: ResMut<Earth>,
     server: Res<AssetServer>,
 ) {
-    if let Some(handle) = earth.image.take() {
+    earth.images.retain(|handle| {
         use bevy::asset::LoadState::*;
-        if let Loaded | Failed = server.get_load_state(&handle).unwrap() {
-            let Some(image) = images.get_mut(&handle) else {
+        if let Loaded | Failed = server.get_load_state(handle).unwrap() {
+            let Some(image) = images.get_mut(handle) else {
                 unreachable!()
             };
             image.sampler = repeat_sampler();
+            false
         } else {
-            earth.image = Some(handle);
+            true
         }
-    }
+    });
 }
 
 fn repeat_sampler() -> ImageSampler {
