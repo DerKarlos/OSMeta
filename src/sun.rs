@@ -10,7 +10,10 @@ use bevy::{
 };
 use std::f32::consts::*;
 
-use crate::{geopos::EARTH_RADIUS, GalacticGrid};
+use crate::{
+    geopos::{EARTH_RADIUS, MOON_ORBIT, MOON_RADIUS},
+    GalacticGrid,
+};
 
 pub struct Plugin;
 
@@ -108,7 +111,7 @@ fn setup(
                 fog_enabled: false,
                 ..default()
             }),
-            transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + 100000000.0)),
+            transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + 1000_000_000_000.0)),
             ..default()
         },
         NotShadowCaster,
@@ -161,7 +164,7 @@ fn setup(
     // ground
     commands.spawn((
         PbrBundle {
-            mesh,
+            mesh: mesh.clone(),
             material: materials.add(StandardMaterial {
                 base_color: Color::WHITE,
                 unlit: true,
@@ -172,6 +175,30 @@ fn setup(
                 ..default()
             }),
             transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS)),
+            ..default()
+        },
+        NotShadowCaster,
+        GalacticGrid::ZERO,
+    ));
+
+    let image = server.load("https://www.solarsystemscope.com/textures/download/2k_moon.jpg");
+    earth.images.push(image.clone());
+
+    // moon
+    commands.spawn((
+        PbrBundle {
+            mesh,
+            material: materials.add(StandardMaterial {
+                base_color: Color::WHITE,
+                unlit: true,
+                cull_mode: None,
+                base_color_texture: Some(image),
+                perceptual_roughness: 1.0,
+                fog_enabled: false,
+                ..default()
+            }),
+            transform: Transform::from_scale(Vec3::splat(MOON_RADIUS))
+                .with_translation(Vec3::X * MOON_ORBIT),
             ..default()
         },
         NotShadowCaster,
