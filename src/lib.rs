@@ -111,7 +111,14 @@ pub fn main() {
         .add_systems(
             Update,
             (
-                load_next_tile.pipe(TileMap::hide_faraway_tiles),
+                (
+                    recompute_view_distance,
+                    (
+                        get_main_camera_position.pipe(TileMap::hide_faraway_tiles),
+                        get_main_camera_position.pipe(TileMap::load_next),
+                    ),
+                )
+                    .chain(),
                 TileMap::update,
             ),
         )
@@ -183,26 +190,13 @@ fn setup(
 #[derive(Component)]
 pub struct OpenXRTrackingRoot;
 
-#[derive(Resource)]
+#[derive(Resource, Copy, Clone)]
 pub struct ViewDistance(f32);
 
-fn load_next_tile(
-    mut commands: Commands,
-    server: Res<AssetServer>,
-    mut tilemap: ResMut<TileMap>,
-    xr_pos: Query<(&Transform, &GalacticGrid), (With<OpenXRTrackingRoot>, Without<FlyCam>)>,
-    flycam_pos: Query<(&Transform, &GalacticGrid), (With<FlyCam>, Without<OpenXRTrackingRoot>)>,
-    mut meshes: ResMut<Assets<Mesh>>,
+fn recompute_view_distance(
     diagnostics: Res<DiagnosticsStore>,
     mut view_distance: ResMut<ViewDistance>,
-    space: Res<FloatingOriginSettings>,
-) -> (TileIndex, Vec2) {
-    let (pos, grid) = if let Ok(xr_pos) = xr_pos.get_single() {
-        xr_pos
-    } else {
-        flycam_pos.single()
-    };
-
+) {
     if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
         if let Some(fps) = fps.smoothed() {
             if fps < 40.0 {
@@ -213,6 +207,19 @@ fn load_next_tile(
             view_distance.0 = view_distance.0.clamp(1000.0, 10000.0);
         }
     }
+}
+
+fn get_main_camera_position(
+    xr_pos: Query<(&Transform, &GalacticGrid), (With<OpenXRTrackingRoot>, Without<FlyCam>)>,
+    flycam_pos: Query<(&Transform, &GalacticGrid), (With<FlyCam>, Without<OpenXRTrackingRoot>)>,
+    view_distance: Res<ViewDistance>,
+    space: Res<FloatingOriginSettings>,
+) -> (TileIndex, Vec2) {
+    let (pos, grid) = if let Ok(xr_pos) = xr_pos.get_single() {
+        xr_pos
+    } else {
+        flycam_pos.single()
+    };
 
     let pos = space.grid_position_double(grid, pos);
     let origin = GeoPos::from_cartesian(pos);
@@ -220,16 +227,6 @@ fn load_next_tile(
     let radius = view_distance.0 / tile_size + 0.5;
     let origin = origin.to_tile_coordinates(TILE_ZOOM);
 
-    tilemap.load_next(
-        &mut commands,
-        &server,
-        &mut meshes,
-        &space,
-        // FIXME: Maybe use https://crates.io/crates/big_space in order to be able to remove
-        // the translation from the tilemap and instead just use its real coordinates.
-        origin,
-        radius,
-    );
     (origin.as_tile_index(), radius)
 }
 
