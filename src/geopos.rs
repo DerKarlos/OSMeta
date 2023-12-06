@@ -103,4 +103,6 @@ impl GeoPos {
     }
 }
 
-pub const EARTH_RADIUS: f32 = 6378000.;
+pub const EARTH_RADIUS: f32 = 6_378_000.;
+pub const MOON_RADIUS: f32 = 1_737_400.;
+pub const MOON_ORBIT: f32 = 384_400_000.;
