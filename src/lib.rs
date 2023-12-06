@@ -115,7 +115,9 @@ pub fn main() {
                     recompute_view_distance,
                     (
                         get_main_camera_position.pipe(TileMap::hide_faraway_tiles),
-                        get_main_camera_position.pipe(TileMap::load_next),
+                        get_main_camera_position
+                            .pipe(TileMap::load_next)
+                            .pipe(TileMap::load),
                     ),
                 )
                     .chain(),

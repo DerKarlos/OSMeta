@@ -39,12 +39,8 @@ impl TileMap {
 
     pub fn load_next(
         In((origin, radius)): In<(TileIndex, Vec2)>,
-        mut commands: Commands,
-        server: Res<AssetServer>,
-        mut tilemap: ResMut<TileMap>,
-        mut meshes: ResMut<Assets<Mesh>>,
-        space: Res<FloatingOriginSettings>,
-    ) {
+        tilemap: Res<TileMap>,
+    ) -> Option<TileIndex> {
         let radius = radius.abs().ceil().copysign(radius).as_ivec2();
         let mut best_score = f32::INFINITY;
         let mut best_pos = None;
@@ -63,9 +59,7 @@ impl TileMap {
                 }
             }
         }
-        if let Some(best_pos) = best_pos {
-            tilemap.load(&mut commands, &server, &mut meshes, &space, best_pos);
-        }
+        best_pos
     }
 
     /// Takes an offset to the player position and returns a score for how important
@@ -86,27 +80,28 @@ impl TileMap {
     /// Silently does nothing if the tile was already loaded or is in the process of loading.
     /// Silently does nothing if another tile is already being loaded.
     pub fn load(
-        &mut self,
-        commands: &mut Commands,
-        server: &AssetServer,
-        meshes: &mut Assets<Mesh>,
-        space: &FloatingOriginSettings,
-        pos: TileIndex,
+        In(pos): In<Option<TileIndex>>,
+        mut commands: Commands,
+        server: Res<AssetServer>,
+        mut tilemap: ResMut<TileMap>,
+        mut meshes: ResMut<Assets<Mesh>>,
+        space: Res<FloatingOriginSettings>,
     ) {
-        if self.loading.is_some() {
+        let Some(pos) = pos else { return };
+        if tilemap.loading.is_some() {
             return;
         }
         // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
         let name: String = format!("tile://{}_{}_{}.glb", pos.zoom, pos.idx.x, pos.idx.y);
         // Start loading next tile
-        self.loading = Some((pos, server.load(name))); // "models/17430_11371.glb#Scene0"
-                                                       // Insert dummy tile while loading.
-        self.tiles[usize::from(pos.zoom)]
+        tilemap.loading = Some((pos, server.load(name))); // "models/17430_11371.glb#Scene0"
+                                                          // Insert dummy tile while loading.
+        tilemap.tiles[usize::from(pos.zoom)]
             .entry(pos.idx.x)
             .or_default()
             .entry(pos.idx.y)
             .or_insert_with(|| {
-                let (grid, _coord, mesh) = flat_tile(pos, space);
+                let (grid, _coord, mesh) = flat_tile(pos, &space);
                 let mesh = meshes.add(mesh);
 
                 commands.spawn((PbrBundle { mesh, ..default() }, grid)).id()
