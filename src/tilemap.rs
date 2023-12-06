@@ -38,16 +38,14 @@ impl TileMap {
     }
 
     pub fn load_next(
-        &mut self,
-        commands: &mut Commands,
-        server: &AssetServer,
-        meshes: &mut Assets<Mesh>,
-        space: &FloatingOriginSettings,
-        origin: TileCoord,
-        radius: Vec2,
+        In((origin, radius)): In<(TileIndex, Vec2)>,
+        mut commands: Commands,
+        server: Res<AssetServer>,
+        mut tilemap: ResMut<TileMap>,
+        mut meshes: ResMut<Assets<Mesh>>,
+        space: Res<FloatingOriginSettings>,
     ) {
         let radius = radius.abs().ceil().copysign(radius).as_ivec2();
-        let origin = origin.as_tile_index();
         let mut best_score = f32::INFINITY;
         let mut best_pos = None;
         for x_i in -radius.x..=radius.x {
@@ -58,7 +56,7 @@ impl TileMap {
                 }
 
                 let pos = origin.offset(offset);
-                let score = self.get_view_tile_score(pos, offset);
+                let score = tilemap.get_view_tile_score(pos, offset);
                 if score < best_score {
                     best_pos = Some(pos);
                     best_score = score;
@@ -66,7 +64,7 @@ impl TileMap {
             }
         }
         if let Some(best_pos) = best_pos {
-            self.load(commands, server, meshes, space, best_pos);
+            tilemap.load(&mut commands, &server, &mut meshes, &space, best_pos);
         }
     }
 
