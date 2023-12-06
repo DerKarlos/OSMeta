@@ -86,8 +86,8 @@ fn setup(
     let mesh = meshes.add(
         shape::UVSphere {
             radius: 1.0,
-            sectors: 64,
-            stacks: 32,
+            sectors: 128,
+            stacks: 64,
         }
         .try_into()
         .unwrap(),
