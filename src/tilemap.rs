@@ -104,7 +104,9 @@ impl TileMap {
                 let (grid, _coord, mesh) = flat_tile(pos, &space);
                 let mesh = meshes.add(mesh);
 
-                commands.spawn((PbrBundle { mesh, ..default() }, grid)).id()
+                commands
+                    .spawn((PbrBundle { mesh, ..default() }, pos, grid))
+                    .id()
             });
     }
 
@@ -134,30 +136,32 @@ impl TileMap {
         let Some(entity) = tilemap.tiles[usize::from(pos.zoom)]
             .entry(pos.idx.x)
             .or_default()
-            .get_mut(&pos.idx.y)
+            .get(&pos.idx.y)
         else {
             return;
         };
 
-        let tile = match state {
+        let Some(mut entity) = commands.get_entity(*entity) else {
+            return;
+        };
+        entity.remove::<PbrBundle>();
+
+        match state {
             NotLoaded | Loading => unreachable!(),
             Loaded => {
                 let (grid, transform) = Self::test_transform(pos, &space);
                 let scene = scenes.get(scene).unwrap().scenes[0].clone();
-                commands
-                    .spawn((
-                        SceneBundle {
-                            scene, // "models/17430_11371.glb#Scene0"
-                            transform,
-                            ..default()
-                        },
-                        pos,
-                        grid,
-                    ))
-                    .id()
+                entity.insert((
+                    SceneBundle {
+                        scene, // "models/17430_11371.glb#Scene0"
+                        transform,
+                        ..default()
+                    },
+                    grid,
+                ));
             }
             Failed => {
-                let (grid, coord, mesh) = flat_tile(pos, &space);
+                let (_grid, coord, mesh) = flat_tile(pos, &space);
                 let mesh = meshes.add(mesh);
                 let url = format!(
                     "https://a.tile.openstreetmap.org/{}/{}/{}.png",
@@ -173,21 +177,12 @@ impl TileMap {
                     perceptual_roughness: 1.0,
                     ..default()
                 });
-                commands
-                    .spawn((
-                        PbrBundle {
-                            mesh,
-                            material,
-                            ..default()
-                        },
-                        grid,
-                    ))
-                    .id()
+                entity.insert(PbrBundle {
+                    mesh,
+                    material,
+                    ..default()
+                });
             }
-        };
-        let dummy = std::mem::replace(entity, tile);
-        if let Some(mut entity) = commands.get_entity(dummy) {
-            entity.despawn();
         }
     }
 
