@@ -1,4 +1,8 @@
-use std::{collections::BTreeMap, f32::consts::PI, fmt::Display};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    f32::consts::PI,
+    fmt::Display,
+};
 
 use bevy::{
     asset::LoadState,
@@ -13,7 +17,7 @@ use crate::{geopos::GeoPos, GalacticGrid};
 #[derive(Resource, Default)]
 pub struct TileMap {
     /// All currently loaded tiles.
-    tiles: [BTreeMap<u32, BTreeMap<u32, Entity>>; MAX_TILE_ZOOM as usize],
+    tiles: [BTreeMap<u32, BTreeSet<u32>>; MAX_TILE_ZOOM as usize],
 }
 
 #[derive(Component)]
@@ -74,7 +78,7 @@ impl TileMap {
     // FIXME(#18): use a smarter algorithm
     pub fn get_view_tile_score(&self, pos: TileIndex, offset: IVec2) -> f32 {
         if let Some(line) = self.tiles[usize::from(pos.zoom)].get(&pos.idx.x) {
-            if line.get(&pos.idx.y).is_some() {
+            if line.contains(&pos.idx.y) {
                 return f32::INFINITY;
             }
         }
@@ -100,18 +104,17 @@ impl TileMap {
         // Start loading next tile
         let gltf: Handle<Gltf> = server.load(name);
         // Insert dummy tile while loading.
-        tilemap.tiles[usize::from(pos.zoom)]
+        let row = tilemap.tiles[usize::from(pos.zoom)]
             .entry(pos.idx.x)
-            .or_default()
-            .entry(pos.idx.y)
-            .or_insert_with(|| {
-                let (grid, _coord, mesh) = flat_tile(pos, &space);
-                let mesh = meshes.add(mesh);
+            .or_default();
+        if !row.insert(pos.idx.y) {
+            return;
+        }
 
-                commands
-                    .spawn((PbrBundle { mesh, ..default() }, pos, grid, Loading, gltf))
-                    .id()
-            });
+        let (grid, _coord, mesh) = flat_tile(pos, &space);
+        let mesh = meshes.add(mesh);
+
+        commands.spawn((PbrBundle { mesh, ..default() }, pos, grid, Loading, gltf));
     }
 
     pub fn update(
