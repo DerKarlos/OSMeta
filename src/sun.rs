@@ -20,29 +20,23 @@ pub struct Plugin;
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(DirectionalLightShadowMap { size: 4096 })
-            .insert_resource(Clouds::default())
-            .insert_resource(Earth::default())
             .add_systems(Startup, setup)
             .add_systems(
                 Update,
                 (
                     animate_light_direction,
-                    set_clouds_transparent,
-                    set_earth_repeat,
+                    set_texture_transparent,
+                    set_texture_repeat,
                 ),
             );
     }
 }
 
-#[derive(Resource, Default)]
-struct Clouds {
-    image: Option<Handle<Image>>,
-}
+#[derive(Component)]
+struct NeedsTextureSetToRepeat(Handle<Image>);
 
-#[derive(Resource, Default)]
-struct Earth {
-    images: Vec<Handle<Image>>,
-}
+#[derive(Component)]
+struct NeedsTextureTransparencyEqualToRed(Handle<Image>);
 
 fn animate_light_direction(
     time: Res<Time>,
@@ -63,8 +57,6 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     server: Res<AssetServer>,
-    mut clouds: ResMut<Clouds>,
-    mut earth: ResMut<Earth>,
 ) {
     // Sun
     commands.spawn(DirectionalLightBundle {
@@ -98,7 +90,6 @@ fn setup(
 
     // Stars
     let image = server.load("https://www.solarsystemscope.com/textures/download/2k_stars.jpg");
-    earth.images.push(image.clone());
     commands.spawn((
         PbrBundle {
             mesh: mesh.clone(),
@@ -107,13 +98,14 @@ fn setup(
                 unlit: true,
                 alpha_mode: AlphaMode::Blend,
                 cull_mode: None,
-                base_color_texture: Some(image),
+                base_color_texture: Some(image.clone()),
                 fog_enabled: false,
                 ..default()
             }),
             transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + 1_000_000_000_000.0)),
             ..default()
         },
+        NeedsTextureSetToRepeat(image),
         NotShadowCaster,
         GalacticGrid::ZERO,
     ));
@@ -121,7 +113,6 @@ fn setup(
     // Clouds visible from earth and space
     let image =
         server.load("https://www.solarsystemscope.com/textures/download/2k_earth_clouds.jpg");
-    clouds.image = Some(image.clone());
     commands.spawn((
         PbrBundle {
             mesh: mesh.clone(),
@@ -130,7 +121,7 @@ fn setup(
                 unlit: true,
                 alpha_mode: AlphaMode::Blend,
                 cull_mode: None,
-                base_color_texture: Some(image),
+                base_color_texture: Some(image.clone()),
                 ..default()
             }),
             transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + 100000.0)),
@@ -138,6 +129,8 @@ fn setup(
         },
         NotShadowCaster,
         GalacticGrid::ZERO,
+        NeedsTextureTransparencyEqualToRed(image.clone()),
+        NeedsTextureSetToRepeat(image),
     ));
 
     // Sky
@@ -159,7 +152,6 @@ fn setup(
 
     let image =
         server.load("https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg");
-    earth.images.push(image.clone());
 
     // ground
     commands.spawn((
@@ -169,7 +161,7 @@ fn setup(
                 base_color: Color::WHITE,
                 unlit: true,
                 cull_mode: None,
-                base_color_texture: Some(image),
+                base_color_texture: Some(image.clone()),
                 perceptual_roughness: 1.0,
                 fog_enabled: false,
                 ..default()
@@ -179,10 +171,10 @@ fn setup(
         },
         NotShadowCaster,
         GalacticGrid::ZERO,
+        NeedsTextureSetToRepeat(image),
     ));
 
     let image = server.load("https://www.solarsystemscope.com/textures/download/2k_moon.jpg");
-    earth.images.push(image.clone());
 
     // moon
     commands.spawn((
@@ -192,7 +184,7 @@ fn setup(
                 base_color: Color::WHITE,
                 unlit: true,
                 cull_mode: None,
-                base_color_texture: Some(image),
+                base_color_texture: Some(image.clone()),
                 perceptual_roughness: 1.0,
                 fog_enabled: false,
                 ..default()
@@ -203,21 +195,24 @@ fn setup(
         },
         NotShadowCaster,
         GalacticGrid::ZERO,
+        NeedsTextureSetToRepeat(image),
     ));
 }
 
-fn set_clouds_transparent(
+fn set_texture_transparent(
     mut images: ResMut<Assets<Image>>,
-    mut clouds: ResMut<Clouds>,
+    mut commands: Commands,
     server: Res<AssetServer>,
+    textures: Query<(Entity, &NeedsTextureTransparencyEqualToRed)>,
 ) {
-    if let Some(handle) = clouds.image.take() {
+    for (entity, NeedsTextureTransparencyEqualToRed(handle)) in textures.iter() {
+        info!("making clouds transparent");
         use bevy::asset::LoadState::*;
-        if let Loaded | Failed = server.get_load_state(&handle).unwrap() {
-            let Some(image) = images.get_mut(&handle) else {
+        if let Loaded | Failed = server.get_load_state(handle).unwrap() {
+            let Some(image) = images.get_mut(handle) else {
                 unreachable!()
             };
-            info!("clouds made transparent and linear filtered");
+            info!("clouds made transparent");
             *image = image.convert(TextureFormat::Rgba8UnormSrgb).unwrap();
             for chunk in image.data.chunks_exact_mut(4) {
                 let [r, _g, _b, a] = chunk else {
@@ -225,30 +220,30 @@ fn set_clouds_transparent(
                 };
                 *a = *r;
             }
-            image.sampler = repeat_sampler();
-        } else {
-            clouds.image = Some(handle);
+            commands
+                .entity(entity)
+                .remove::<NeedsTextureTransparencyEqualToRed>();
         }
     }
 }
 
-fn set_earth_repeat(
+fn set_texture_repeat(
     mut images: ResMut<Assets<Image>>,
-    mut earth: ResMut<Earth>,
+    mut commands: Commands,
     server: Res<AssetServer>,
+    textures: Query<(Entity, &NeedsTextureSetToRepeat)>,
 ) {
-    earth.images.retain(|handle| {
+    for (entity, NeedsTextureSetToRepeat(handle)) in textures.iter() {
         use bevy::asset::LoadState::*;
         if let Loaded | Failed = server.get_load_state(handle).unwrap() {
             let Some(image) = images.get_mut(handle) else {
                 unreachable!()
             };
+            info!("texture set to repeat");
             image.sampler = repeat_sampler();
-            false
-        } else {
-            true
+            commands.entity(entity).remove::<NeedsTextureSetToRepeat>();
         }
-    });
+    }
 }
 
 fn repeat_sampler() -> ImageSampler {
