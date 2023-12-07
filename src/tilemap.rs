@@ -1,14 +1,11 @@
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    f32::consts::PI,
-    fmt::Display,
-};
+use std::{f32::consts::PI, fmt::Display};
 
 use bevy::{
     asset::LoadState,
     gltf::Gltf,
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
+    utils::HashSet,
 };
 use big_space::FloatingOriginSettings;
 
@@ -17,7 +14,7 @@ use crate::{geopos::GeoPos, GalacticGrid};
 #[derive(Resource, Default)]
 pub struct TileMap {
     /// All currently loaded tiles.
-    tiles: [BTreeMap<u32, BTreeSet<u32>>; MAX_TILE_ZOOM as usize],
+    tiles: HashSet<TileIndex>,
 }
 
 #[derive(Component)]
@@ -25,7 +22,6 @@ pub struct TileMap {
 pub struct Loading;
 
 pub const TILE_ZOOM: u8 = 15;
-pub const MAX_TILE_ZOOM: u8 = 16;
 
 impl TileMap {
     pub fn hide_faraway_tiles(
@@ -77,11 +73,10 @@ impl TileMap {
     /// to load it is. Lower values are better.
     // FIXME(#18): use a smarter algorithm
     pub fn get_view_tile_score(&self, pos: TileIndex, offset: IVec2) -> f32 {
-        if let Some(line) = self.tiles[usize::from(pos.zoom)].get(&pos.idx.x) {
-            if line.contains(&pos.idx.y) {
-                return f32::INFINITY;
-            }
+        if self.tiles.contains(&pos) {
+            return f32::INFINITY;
         }
+
         offset.as_vec2().length_squared()
     }
 
@@ -103,14 +98,11 @@ impl TileMap {
         let name: String = format!("tile://{}_{}_{}.glb", pos.zoom, pos.idx.x, pos.idx.y);
         // Start loading next tile
         let gltf: Handle<Gltf> = server.load(name);
-        // Insert dummy tile while loading.
-        let row = tilemap.tiles[usize::from(pos.zoom)]
-            .entry(pos.idx.x)
-            .or_default();
-        if !row.insert(pos.idx.y) {
+        if !tilemap.tiles.insert(pos) {
             return;
         }
 
+        // Insert dummy tile while loading.
         let (grid, _coord, mesh) = flat_tile(pos, &space);
         let mesh = meshes.add(mesh);
 
@@ -279,7 +271,7 @@ impl TileCoord {
 }
 
 /// An x/y index of an OWM tile.
-#[derive(Debug, Copy, Clone, Component)]
+#[derive(Debug, Copy, Clone, Component, Hash, PartialEq, Eq)]
 pub struct TileIndex {
     idx: UVec2,
     zoom: u8,
