@@ -112,9 +112,12 @@ pub fn main() {
             Update,
             (
                 (
+                    // After recomputing the view distance from the FPS
                     recompute_view_distance,
                     (
+                        // Hide tiles that are now beyond the view distance
                         get_main_camera_position.pipe(TileMap::hide_faraway_tiles),
+                        // And load tiles that are now within the view distance
                         get_main_camera_position
                             .pipe(TileMap::load_next)
                             .pipe(TileMap::load),
