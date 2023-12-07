@@ -111,7 +111,7 @@ fn setup(
                 fog_enabled: false,
                 ..default()
             }),
-            transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + 1000_000_000_000.0)),
+            transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + 1_000_000_000_000.0)),
             ..default()
         },
         NotShadowCaster,
