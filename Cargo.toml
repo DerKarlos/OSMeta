@@ -27,6 +27,7 @@ directories = "5.0.1"
 async-fs = "2.1.0"
 bevy_web_asset = { git = "https://github.com/oli-obk/bevy_web_asset.git", branch = "user-agent" }
 big_space = "0.4.0"
+bevy_embedded_assets = "0.9.1"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
 web-sys = { version = "0.3.22", default-features = false, features = [

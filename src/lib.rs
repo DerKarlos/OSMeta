@@ -4,8 +4,10 @@ use std::f32::consts::FRAC_PI_2;
 
 use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    pbr::NotShadowCaster,
     prelude::*,
 };
+use bevy_embedded_assets::EmbeddedAssetPlugin;
 use bevy_flycam::{FlyCam, MovementSettings};
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
@@ -100,6 +102,8 @@ pub fn main() {
     app.add_plugins(HttpAssetReaderPlugin {
         base_url: "gltiles.osm2world.org/glb/".into(),
     });
+    // Offer assets via `embedded://`
+    app.add_plugins(EmbeddedAssetPlugin::default());
     app.add_plugins(bevy_web_asset::WebAssetPlugin {
         user_agent: Some("osmeta 0.1.0".into()),
     });
@@ -142,6 +146,7 @@ pub fn main() {
             ),
         )
         .add_systems(Update, update_camera_orientations)
+        .add_systems(PostUpdate, reposition_compass)
         .run();
 }
 
@@ -247,6 +252,70 @@ fn get_main_camera_position(
     let origin = origin.to_tile_coordinates(TILE_ZOOM);
 
     (origin.as_tile_index(), radius)
+}
+
+#[derive(Component)]
+struct Compass;
+
+fn reposition_compass(
+    xr_pos: Query<
+        (&Transform, &GalacticGrid),
+        (With<OpenXRTrackingRoot>, Without<FlyCam>, Without<Compass>),
+    >,
+    flycam_pos: Query<
+        (&Transform, &GalacticGrid),
+        (With<FlyCam>, Without<OpenXRTrackingRoot>, Without<Compass>),
+    >,
+    mut compass: Query<
+        (&mut Transform, &mut GalacticGrid),
+        (With<Compass>, Without<FlyCam>, Without<OpenXRTrackingRoot>),
+    >,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+    server: Res<AssetServer>,
+    space: Res<FloatingOriginSettings>,
+) {
+    let (&transform, &grid) = if let Ok(xr_pos) = xr_pos.get_single() {
+        xr_pos
+    } else {
+        flycam_pos.single()
+    };
+
+    if let Ok((mut compass_pos, mut compass_grid)) = compass.get_single_mut() {
+        let up = space
+            .grid_position_double(&grid, &transform)
+            .normalize()
+            .as_vec3();
+        let west = Vec3::Z.cross(up);
+        let north = up.cross(west);
+        compass_pos.translation = transform.translation - up * 5.;
+        *compass_grid = grid;
+        compass_pos.look_to(north, up)
+    } else {
+        let mesh = shape::Plane::default();
+        let mesh = meshes.add(mesh.into());
+        let image = server.load("embedded://compass.png");
+        let material = materials.add(StandardMaterial {
+            base_color_texture: Some(image),
+            unlit: true,
+            cull_mode: None,
+            perceptual_roughness: 1.0,
+            fog_enabled: false,
+            alpha_mode: AlphaMode::Blend,
+            ..default()
+        });
+        commands.spawn((
+            PbrBundle {
+                mesh,
+                material,
+                ..default()
+            },
+            grid,
+            Compass,
+            NotShadowCaster,
+        ));
+    }
 }
 
 fn update_camera_orientations(
