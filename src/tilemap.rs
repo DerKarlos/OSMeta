@@ -1,5 +1,3 @@
-use std::{f32::consts::PI, fmt::Display};
-
 use bevy::{
     asset::LoadState,
     gltf::Gltf,
@@ -9,7 +7,12 @@ use bevy::{
 };
 use big_space::FloatingOriginSettings;
 
-use crate::{geopos::GeoPos, GalacticGrid};
+use crate::GalacticGrid;
+
+mod coord;
+mod index;
+pub use coord::*;
+pub use index::*;
 
 #[derive(Resource, Default)]
 pub struct TileMap {
@@ -95,7 +98,7 @@ impl TileMap {
     ) {
         let Some(pos) = pos else { return };
         // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
-        let name: String = format!("tile://{}_{}_{}.glb", pos.zoom, pos.idx.x, pos.idx.y);
+        let name: String = format!("tile://{}_{}_{}.glb", pos.zoom(), pos.x, pos.y);
         // Start loading next tile
         let gltf: Handle<Gltf> = server.load(name);
         if !tilemap.tiles.insert(pos) {
@@ -135,7 +138,7 @@ impl TileMap {
             LoadState::NotLoaded | LoadState::Loading => unreachable!(),
             LoadState::Loaded => {
                 entity.remove::<PbrBundle>();
-                let (grid, transform) = Self::test_transform(*pos, &space);
+                let (grid, transform) = pos.to_cartesian(&space);
                 let scene = scenes.get(scene).unwrap().scenes[0].clone();
                 entity.insert(grid);
                 entity.insert(SceneBundle {
@@ -147,7 +150,9 @@ impl TileMap {
             LoadState::Failed => {
                 let url = format!(
                     "https://a.tile.openstreetmap.org/{}/{}/{}.png",
-                    pos.zoom, pos.idx.x, pos.idx.y
+                    pos.zoom(),
+                    pos.x,
+                    pos.y
                 );
                 debug!(
                     ?url,
@@ -162,38 +167,13 @@ impl TileMap {
             }
         }
     }
-
-    fn test_transform(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, Transform) {
-        let coord = pos.as_coord().center();
-        let pos = coord.to_geo_pos().to_cartesian();
-        let up = pos.normalize().as_vec3();
-        let next = TileCoord {
-            pos: Vec2 {
-                x: coord.pos.x,
-                y: coord.pos.y - 1.0,
-            },
-            zoom: coord.zoom,
-        }
-        .to_geo_pos()
-        .to_cartesian();
-        let (grid, pos) = space.translation_to_grid(pos);
-        let (grid_next, next) = space.translation_to_grid(next);
-        let diff = grid_next - grid;
-        let diff = Vec3 {
-            x: diff.x as f32 * space.grid_edge_length(),
-            y: diff.y as f32 * space.grid_edge_length(),
-            z: diff.z as f32 * space.grid_edge_length(),
-        };
-        let next = next + diff;
-        (
-            grid,
-            Transform::from_translation(pos).looking_to(next - pos, up),
-        )
-    }
 }
 
 // Compute a square mesh at the position for the given tile.
-fn flat_tile(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, TileCoord, Mesh) {
+fn flat_tile(
+    pos: TileIndex,
+    space: &FloatingOriginSettings,
+) -> (GalacticGrid, coord::TileCoord, Mesh) {
     let coord = pos.as_coord();
 
     // Four corners of the tile in cartesian coordinates relative to the
@@ -232,101 +212,4 @@ fn flat_tile(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, T
         .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
         .with_indices(Some(indices));
     (grid, coord, mesh)
-}
-
-/// A coordinate in the OWM tile coordinate system.
-/// We use floats instead of integers so we can specify positions of objects
-/// within a tile. E.g. (0.5, 0.5) is the position in the middle of tile (0, 0).
-#[derive(Debug, Copy, Clone)]
-pub struct TileCoord {
-    pub pos: Vec2,
-    pub zoom: u8,
-}
-
-impl TileCoord {
-    pub fn to_geo_pos(self) -> GeoPos {
-        let pow_zoom = 2_u32.pow(self.zoom.into()) as f32;
-
-        let lon = self.pos.x / pow_zoom * 360.0 - 180.0;
-        let lat_rad = (PI * (1. - 2. * self.pos.y / pow_zoom)).sinh().atan();
-        let lat = lat_rad.to_degrees();
-        GeoPos { lat, lon }
-    }
-
-    /// Offset this position by half a tile size. If you started out with a left upper
-    /// corner position, you'll now be in the middle of the tile.
-    fn center(&self) -> Self {
-        Self {
-            pos: self.pos + 0.5,
-            zoom: self.zoom,
-        }
-    }
-
-    pub fn as_tile_index(&self) -> TileIndex {
-        TileIndex {
-            idx: self.pos.as_uvec2(),
-            zoom: self.zoom,
-        }
-    }
-}
-
-/// An x/y index of an OWM tile.
-#[derive(Debug, Copy, Clone, Component, Hash, PartialEq, Eq)]
-pub struct TileIndex {
-    idx: UVec2,
-    zoom: u8,
-}
-
-impl TileIndex {
-    pub fn as_coord(self) -> TileCoord {
-        TileCoord {
-            pos: self.idx.as_vec2(),
-            zoom: self.zoom,
-        }
-    }
-    pub fn right(self) -> Self {
-        Self {
-            idx: self.idx + UVec2::X,
-            ..self
-        }
-    }
-    pub fn down(self) -> Self {
-        Self {
-            idx: self.idx + UVec2::Y,
-            ..self
-        }
-    }
-
-    fn distance_squared(&self, origin: TileIndex) -> u32 {
-        assert_eq!(self.zoom, origin.zoom);
-        let max_tiles = 2_u32.pow(self.zoom.into());
-        let mut x = self.idx.x.abs_diff(origin.idx.x);
-        x = x.min(max_tiles - x);
-        let mut y = self.idx.y.abs_diff(origin.idx.y);
-        y = y.min(max_tiles - y);
-        x * x + y * y
-    }
-
-    fn offset(self, offset: IVec2) -> TileIndex {
-        let max_tiles = 2_i32.pow(self.zoom.into());
-        let mut idx = self.idx.as_ivec2() + offset;
-        if idx.x < 0 {
-            idx.x += max_tiles;
-        }
-        idx.x %= max_tiles;
-        if idx.y < 0 {
-            idx.y += max_tiles;
-        }
-        idx.y %= max_tiles;
-        TileIndex {
-            idx: idx.as_uvec2(),
-            zoom: self.zoom,
-        }
-    }
-}
-
-impl Display for TileIndex {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        self.idx.fmt(f)
-    }
 }
