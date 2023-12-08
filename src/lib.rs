@@ -4,7 +4,6 @@ use std::f32::consts::FRAC_PI_2;
 
 use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
-    ecs::system::SystemParam,
     pbr::NotShadowCaster,
     prelude::*,
 };
@@ -220,7 +219,10 @@ fn recompute_view_distance(
     }
 }
 
-fn get_main_camera_position(player: Player, view_distance: Res<ViewDistance>) -> (TileIndex, Vec2) {
+fn get_main_camera_position(
+    player: player::Player,
+    view_distance: Res<ViewDistance>,
+) -> (TileIndex, Vec2) {
     let player = player.pos();
 
     let pos = player.pos();
@@ -235,61 +237,7 @@ fn get_main_camera_position(player: Player, view_distance: Res<ViewDistance>) ->
 #[derive(Component)]
 struct Compass;
 
-#[derive(SystemParam)]
-struct Player<'w, 's> {
-    xr_pos: Query<
-        'w,
-        's,
-        (&'static Transform, &'static GalacticGrid),
-        (With<OpenXRTrackingRoot>, Without<FlyCam>, Without<Compass>),
-    >,
-    flycam_pos: Query<
-        'w,
-        's,
-        (&'static Transform, &'static GalacticGrid),
-        (With<FlyCam>, Without<OpenXRTrackingRoot>, Without<Compass>),
-    >,
-    space: Res<'w, FloatingOriginSettings>,
-}
-
-struct PlayerPosition<'a> {
-    transform: Transform,
-    grid: GalacticGrid,
-    space: &'a FloatingOriginSettings,
-}
-
-impl PlayerPosition<'_> {
-    pub fn pos(&self) -> DVec3 {
-        self.space.grid_position_double(&self.grid, &self.transform)
-    }
-    pub fn directions(&self) -> Directions {
-        let up = self.pos().normalize().as_vec3();
-        let west = Vec3::Z.cross(up);
-        let north = up.cross(west);
-        Directions { up, north, west }
-    }
-}
-
-struct Directions {
-    up: Vec3,
-    north: Vec3,
-    west: Vec3,
-}
-
-impl<'w, 's> Player<'w, 's> {
-    pub fn pos(&self) -> PlayerPosition<'_> {
-        let (&transform, &grid) = if let Ok(xr_pos) = self.xr_pos.get_single() {
-            xr_pos
-        } else {
-            self.flycam_pos.single()
-        };
-        PlayerPosition {
-            transform,
-            grid,
-            space: &self.space,
-        }
-    }
-}
+mod player;
 
 fn reposition_compass(
     mut compass: Query<
@@ -300,7 +248,7 @@ fn reposition_compass(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     server: Res<AssetServer>,
-    player: Player,
+    player: player::Player,
 ) {
     if let Ok((mut pos, mut grid)) = compass.get_single_mut() {
         let player = player.pos();
