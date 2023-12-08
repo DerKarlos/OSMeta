@@ -207,20 +207,28 @@ fn set_texture_transparent(
 ) {
     for (entity, NeedsTextureTransparencyEqualToRed(handle)) in textures.iter() {
         use bevy::asset::LoadState::*;
-        if let Loaded | Failed = server.get_load_state(handle).unwrap() {
-            let Some(image) = images.get_mut(handle) else {
-                unreachable!()
-            };
-            *image = image.convert(TextureFormat::Rgba8UnormSrgb).unwrap();
-            for chunk in image.data.chunks_exact_mut(4) {
-                let [r, _g, _b, a] = chunk else {
+        match server.get_load_state(handle).unwrap() {
+            Loaded => {
+                let Some(image) = images.get_mut(handle) else {
                     unreachable!()
                 };
-                *a = *r;
+                *image = image.convert(TextureFormat::Rgba8UnormSrgb).unwrap();
+                for chunk in image.data.chunks_exact_mut(4) {
+                    let [r, _g, _b, a] = chunk else {
+                        unreachable!()
+                    };
+                    *a = *r;
+                }
+                commands
+                    .entity(entity)
+                    .remove::<NeedsTextureTransparencyEqualToRed>();
             }
-            commands
-                .entity(entity)
-                .remove::<NeedsTextureTransparencyEqualToRed>();
+            Failed => {
+                commands
+                    .entity(entity)
+                    .remove::<NeedsTextureTransparencyEqualToRed>();
+            }
+            _ => (),
         }
     }
 }
@@ -233,12 +241,18 @@ fn set_texture_repeat(
 ) {
     for (entity, NeedsTextureSetToRepeat(handle)) in textures.iter() {
         use bevy::asset::LoadState::*;
-        if let Loaded | Failed = server.get_load_state(handle).unwrap() {
-            let Some(image) = images.get_mut(handle) else {
-                unreachable!()
-            };
-            image.sampler = repeat_sampler();
-            commands.entity(entity).remove::<NeedsTextureSetToRepeat>();
+        match server.get_load_state(handle).unwrap() {
+            Loaded => {
+                let Some(image) = images.get_mut(handle) else {
+                    unreachable!()
+                };
+                image.sampler = repeat_sampler();
+                commands.entity(entity).remove::<NeedsTextureSetToRepeat>();
+            }
+            Failed => {
+                commands.entity(entity).remove::<NeedsTextureSetToRepeat>();
+            }
+            _ => (),
         }
     }
 }
