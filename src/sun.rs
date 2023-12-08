@@ -89,7 +89,7 @@ fn setup(
     );
 
     // Stars
-    let image = server.load("https://www.solarsystemscope.com/textures/download/2k_stars.jpg");
+    let image = server.load("embedded://8k_stars.jpg");
     commands.spawn((
         PbrBundle {
             mesh: mesh.clone(),
@@ -111,8 +111,7 @@ fn setup(
     ));
 
     // Clouds visible from earth and space
-    let image =
-        server.load("https://www.solarsystemscope.com/textures/download/2k_earth_clouds.jpg");
+    let image = server.load("embedded://8k_earth_clouds.jpg");
     commands.spawn((
         PbrBundle {
             mesh: mesh.clone(),
@@ -150,8 +149,7 @@ fn setup(
         GalacticGrid::ZERO,
     ));
 
-    let image =
-        server.load("https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg");
+    let image = server.load("embedded://8k_earth_daymap.jpg");
 
     // ground
     commands.spawn((
@@ -174,7 +172,7 @@ fn setup(
         NeedsTextureSetToRepeat(image),
     ));
 
-    let image = server.load("https://www.solarsystemscope.com/textures/download/2k_moon.jpg");
+    let image = server.load("embedded://8k_moon.jpg");
 
     // moon
     commands.spawn((
