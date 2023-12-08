@@ -206,13 +206,11 @@ fn set_texture_transparent(
     textures: Query<(Entity, &NeedsTextureTransparencyEqualToRed)>,
 ) {
     for (entity, NeedsTextureTransparencyEqualToRed(handle)) in textures.iter() {
-        info!("making clouds transparent");
         use bevy::asset::LoadState::*;
         if let Loaded | Failed = server.get_load_state(handle).unwrap() {
             let Some(image) = images.get_mut(handle) else {
                 unreachable!()
             };
-            info!("clouds made transparent");
             *image = image.convert(TextureFormat::Rgba8UnormSrgb).unwrap();
             for chunk in image.data.chunks_exact_mut(4) {
                 let [r, _g, _b, a] = chunk else {
@@ -239,7 +237,6 @@ fn set_texture_repeat(
             let Some(image) = images.get_mut(handle) else {
                 unreachable!()
             };
-            info!("texture set to repeat");
             image.sampler = repeat_sampler();
             commands.entity(entity).remove::<NeedsTextureSetToRepeat>();
         }
