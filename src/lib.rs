@@ -4,6 +4,7 @@ use std::f32::consts::FRAC_PI_2;
 
 use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    ecs::system::SystemParam,
     pbr::NotShadowCaster,
     prelude::*,
 };
@@ -219,19 +220,10 @@ fn recompute_view_distance(
     }
 }
 
-fn get_main_camera_position(
-    xr_pos: Query<(&Transform, &GalacticGrid), (With<OpenXRTrackingRoot>, Without<FlyCam>)>,
-    flycam_pos: Query<(&Transform, &GalacticGrid), (With<FlyCam>, Without<OpenXRTrackingRoot>)>,
-    view_distance: Res<ViewDistance>,
-    space: Res<FloatingOriginSettings>,
-) -> (TileIndex, Vec2) {
-    let (pos, grid) = if let Ok(xr_pos) = xr_pos.get_single() {
-        xr_pos
-    } else {
-        flycam_pos.single()
-    };
+fn get_main_camera_position(player: Player, view_distance: Res<ViewDistance>) -> (TileIndex, Vec2) {
+    let player = player.pos();
 
-    let pos = space.grid_position_double(grid, pos);
+    let pos = player.pos();
     let origin = GeoPos::from_cartesian(pos);
     let tile_size = origin.tile_size(TILE_ZOOM);
     let radius = view_distance.0 / tile_size + 0.5;
@@ -243,15 +235,54 @@ fn get_main_camera_position(
 #[derive(Component)]
 struct Compass;
 
-fn reposition_compass(
+#[derive(SystemParam)]
+struct Player<'w, 's> {
     xr_pos: Query<
-        (&Transform, &GalacticGrid),
+        'w,
+        's,
+        (&'static Transform, &'static GalacticGrid),
         (With<OpenXRTrackingRoot>, Without<FlyCam>, Without<Compass>),
     >,
     flycam_pos: Query<
-        (&Transform, &GalacticGrid),
+        'w,
+        's,
+        (&'static Transform, &'static GalacticGrid),
         (With<FlyCam>, Without<OpenXRTrackingRoot>, Without<Compass>),
     >,
+    space: Res<'w, FloatingOriginSettings>,
+}
+
+struct PlayerPosition<'a> {
+    transform: Transform,
+    grid: GalacticGrid,
+    space: &'a FloatingOriginSettings,
+}
+
+impl PlayerPosition<'_> {
+    pub fn pos(&self) -> DVec3 {
+        self.space.grid_position_double(&self.grid, &self.transform)
+    }
+    pub fn up(&self) -> Vec3 {
+        self.pos().normalize().as_vec3()
+    }
+}
+
+impl<'w, 's> Player<'w, 's> {
+    pub fn pos(&self) -> PlayerPosition<'_> {
+        let (&transform, &grid) = if let Ok(xr_pos) = self.xr_pos.get_single() {
+            xr_pos
+        } else {
+            self.flycam_pos.single()
+        };
+        PlayerPosition {
+            transform,
+            grid,
+            space: &self.space,
+        }
+    }
+}
+
+fn reposition_compass(
     mut compass: Query<
         (&mut Transform, &mut GalacticGrid),
         (With<Compass>, Without<FlyCam>, Without<OpenXRTrackingRoot>),
@@ -260,24 +291,16 @@ fn reposition_compass(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     server: Res<AssetServer>,
-    space: Res<FloatingOriginSettings>,
+    player: Player,
 ) {
-    let (&transform, &grid) = if let Ok(xr_pos) = xr_pos.get_single() {
-        xr_pos
-    } else {
-        flycam_pos.single()
-    };
-
-    if let Ok((mut compass_pos, mut compass_grid)) = compass.get_single_mut() {
-        let up = space
-            .grid_position_double(&grid, &transform)
-            .normalize()
-            .as_vec3();
+    if let Ok((mut pos, mut grid)) = compass.get_single_mut() {
+        let player = player.pos();
+        let up = player.up();
         let west = Vec3::Z.cross(up);
         let north = up.cross(west);
-        compass_pos.translation = transform.translation - up * 5.;
-        *compass_grid = grid;
-        compass_pos.look_to(north, up)
+        pos.translation = player.transform.translation - up * 5.;
+        *grid = player.grid;
+        pos.look_to(north, up)
     } else {
         let mesh = shape::Plane::default();
         let mesh = meshes.add(mesh.into());
@@ -297,7 +320,7 @@ fn reposition_compass(
                 material,
                 ..default()
             },
-            grid,
+            GalacticGrid::ZERO,
             Compass,
             NotShadowCaster,
         ));
