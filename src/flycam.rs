@@ -62,12 +62,14 @@ fn setup(
     space: Res<FloatingOriginSettings>,
 ) {
     let pos = args.starting_position.normalize().as_vec3();
-    let dist = 300.0; // Todo: user parameter "dist"
-    let view = 30.0_f32.to_radians(); // default camera view 30 degrees down from horizontal. Todo: user parameter "view"
-    let target_x = dist * view.cos();
     let (grid, subgrid): (GalacticGrid, _) = space.translation_to_grid(args.starting_position);
-    let transform = Transform::from_translation(subgrid + pos * dist)
-        .looking_at(subgrid + Vec3::new(target_x, 0.3, 0.0), pos);
+    let mut transform =
+        Transform::from_translation(subgrid + pos * args.height).looking_at(subgrid, Vec3::Z); // ::Z for Nord
+
+    let rotation = Quat::from_axis_angle(Vec3::Z, args.direction.to_radians())  // Todo: why ::Z??
+        * Quat::from_axis_angle(Vec3::X, args.view.to_radians());
+    transform = transform * Transform::from_rotation(rotation);
+
     movement_settings.up = pos;
 
     let material = materials.add(StandardMaterial {

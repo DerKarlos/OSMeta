@@ -33,6 +33,9 @@ type GalacticGrid = GridCell<GridPrecision>;
 #[derive(Resource)]
 struct Args {
     starting_position: DVec3,
+    height: f32,
+    direction: f32,
+    view: f32,
     xr: bool,
 }
 
@@ -59,9 +62,14 @@ pub fn main() {
     }
 
     let mut pos = GeoPos {
-        lat: 48.14077,
-        lon: 11.55741,
+        lat: 48.1408, // Germany, Munic, Main railway station
+        lon: 11.5577,
     };
+    let mut height: f32 = 300.0; // Camare hight about ground
+
+    // View to city center, Marienplatz
+    let mut direction: f32 = (-105.0_f32); // Compass view direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
+    let mut view: f32 = (75.0_f32); // View slightly down. 0 = starit down, 90 = horizontal
 
     let mut xr = false;
 
@@ -72,6 +80,9 @@ pub fn main() {
         match k {
             "lat" => pos.lat = v.parse().unwrap(),
             "lon" => pos.lon = v.parse().unwrap(),
+            "ele" => height = v.parse().unwrap(),
+            "view" => view = v.parse().unwrap(),
+            "dir" => direction = v.parse().unwrap(),
             "xr" => xr = v.parse().unwrap(),
             other => panic!("unknown key `{other}`"),
         }
@@ -80,6 +91,9 @@ pub fn main() {
     let mut app = App::new();
     app.insert_resource(Args {
         starting_position: pos.to_cartesian(),
+        height,
+        direction,
+        view,
         xr,
     });
     app.insert_resource(ViewDistance(2000.0));
