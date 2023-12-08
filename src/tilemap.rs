@@ -135,7 +135,7 @@ impl TileMap {
             LoadState::NotLoaded | LoadState::Loading => unreachable!(),
             LoadState::Loaded => {
                 entity.remove::<PbrBundle>();
-                let (grid, transform) = Self::test_transform(*pos, &space);
+                let (grid, transform) = pos.to_cartesian(&space);
                 let scene = scenes.get(scene).unwrap().scenes[0].clone();
                 entity.insert(grid);
                 entity.insert(SceneBundle {
@@ -161,34 +161,6 @@ impl TileMap {
                 }));
             }
         }
-    }
-
-    fn test_transform(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, Transform) {
-        let coord = pos.as_coord().center();
-        let pos = coord.to_geo_pos().to_cartesian();
-        let up = pos.normalize().as_vec3();
-        let next = TileCoord {
-            pos: Vec2 {
-                x: coord.pos.x,
-                y: coord.pos.y - 1.0,
-            },
-            zoom: coord.zoom,
-        }
-        .to_geo_pos()
-        .to_cartesian();
-        let (grid, pos) = space.translation_to_grid(pos);
-        let (grid_next, next) = space.translation_to_grid(next);
-        let diff = grid_next - grid;
-        let diff = Vec3 {
-            x: diff.x as f32 * space.grid_edge_length(),
-            y: diff.y as f32 * space.grid_edge_length(),
-            z: diff.z as f32 * space.grid_edge_length(),
-        };
-        let next = next + diff;
-        (
-            grid,
-            Transform::from_translation(pos).looking_to(next - pos, up),
-        )
     }
 }
 
@@ -322,6 +294,34 @@ impl TileIndex {
             idx: idx.as_uvec2(),
             zoom: self.zoom,
         }
+    }
+
+    fn to_cartesian(self, space: &FloatingOriginSettings) -> (GalacticGrid, Transform) {
+        let coord = self.as_coord().center();
+        let pos = coord.to_geo_pos().to_cartesian();
+        let up = pos.normalize().as_vec3();
+        let next = TileCoord {
+            pos: Vec2 {
+                x: coord.pos.x,
+                y: coord.pos.y - 1.0,
+            },
+            zoom: coord.zoom,
+        }
+        .to_geo_pos()
+        .to_cartesian();
+        let (grid, pos) = space.translation_to_grid(pos);
+        let (grid_next, next) = space.translation_to_grid(next);
+        let diff = grid_next - grid;
+        let diff = Vec3 {
+            x: diff.x as f32 * space.grid_edge_length(),
+            y: diff.y as f32 * space.grid_edge_length(),
+            z: diff.z as f32 * space.grid_edge_length(),
+        };
+        let next = next + diff;
+        (
+            grid,
+            Transform::from_translation(pos).looking_to(next - pos, up),
+        )
     }
 }
 
