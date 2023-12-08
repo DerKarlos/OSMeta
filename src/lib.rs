@@ -262,9 +262,18 @@ impl PlayerPosition<'_> {
     pub fn pos(&self) -> DVec3 {
         self.space.grid_position_double(&self.grid, &self.transform)
     }
-    pub fn up(&self) -> Vec3 {
-        self.pos().normalize().as_vec3()
+    pub fn directions(&self) -> Directions {
+        let up = self.pos().normalize().as_vec3();
+        let west = Vec3::Z.cross(up);
+        let north = up.cross(west);
+        Directions { up, north, west }
     }
+}
+
+struct Directions {
+    up: Vec3,
+    north: Vec3,
+    west: Vec3,
 }
 
 impl<'w, 's> Player<'w, 's> {
@@ -295,12 +304,10 @@ fn reposition_compass(
 ) {
     if let Ok((mut pos, mut grid)) = compass.get_single_mut() {
         let player = player.pos();
-        let up = player.up();
-        let west = Vec3::Z.cross(up);
-        let north = up.cross(west);
-        pos.translation = player.transform.translation - up * 5.;
+        let directions = player.directions();
+        pos.translation = player.transform.translation - directions.up * 5.;
         *grid = player.grid;
-        pos.look_to(north, up)
+        pos.look_to(directions.north, directions.up)
     } else {
         let mesh = shape::Plane::default();
         let mesh = meshes.add(mesh.into());
