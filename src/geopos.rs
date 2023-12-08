@@ -1,9 +1,8 @@
+use crate::tilemap::TileCoord;
 use bevy::prelude::*;
 use glam::DVec3;
 use globe_rs::{CartesianPoint, GeographicPoint};
 use std::f32::consts::PI;
-
-use crate::tilemap::TileCoord;
 
 /**
  * Geo-position on the (OSM-) world map (GPS position)
@@ -32,34 +31,28 @@ impl GeoPos {
     pub fn to_tile_coordinates(self, zoom: u8) -> TileCoord {
         let pow_zoom = 2_u32.pow(zoom.into()) as f32;
 
-        let mut coord = TileCoord {
-            pos: Vec2 {
-                // Longitude, (Längengrad) West/East "index"
-                x: ((self.lon + 180.) / 360. * pow_zoom).rem_euclid(pow_zoom),
+        // Longitude, (Längengrad) West/East "index"
+        let mut x = ((self.lon + 180.) / 360. * pow_zoom).rem_euclid(pow_zoom);
+        // y: Latitude, (Breitengrad) Nort/South "index"
+        let mut y =
+            (1. - (self.lat.to_radians().tan() + 1. / self.lat.to_radians().cos()).ln() / PI) / 2.
+                * pow_zoom;
+        // The Nort/South y tile name part is not linear, the tiles gets stretched to the poles
+        // to compensate the stretching if the stretching of the West/East projection
 
-                // y: Latitude, (Breitengrad) Nort/South "index"
-                y: ((1.
-                    - (self.lat.to_radians().tan() + 1. / self.lat.to_radians().cos()).ln() / PI)
-                    / 2.
-                    * pow_zoom),
-                // The Nort/South y tile name part is not linear, the tiles gets stretched to the poles
-                // to compensate the stretching if the stretching of the West/East projection
-            },
-            zoom,
-        };
         // If out of bounds, wrap around the globe.
         // Note: only works if the gps coordinates weren't out of bounds enough to wrap around the planet beyond the equator.
-        if coord.pos.y > pow_zoom {
-            coord.pos.y = pow_zoom - coord.pos.y.rem_euclid(pow_zoom);
-            coord.pos.x = (coord.pos.x + pow_zoom / 2.0).rem_euclid(pow_zoom);
-        } else if coord.pos.y.is_sign_negative() {
-            coord.pos.y = coord.pos.y.abs();
-            coord.pos.x = (coord.pos.x + pow_zoom / 2.0).rem_euclid(pow_zoom);
+        if y > pow_zoom {
+            y = pow_zoom - y.rem_euclid(pow_zoom);
+            x = (x + pow_zoom / 2.0).rem_euclid(pow_zoom);
+        } else if y.is_sign_negative() {
+            y = y.abs();
+            x = (x + pow_zoom / 2.0).rem_euclid(pow_zoom);
         }
-        if coord.pos.x > pow_zoom || coord.pos.y > pow_zoom {
-            panic!("{self:?} @ zoom {zoom} -> {coord:?}");
+        if x > pow_zoom || y > pow_zoom {
+            panic!("{self:?} @ zoom {zoom} -> {x},{y}");
         }
-        coord
+        TileCoord::new(Vec2 { x, y }, zoom)
     }
 
     pub fn to_cartesian(self) -> DVec3 {
@@ -85,20 +78,8 @@ impl GeoPos {
     pub fn tile_size(self, zoom: u8) -> Vec2 {
         let coord = self.to_tile_coordinates(zoom);
         let pos = self.to_cartesian();
-        let x = TileCoord {
-            pos: coord.pos + Vec2::X,
-            zoom,
-        }
-        .to_geo_pos()
-        .to_cartesian()
-        .distance(pos) as f32;
-        let y = TileCoord {
-            pos: coord.pos + Vec2::Y,
-            zoom,
-        }
-        .to_geo_pos()
-        .to_cartesian()
-        .distance(pos) as f32;
+        let x = coord.right().to_geo_pos().to_cartesian().distance(pos) as f32;
+        let y = coord.down().to_geo_pos().to_cartesian().distance(pos) as f32;
         Vec2 { x, y }
     }
 }

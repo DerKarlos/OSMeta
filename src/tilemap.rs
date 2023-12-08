@@ -1,5 +1,3 @@
-use std::f32::consts::PI;
-
 use bevy::{
     asset::LoadState,
     gltf::Gltf,
@@ -9,10 +7,11 @@ use bevy::{
 };
 use big_space::FloatingOriginSettings;
 
-use crate::{geopos::GeoPos, GalacticGrid};
+use crate::GalacticGrid;
 
+mod coord;
 mod index;
-
+pub use coord::*;
 pub use index::*;
 
 #[derive(Resource, Default)]
@@ -171,7 +170,10 @@ impl TileMap {
 }
 
 // Compute a square mesh at the position for the given tile.
-fn flat_tile(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, TileCoord, Mesh) {
+fn flat_tile(
+    pos: TileIndex,
+    space: &FloatingOriginSettings,
+) -> (GalacticGrid, coord::TileCoord, Mesh) {
     let coord = pos.as_coord();
 
     // Four corners of the tile in cartesian coordinates relative to the
@@ -210,37 +212,4 @@ fn flat_tile(pos: TileIndex, space: &FloatingOriginSettings) -> (GalacticGrid, T
         .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
         .with_indices(Some(indices));
     (grid, coord, mesh)
-}
-
-/// A coordinate in the OWM tile coordinate system.
-/// We use floats instead of integers so we can specify positions of objects
-/// within a tile. E.g. (0.5, 0.5) is the position in the middle of tile (0, 0).
-#[derive(Debug, Copy, Clone)]
-pub struct TileCoord {
-    pub pos: Vec2,
-    pub zoom: u8,
-}
-
-impl TileCoord {
-    pub fn to_geo_pos(self) -> GeoPos {
-        let pow_zoom = 2_u32.pow(self.zoom.into()) as f32;
-
-        let lon = self.pos.x / pow_zoom * 360.0 - 180.0;
-        let lat_rad = (PI * (1. - 2. * self.pos.y / pow_zoom)).sinh().atan();
-        let lat = lat_rad.to_degrees();
-        GeoPos { lat, lon }
-    }
-
-    /// Offset this position by half a tile size. If you started out with a left upper
-    /// corner position, you'll now be in the middle of the tile.
-    fn center(&self) -> Self {
-        Self {
-            pos: self.pos + 0.5,
-            zoom: self.zoom,
-        }
-    }
-
-    pub fn as_tile_index(self) -> TileIndex {
-        TileIndex::from_coord_lossy(self)
-    }
 }

@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use super::TileCoord;
+use super::coord::TileCoord;
 use crate::GalacticGrid;
 use bevy::prelude::*;
 use big_space::FloatingOriginSettings;
@@ -22,10 +22,7 @@ impl std::ops::Deref for TileIndex {
 
 impl TileIndex {
     pub fn as_coord(self) -> TileCoord {
-        TileCoord {
-            pos: self.idx.as_vec2(),
-            zoom: self.zoom,
-        }
+        self.into()
     }
     pub fn right(self) -> Self {
         Self {
@@ -71,15 +68,7 @@ impl TileIndex {
         let coord = self.as_coord().center();
         let pos = coord.to_geo_pos().to_cartesian();
         let up = pos.normalize().as_vec3();
-        let next = TileCoord {
-            pos: Vec2 {
-                x: coord.pos.x,
-                y: coord.pos.y - 1.0,
-            },
-            zoom: coord.zoom,
-        }
-        .to_geo_pos()
-        .to_cartesian();
+        let next = coord.up().to_geo_pos().to_cartesian();
         let (grid, pos) = space.translation_to_grid(pos);
         let (grid_next, next) = space.translation_to_grid(next);
         let diff = grid_next - grid;
@@ -101,8 +90,8 @@ impl TileIndex {
 
     pub fn from_coord_lossy(arg: TileCoord) -> TileIndex {
         Self {
-            idx: arg.pos.as_uvec2(),
-            zoom: arg.zoom,
+            idx: arg.as_uvec2(),
+            zoom: arg.zoom(),
         }
     }
 }
