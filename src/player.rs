@@ -1,9 +1,9 @@
 use super::Compass;
 use super::GalacticGrid;
+use super::OpenXRTrackingRoot;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use bevy_flycam::FlyCam;
-use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 use big_space::FloatingOriginSettings;
 use glam::DVec3;
 
