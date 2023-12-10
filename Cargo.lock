@@ -979,11 +979,12 @@ dependencies = [
 [[package]]
 name = "bevy_oxr"
 version = "0.1.0"
-source = "git+https://github.com/oli-obk/vrtest?branch=arbitrary_up#8515337bdf2ca750dd8099dbf2fc7945376a4532"
+source = "git+https://github.com/awtterpip/bevy_oxr#7947dd097cfdf173e683583523dd8c2b5db1916d"
 dependencies = [
  "anyhow",
  "ash",
  "bevy",
+ "futures-lite 2.0.1",
  "mint",
  "openxr",
  "wgpu",

@@ -35,7 +35,7 @@ web-sys = { version = "0.3.22", default-features = false, features = [
 ] }
 
 [target.'cfg(not(any(target_os="macos", target_arch = "wasm32")))'.dependencies]
-bevy_oxr = { git = "https://github.com/oli-obk/vrtest", branch = "arbitrary_up", optional = true }
+bevy_oxr = { git = "https://github.com/awtterpip/bevy_oxr", optional = true }
 
 [features]
 xr = ["dep:bevy_oxr"]
