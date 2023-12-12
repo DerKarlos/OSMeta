@@ -10,7 +10,7 @@ use bevy_flycam::{FlyCam, KeyBindings, MovementSettings, NoCameraPlayerPlugin};
 use big_space::{FloatingOrigin, FloatingOriginSettings};
 
 use crate::geopos::EARTH_RADIUS;
-use crate::GalacticGrid;
+use crate::{GalacticGrid, GalacticTransform};
 
 pub struct Plugin;
 
@@ -126,11 +126,10 @@ fn setup(
 
 fn update_camera_speed(
     mut movement_settings: ResMut<MovementSettings>,
-    fly_cam: Query<(&Transform, &GalacticGrid), With<FlyCam>>,
+    fly_cam: Query<GalacticTransform, With<FlyCam>>,
     space: Res<FloatingOriginSettings>,
 ) {
-    let (transform, grid) = fly_cam.single();
-    let elevation = space.grid_position_double(grid, transform).length() as f32;
+    let elevation = fly_cam.single().grid_position_double(&space).length() as f32;
     let speed = (1. * (elevation - crate::geopos::EARTH_RADIUS - 300.0)).max(100.0);
     movement_settings.speed = speed;
 }

@@ -4,6 +4,7 @@ use std::f32::consts::FRAC_PI_2;
 
 use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
+    ecs::query::WorldQuery,
     pbr::NotShadowCaster,
     prelude::*,
 };
@@ -255,7 +256,7 @@ mod player;
 
 fn reposition_compass(
     mut compass: Query<
-        (&mut Transform, &mut GalacticGrid),
+        GalacticTransform,
         (With<Compass>, Without<FlyCam>, Without<OpenXRTrackingRoot>),
     >,
     mut commands: Commands,
@@ -264,12 +265,12 @@ fn reposition_compass(
     server: Res<AssetServer>,
     player: player::Player,
 ) {
-    if let Ok((mut pos, mut grid)) = compass.get_single_mut() {
+    if let Ok(mut compass) = compass.get_single_mut() {
         let player = player.pos();
         let directions = player.directions();
-        pos.translation = player.transform.translation - directions.up * 5.;
-        *grid = player.grid;
-        pos.look_to(directions.north, directions.up)
+        compass.transform.translation = player.transform.translation - directions.up * 5.;
+        *compass.grid = *player.grid;
+        compass.transform.look_to(directions.north, directions.up)
     } else {
         let mesh = shape::Plane::default();
         let mesh = meshes.add(mesh.into());
@@ -298,34 +299,54 @@ fn reposition_compass(
 
 fn update_camera_orientations(
     mut movement_settings: ResMut<MovementSettings>,
-    fly_cam: Query<(&Transform, &GalacticGrid), With<FlyCam>>,
+    fly_cam: Query<GalacticTransform, With<FlyCam>>,
     space: Res<FloatingOriginSettings>,
 ) {
-    let (transform, grid) = fly_cam.single();
-    movement_settings.up = space
-        .grid_position_double(grid, transform)
+    movement_settings.up = fly_cam
+        .single()
+        .grid_position_double(&space)
         .normalize()
         .as_vec3();
 }
 
 fn pull_to_ground(
     time: Res<Time>,
-    mut tracking_root_query: Query<(&mut Transform, &GalacticGrid), With<OpenXRTrackingRoot>>,
+    mut tracking_root_query: Query<GalacticTransform, With<OpenXRTrackingRoot>>,
     space: Res<FloatingOriginSettings>,
 ) {
-    let Ok((mut root, grid)) = tracking_root_query.get_single_mut() else {
+    let Ok(mut root) = tracking_root_query.get_single_mut() else {
         return;
     };
 
     let adjustment_rate = (time.delta_seconds() * 10.0).min(1.0);
 
     // Lower player onto sphere
-    let real_pos = space.grid_position_double(grid, &root);
+    let real_pos = root.grid_position_double(&space);
     let up = real_pos.normalize();
     let diff = up * EARTH_RADIUS as f64 - real_pos;
-    root.translation += diff.as_vec3() * adjustment_rate;
+    root.transform.translation += diff.as_vec3() * adjustment_rate;
 
     // Rotate player to be upright on sphere
-    let angle_diff = Quat::from_rotation_arc(root.up(), up.as_vec3());
-    root.rotate(Quat::IDENTITY.slerp(angle_diff, adjustment_rate));
+    let angle_diff = Quat::from_rotation_arc(root.transform.up(), up.as_vec3());
+    root.transform
+        .rotate(Quat::IDENTITY.slerp(angle_diff, adjustment_rate));
+}
+
+#[derive(WorldQuery)]
+#[world_query(mutable)]
+pub struct GalacticTransform {
+    pub transform: &'static mut Transform,
+    pub grid: &'static mut GalacticGrid,
+}
+
+impl<'w> GalacticTransformItem<'w> {
+    pub fn grid_position_double(&self, space: &FloatingOriginSettings) -> DVec3 {
+        space.grid_position_double(&self.grid, &self.transform)
+    }
+}
+
+impl<'w> GalacticTransformReadOnlyItem<'w> {
+    pub fn grid_position_double(&self, space: &FloatingOriginSettings) -> DVec3 {
+        space.grid_position_double(self.grid, self.transform)
+    }
 }
