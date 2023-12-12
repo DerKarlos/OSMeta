@@ -1,5 +1,5 @@
 use crate::GalacticTransform;
-use crate::GalacticTransformReadOnlyItem;
+use crate::GalacticTransformOwned;
 
 use super::Compass;
 use super::OpenXRTrackingRoot;
@@ -26,20 +26,20 @@ pub struct Player<'w, 's> {
     pub(crate) space: Res<'w, FloatingOriginSettings>,
 }
 
-pub struct PlayerPosition<'a> {
-    pub pos: GalacticTransformReadOnlyItem<'a>,
+pub struct Position<'a> {
+    pub pos: GalacticTransformOwned,
     pub space: &'a FloatingOriginSettings,
 }
 
-impl<'a> std::ops::Deref for PlayerPosition<'a> {
-    type Target = GalacticTransformReadOnlyItem<'a>;
+impl<'a> std::ops::Deref for Position<'a> {
+    type Target = GalacticTransformOwned;
 
     fn deref(&self) -> &Self::Target {
         &self.pos
     }
 }
 
-impl PlayerPosition<'_> {
+impl Position<'_> {
     pub fn pos(&self) -> DVec3 {
         self.pos.position_double(self.space)
     }
@@ -58,13 +58,14 @@ pub struct Directions {
 }
 
 impl<'w, 's> Player<'w, 's> {
-    pub fn pos(&self) -> PlayerPosition<'_> {
+    pub fn pos(&self) -> Position<'_> {
         let pos = if let Ok(xr_pos) = self.xr_pos.get_single() {
             xr_pos
         } else {
             self.flycam_pos.single()
-        };
-        PlayerPosition {
+        }
+        .to_owned();
+        Position {
             pos,
             space: &self.space,
         }

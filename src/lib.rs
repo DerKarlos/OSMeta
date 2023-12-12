@@ -37,8 +37,8 @@ mod xr;
 type GridPrecision = i64;
 type GalacticGrid = GridCell<GridPrecision>;
 type GalacticTransform = GridTransform<GridPrecision>;
-#[allow(dead_code)]
 type GalacticTransformOwned = GridTransformOwned<GridPrecision>;
+#[allow(dead_code)]
 type GalacticTransformReadOnlyItem<'a> = GridTransformReadOnlyItem<'a, GridPrecision>;
 #[allow(dead_code)]
 type GalacticTransformItem<'a> = GridTransformItem<'a, GridPrecision>;
@@ -279,7 +279,7 @@ fn reposition_compass(
         let player = player.pos();
         let directions = player.directions();
         compass.transform.translation = player.transform.translation - directions.up * 5.;
-        *compass.cell = *player.cell;
+        *compass.cell = player.cell;
         compass.transform.look_to(directions.north, directions.up)
     } else {
         let mesh = shape::Plane::default();
