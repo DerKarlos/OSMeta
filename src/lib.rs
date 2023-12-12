@@ -4,7 +4,6 @@ use std::f32::consts::FRAC_PI_2;
 
 use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
-    ecs::query::WorldQuery,
     pbr::NotShadowCaster,
     prelude::*,
 };
@@ -16,7 +15,12 @@ use bevy_screen_diagnostics::{
     Aggregate, ScreenDiagnostics, ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin,
     ScreenFrameDiagnosticsPlugin,
 };
-use big_space::{FloatingOriginPlugin, FloatingOriginSettings, GridCell};
+use big_space::{
+    world_query::{
+        GridTransform, GridTransformItem, GridTransformOwned, GridTransformReadOnlyItem,
+    },
+    FloatingOriginPlugin, FloatingOriginSettings, GridCell,
+};
 use geopos::{GeoPos, EARTH_RADIUS};
 use glam::DVec3;
 use http_assets::HttpAssetReaderPlugin;
@@ -32,6 +36,12 @@ mod xr;
 
 type GridPrecision = i64;
 type GalacticGrid = GridCell<GridPrecision>;
+type GalacticTransform = GridTransform<GridPrecision>;
+#[allow(dead_code)]
+type GalacticTransformOwned = GridTransformOwned<GridPrecision>;
+type GalacticTransformReadOnlyItem<'a> = GridTransformReadOnlyItem<'a, GridPrecision>;
+#[allow(dead_code)]
+type GalacticTransformItem<'a> = GridTransformItem<'a, GridPrecision>;
 
 #[derive(Resource)]
 struct Args {
@@ -269,7 +279,7 @@ fn reposition_compass(
         let player = player.pos();
         let directions = player.directions();
         compass.transform.translation = player.transform.translation - directions.up * 5.;
-        *compass.grid = *player.grid;
+        *compass.cell = *player.cell;
         compass.transform.look_to(directions.north, directions.up)
     } else {
         let mesh = shape::Plane::default();
@@ -304,7 +314,7 @@ fn update_camera_orientations(
 ) {
     movement_settings.up = fly_cam
         .single()
-        .grid_position_double(&space)
+        .position_double(&space)
         .normalize()
         .as_vec3();
 }
@@ -321,7 +331,7 @@ fn pull_to_ground(
     let adjustment_rate = (time.delta_seconds() * 10.0).min(1.0);
 
     // Lower player onto sphere
-    let real_pos = root.grid_position_double(&space);
+    let real_pos = root.position_double(&space);
     let up = real_pos.normalize();
     let diff = up * EARTH_RADIUS as f64 - real_pos;
     root.transform.translation += diff.as_vec3() * adjustment_rate;
@@ -330,23 +340,4 @@ fn pull_to_ground(
     let angle_diff = Quat::from_rotation_arc(root.transform.up(), up.as_vec3());
     root.transform
         .rotate(Quat::IDENTITY.slerp(angle_diff, adjustment_rate));
-}
-
-#[derive(WorldQuery)]
-#[world_query(mutable)]
-pub struct GalacticTransform {
-    pub transform: &'static mut Transform,
-    pub grid: &'static mut GalacticGrid,
-}
-
-impl<'w> GalacticTransformItem<'w> {
-    pub fn grid_position_double(&self, space: &FloatingOriginSettings) -> DVec3 {
-        space.grid_position_double(&self.grid, &self.transform)
-    }
-}
-
-impl<'w> GalacticTransformReadOnlyItem<'w> {
-    pub fn grid_position_double(&self, space: &FloatingOriginSettings) -> DVec3 {
-        space.grid_position_double(self.grid, self.transform)
-    }
 }

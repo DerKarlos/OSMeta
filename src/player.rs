@@ -41,7 +41,7 @@ impl<'a> std::ops::Deref for PlayerPosition<'a> {
 
 impl PlayerPosition<'_> {
     pub fn pos(&self) -> DVec3 {
-        self.pos.grid_position_double(self.space)
+        self.pos.position_double(self.space)
     }
     pub fn directions(&self) -> Directions {
         let up = self.pos().normalize().as_vec3();

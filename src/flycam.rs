@@ -129,7 +129,7 @@ fn update_camera_speed(
     fly_cam: Query<GalacticTransform, With<FlyCam>>,
     space: Res<FloatingOriginSettings>,
 ) {
-    let elevation = fly_cam.single().grid_position_double(&space).length() as f32;
+    let elevation = fly_cam.single().position_double(&space).length() as f32;
     let speed = (1. * (elevation - crate::geopos::EARTH_RADIUS - 300.0)).max(100.0);
     movement_settings.speed = speed;
 }
