@@ -33,9 +33,9 @@ pub struct PlanetaryPosition {
     pub pos: DVec3,
 }
 
-impl Into<DVec3> for PlanetaryPosition {
-    fn into(self) -> DVec3 {
-        self.pos
+impl From<PlanetaryPosition> for DVec3 {
+    fn from(value: PlanetaryPosition) -> Self {
+        value.pos
     }
 }
 
