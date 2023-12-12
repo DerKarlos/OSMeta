@@ -10,6 +10,7 @@ use big_space::FloatingOriginSettings;
 use glam::DVec3;
 
 #[derive(SystemParam)]
+/// A helper argument for bevy systems that obtains the main player's position.
 pub struct Player<'w, 's> {
     pub(crate) xr_pos: Query<
         'w,
@@ -26,6 +27,7 @@ pub struct Player<'w, 's> {
     pub(crate) space: Res<'w, FloatingOriginSettings>,
 }
 
+/// A helper for working with galactic positions.
 pub struct Position<'a> {
     pub pos: GalacticTransformOwned,
     pub space: &'a FloatingOriginSettings,
@@ -40,9 +42,13 @@ impl<'a> std::ops::Deref for Position<'a> {
 }
 
 impl Position<'_> {
+    /// Compute the cartesian coordinates by combining the grid cell and the position from within
+    /// the grid.
     pub fn pos(&self) -> DVec3 {
         self.pos.position_double(self.space)
     }
+
+    /// Calculates cardinal directions at any cartesian position.
     pub fn directions(&self) -> Directions {
         let up = self.pos().normalize().as_vec3();
         let west = Vec3::Z.cross(up);
@@ -51,6 +57,7 @@ impl Position<'_> {
     }
 }
 
+/// A coordinate system where "forward" is north, "right" is west and "up" is away from the planet.
 pub struct Directions {
     pub up: Vec3,
     pub north: Vec3,
@@ -58,6 +65,7 @@ pub struct Directions {
 }
 
 impl<'w, 's> Player<'w, 's> {
+    /// Computes the galactic position of the main player (prefers XR player).
     pub fn pos(&self) -> Position<'_> {
         let pos = if let Ok(xr_pos) = self.xr_pos.get_single() {
             xr_pos

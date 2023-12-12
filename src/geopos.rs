@@ -68,6 +68,7 @@ impl GeoPos {
         DVec3::new(-cart.x(), -cart.y(), cart.z())
     }
 
+    /// Compute the galactic position on the planet's surface.
     pub fn to_cartesian(self, space: &FloatingOriginSettings) -> Position<'_> {
         let pos = self.to_cartesian_vec();
         let (cell, pos) = space.translation_to_grid(pos);
