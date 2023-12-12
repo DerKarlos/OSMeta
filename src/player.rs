@@ -27,6 +27,42 @@ pub struct Player<'w, 's> {
     pub(crate) space: Res<'w, FloatingOriginSettings>,
 }
 
+/// A helper for working with positions relative to the planet center.
+#[derive(Clone, Copy)]
+pub struct PlanetaryPosition {
+    pub pos: DVec3,
+}
+
+impl Into<DVec3> for PlanetaryPosition {
+    fn into(self) -> DVec3 {
+        self.pos
+    }
+}
+
+impl std::ops::Deref for PlanetaryPosition {
+    type Target = DVec3;
+
+    fn deref(&self) -> &Self::Target {
+        &self.pos
+    }
+}
+
+impl PlanetaryPosition {
+    pub fn to_galactic_position(self, space: &FloatingOriginSettings) -> Position<'_> {
+        let (cell, pos) = space.translation_to_grid(self.pos);
+        let transform = Transform::from_translation(pos);
+        let pos = GalacticTransformOwned { transform, cell };
+        Position { pos, space }
+    }
+
+    pub fn directions(self) -> Directions {
+        let up = self.pos.normalize().as_vec3();
+        let west = Vec3::Z.cross(up);
+        let north = up.cross(west);
+        Directions { up, north, west }
+    }
+}
+
 /// A helper for working with galactic positions.
 pub struct Position<'a> {
     pub pos: GalacticTransformOwned,

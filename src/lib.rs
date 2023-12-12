@@ -22,8 +22,8 @@ use big_space::{
     FloatingOriginPlugin, FloatingOriginSettings, GridCell,
 };
 use geopos::{GeoPos, EARTH_RADIUS};
-use glam::DVec3;
 use http_assets::HttpAssetReaderPlugin;
+use player::PlanetaryPosition;
 use tilemap::{TileIndex, TileMap, TILE_ZOOM};
 
 mod flycam;
@@ -45,7 +45,7 @@ type GalacticTransformItem<'a> = GridTransformItem<'a, GridPrecision>;
 
 #[derive(Resource)]
 struct Args {
-    starting_position: DVec3,
+    starting_position: PlanetaryPosition,
     height: f32,
     direction: f32,
     view: f32,
@@ -103,7 +103,7 @@ pub fn main() {
 
     let mut app = App::new();
     app.insert_resource(Args {
-        starting_position: pos.to_cartesian_vec(),
+        starting_position: pos.to_cartesian(),
         height,
         direction,
         view,

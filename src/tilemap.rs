@@ -178,15 +178,10 @@ fn flat_tile(
 
     // Four corners of the tile in cartesian coordinates relative to the
     // planet's center.
-    let a = coord.to_geo_pos().to_cartesian_vec();
-    let b = pos.right().as_coord().to_geo_pos().to_cartesian_vec();
-    let c = pos
-        .down()
-        .right()
-        .as_coord()
-        .to_geo_pos()
-        .to_cartesian_vec();
-    let d = pos.down().as_coord().to_geo_pos().to_cartesian_vec();
+    let a = coord.to_geo_pos().to_cartesian();
+    let b = pos.right().as_coord().to_geo_pos().to_cartesian();
+    let c = pos.down().right().as_coord().to_geo_pos().to_cartesian();
+    let d = pos.down().as_coord().to_geo_pos().to_cartesian();
 
     // Normals on a sphere are just the position on the sphere normalized.
     let normals = vec![
@@ -197,9 +192,9 @@ fn flat_tile(
     ];
 
     // `a` is our anchor point, all others are relative
-    let b = b - a;
-    let c = c - a;
-    let d = d - a;
+    let b = *b - *a;
+    let c = *c - *a;
+    let d = *d - *a;
 
     let (grid, a) = space.translation_to_grid(a);
     let b = a + b.as_vec3();
