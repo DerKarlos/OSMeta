@@ -1,7 +1,7 @@
 use std::fmt::Display;
 
 use super::coord::TileCoord;
-use crate::GalacticGrid;
+use crate::{player::Directions, GalacticTransformOwned};
 use bevy::prelude::*;
 use big_space::FloatingOriginSettings;
 
@@ -64,24 +64,13 @@ impl TileIndex {
         }
     }
 
-    pub fn to_cartesian(self, space: &FloatingOriginSettings) -> (GalacticGrid, Transform) {
+    pub fn to_cartesian(self, space: &FloatingOriginSettings) -> GalacticTransformOwned {
         let coord = self.as_coord().center();
         let pos = coord.to_geo_pos().to_cartesian();
-        let up = pos.normalize().as_vec3();
-        let next = coord.up().to_geo_pos().to_cartesian();
-        let (grid, pos) = space.translation_to_grid(pos);
-        let (grid_next, next) = space.translation_to_grid(next);
-        let diff = grid_next - grid;
-        let diff = Vec3 {
-            x: diff.x as f32 * space.grid_edge_length(),
-            y: diff.y as f32 * space.grid_edge_length(),
-            z: diff.z as f32 * space.grid_edge_length(),
-        };
-        let next = next + diff;
-        (
-            grid,
-            Transform::from_translation(pos).looking_to(next - pos, up),
-        )
+        let Directions { up, north, west: _ } = pos.directions();
+        let mut pos = pos.to_galactic_position(space).pos;
+        pos.transform.look_to(north, up);
+        pos
     }
 
     pub fn zoom(&self) -> u8 {

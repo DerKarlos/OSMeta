@@ -1,5 +1,5 @@
 use crate::GalacticTransform;
-use crate::GalacticTransformReadOnlyItem;
+use crate::GalacticTransformOwned;
 
 use super::Compass;
 use super::OpenXRTrackingRoot;
@@ -10,6 +10,7 @@ use big_space::FloatingOriginSettings;
 use glam::DVec3;
 
 #[derive(SystemParam)]
+/// A helper argument for bevy systems that obtains the main player's position.
 pub struct Player<'w, 's> {
     pub(crate) xr_pos: Query<
         'w,
@@ -26,23 +27,64 @@ pub struct Player<'w, 's> {
     pub(crate) space: Res<'w, FloatingOriginSettings>,
 }
 
-pub struct PlayerPosition<'a> {
-    pub pos: GalacticTransformReadOnlyItem<'a>,
-    pub space: &'a FloatingOriginSettings,
+/// A helper for working with positions relative to the planet center.
+#[derive(Clone, Copy)]
+pub struct PlanetaryPosition {
+    pub pos: DVec3,
 }
 
-impl<'a> std::ops::Deref for PlayerPosition<'a> {
-    type Target = GalacticTransformReadOnlyItem<'a>;
+impl From<PlanetaryPosition> for DVec3 {
+    fn from(value: PlanetaryPosition) -> Self {
+        value.pos
+    }
+}
+
+impl std::ops::Deref for PlanetaryPosition {
+    type Target = DVec3;
 
     fn deref(&self) -> &Self::Target {
         &self.pos
     }
 }
 
-impl PlayerPosition<'_> {
-    pub fn pos(&self) -> DVec3 {
-        self.pos.grid_position_double(self.space)
+impl PlanetaryPosition {
+    pub fn to_galactic_position(self, space: &FloatingOriginSettings) -> Position<'_> {
+        let (cell, pos) = space.translation_to_grid(self.pos);
+        let transform = Transform::from_translation(pos);
+        let pos = GalacticTransformOwned { transform, cell };
+        Position { pos, space }
     }
+
+    pub fn directions(self) -> Directions {
+        let up = self.pos.normalize().as_vec3();
+        let west = Vec3::Z.cross(up);
+        let north = up.cross(west);
+        Directions { up, north, west }
+    }
+}
+
+/// A helper for working with galactic positions.
+pub struct Position<'a> {
+    pub pos: GalacticTransformOwned,
+    pub space: &'a FloatingOriginSettings,
+}
+
+impl<'a> std::ops::Deref for Position<'a> {
+    type Target = GalacticTransformOwned;
+
+    fn deref(&self) -> &Self::Target {
+        &self.pos
+    }
+}
+
+impl Position<'_> {
+    /// Compute the cartesian coordinates by combining the grid cell and the position from within
+    /// the grid.
+    pub fn pos(&self) -> DVec3 {
+        self.pos.position_double(self.space)
+    }
+
+    /// Calculates cardinal directions at any cartesian position.
     pub fn directions(&self) -> Directions {
         let up = self.pos().normalize().as_vec3();
         let west = Vec3::Z.cross(up);
@@ -51,6 +93,7 @@ impl PlayerPosition<'_> {
     }
 }
 
+/// A coordinate system where "forward" is north, "right" is west and "up" is away from the planet.
 pub struct Directions {
     pub up: Vec3,
     pub north: Vec3,
@@ -58,13 +101,15 @@ pub struct Directions {
 }
 
 impl<'w, 's> Player<'w, 's> {
-    pub fn pos(&self) -> PlayerPosition<'_> {
+    /// Computes the galactic position of the main player (prefers XR player).
+    pub fn pos(&self) -> Position<'_> {
         let pos = if let Ok(xr_pos) = self.xr_pos.get_single() {
             xr_pos
         } else {
             self.flycam_pos.single()
-        };
-        PlayerPosition {
+        }
+        .to_owned();
+        Position {
             pos,
             space: &self.space,
         }

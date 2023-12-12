@@ -1,4 +1,4 @@
-use crate::tilemap::TileCoord;
+use crate::{player::PlanetaryPosition, tilemap::TileCoord};
 use bevy::prelude::*;
 use glam::DVec3;
 use globe_rs::{CartesianPoint, GeographicPoint};
@@ -55,14 +55,16 @@ impl GeoPos {
         TileCoord::new(Vec2 { x, y }, zoom)
     }
 
-    pub fn to_cartesian(self) -> DVec3 {
+    /// Compute the galactic position on the planet's surface.
+    pub fn to_cartesian(self) -> PlanetaryPosition {
         let geo = GeographicPoint::new(
             (self.lon as f64).to_radians(),
             (self.lat as f64).to_radians(),
             EARTH_RADIUS as f64,
         );
         let cart = CartesianPoint::from_geographic(&geo);
-        DVec3::new(-cart.x(), -cart.y(), cart.z())
+        let pos = DVec3::new(-cart.x(), -cart.y(), cart.z());
+        PlanetaryPosition { pos }
     }
 
     pub fn from_cartesian(pos: DVec3) -> Self {
@@ -78,8 +80,8 @@ impl GeoPos {
     pub fn tile_size(self, zoom: u8) -> Vec2 {
         let coord = self.to_tile_coordinates(zoom);
         let pos = self.to_cartesian();
-        let x = coord.right().to_geo_pos().to_cartesian().distance(pos) as f32;
-        let y = coord.down().to_geo_pos().to_cartesian().distance(pos) as f32;
+        let x = coord.right().to_geo_pos().to_cartesian().distance(*pos) as f32;
+        let y = coord.down().to_geo_pos().to_cartesian().distance(*pos) as f32;
         Vec2 { x, y }
     }
 }

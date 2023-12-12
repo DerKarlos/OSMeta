@@ -1350,8 +1350,7 @@ dependencies = [
 [[package]]
 name = "big_space"
 version = "0.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e188fd79effffde07875b26a2999f6fabbc0695ef25316948dd09d29b6abe74d"
+source = "git+https://github.com/oli-obk/big_space.git?branch=world_query#2d08b10c02a7b0b2cf50166dccb23bc22acb419b"
 dependencies = [
  "bevy",
 ]

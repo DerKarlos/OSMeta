@@ -48,6 +48,7 @@ impl TileCoord {
         }
     }
 
+    #[allow(dead_code)]
     pub fn up(self) -> Self {
         Self {
             pos: self.pos - Vec2::Y,

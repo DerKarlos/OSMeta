@@ -7,7 +7,7 @@ use bevy::{
 };
 use big_space::FloatingOriginSettings;
 
-use crate::GalacticGrid;
+use crate::{GalacticGrid, GalacticTransformOwned};
 
 mod coord;
 mod index;
@@ -138,9 +138,9 @@ impl TileMap {
             LoadState::NotLoaded | LoadState::Loading => unreachable!(),
             LoadState::Loaded => {
                 entity.remove::<PbrBundle>();
-                let (grid, transform) = pos.to_cartesian(&space);
+                let GalacticTransformOwned { transform, cell } = pos.to_cartesian(&space);
                 let scene = scenes.get(scene).unwrap().scenes[0].clone();
-                entity.insert(grid);
+                entity.insert(cell);
                 entity.insert(SceneBundle {
                     scene, // "models/17430_11371.glb#Scene0"
                     transform,
@@ -192,9 +192,9 @@ fn flat_tile(
     ];
 
     // `a` is our anchor point, all others are relative
-    let b = b - a;
-    let c = c - a;
-    let d = d - a;
+    let b = *b - *a;
+    let c = *c - *a;
+    let d = *d - *a;
 
     let (grid, a) = space.translation_to_grid(a);
     let b = a + b.as_vec3();
