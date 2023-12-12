@@ -103,7 +103,7 @@ pub fn main() {
 
     let mut app = App::new();
     app.insert_resource(Args {
-        starting_position: pos.to_cartesian(),
+        starting_position: pos.to_cartesian_vec(),
         height,
         direction,
         view,

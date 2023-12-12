@@ -7,7 +7,7 @@ use bevy::{
 };
 use big_space::FloatingOriginSettings;
 
-use crate::GalacticGrid;
+use crate::{GalacticGrid, GalacticTransformOwned};
 
 mod coord;
 mod index;
@@ -138,9 +138,9 @@ impl TileMap {
             LoadState::NotLoaded | LoadState::Loading => unreachable!(),
             LoadState::Loaded => {
                 entity.remove::<PbrBundle>();
-                let (grid, transform) = pos.to_cartesian(&space);
+                let GalacticTransformOwned { transform, cell } = pos.to_cartesian(&space);
                 let scene = scenes.get(scene).unwrap().scenes[0].clone();
-                entity.insert(grid);
+                entity.insert(cell);
                 entity.insert(SceneBundle {
                     scene, // "models/17430_11371.glb#Scene0"
                     transform,
@@ -178,10 +178,15 @@ fn flat_tile(
 
     // Four corners of the tile in cartesian coordinates relative to the
     // planet's center.
-    let a = coord.to_geo_pos().to_cartesian();
-    let b = pos.right().as_coord().to_geo_pos().to_cartesian();
-    let c = pos.down().right().as_coord().to_geo_pos().to_cartesian();
-    let d = pos.down().as_coord().to_geo_pos().to_cartesian();
+    let a = coord.to_geo_pos().to_cartesian_vec();
+    let b = pos.right().as_coord().to_geo_pos().to_cartesian_vec();
+    let c = pos
+        .down()
+        .right()
+        .as_coord()
+        .to_geo_pos()
+        .to_cartesian_vec();
+    let d = pos.down().as_coord().to_geo_pos().to_cartesian_vec();
 
     // Normals on a sphere are just the position on the sphere normalized.
     let normals = vec![

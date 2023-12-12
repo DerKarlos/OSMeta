@@ -1,5 +1,6 @@
-use crate::tilemap::TileCoord;
+use crate::{player::Position, tilemap::TileCoord, GalacticTransformOwned};
 use bevy::prelude::*;
+use big_space::FloatingOriginSettings;
 use glam::DVec3;
 use globe_rs::{CartesianPoint, GeographicPoint};
 use std::f32::consts::PI;
@@ -55,7 +56,9 @@ impl GeoPos {
         TileCoord::new(Vec2 { x, y }, zoom)
     }
 
-    pub fn to_cartesian(self) -> DVec3 {
+    /// Prefer using `to_cartesian`, which returns a [`Position`] that has a lot more convenience
+    /// methods.
+    pub fn to_cartesian_vec(self) -> DVec3 {
         let geo = GeographicPoint::new(
             (self.lon as f64).to_radians(),
             (self.lat as f64).to_radians(),
@@ -63,6 +66,14 @@ impl GeoPos {
         );
         let cart = CartesianPoint::from_geographic(&geo);
         DVec3::new(-cart.x(), -cart.y(), cart.z())
+    }
+
+    pub fn to_cartesian(self, space: &FloatingOriginSettings) -> Position<'_> {
+        let pos = self.to_cartesian_vec();
+        let (cell, pos) = space.translation_to_grid(pos);
+        let transform = Transform::from_translation(pos);
+        let pos = GalacticTransformOwned { transform, cell };
+        Position { pos, space }
     }
 
     pub fn from_cartesian(pos: DVec3) -> Self {
@@ -77,9 +88,9 @@ impl GeoPos {
     /// Tile width and height in meters
     pub fn tile_size(self, zoom: u8) -> Vec2 {
         let coord = self.to_tile_coordinates(zoom);
-        let pos = self.to_cartesian();
-        let x = coord.right().to_geo_pos().to_cartesian().distance(pos) as f32;
-        let y = coord.down().to_geo_pos().to_cartesian().distance(pos) as f32;
+        let pos = self.to_cartesian_vec();
+        let x = coord.right().to_geo_pos().to_cartesian_vec().distance(pos) as f32;
+        let y = coord.down().to_geo_pos().to_cartesian_vec().distance(pos) as f32;
         Vec2 { x, y }
     }
 }
