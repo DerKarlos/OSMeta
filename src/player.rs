@@ -1,5 +1,7 @@
+use crate::GalacticTransform;
+use crate::GalacticTransformReadOnlyItem;
+
 use super::Compass;
-use super::GalacticGrid;
 use super::OpenXRTrackingRoot;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
@@ -12,27 +14,34 @@ pub struct Player<'w, 's> {
     pub(crate) xr_pos: Query<
         'w,
         's,
-        (&'static Transform, &'static GalacticGrid),
+        GalacticTransform,
         (With<OpenXRTrackingRoot>, Without<FlyCam>, Without<Compass>),
     >,
     pub(crate) flycam_pos: Query<
         'w,
         's,
-        (&'static Transform, &'static GalacticGrid),
+        GalacticTransform,
         (With<FlyCam>, Without<OpenXRTrackingRoot>, Without<Compass>),
     >,
     pub(crate) space: Res<'w, FloatingOriginSettings>,
 }
 
 pub struct PlayerPosition<'a> {
-    pub transform: Transform,
-    pub grid: GalacticGrid,
+    pub pos: GalacticTransformReadOnlyItem<'a>,
     pub space: &'a FloatingOriginSettings,
+}
+
+impl<'a> std::ops::Deref for PlayerPosition<'a> {
+    type Target = GalacticTransformReadOnlyItem<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.pos
+    }
 }
 
 impl PlayerPosition<'_> {
     pub fn pos(&self) -> DVec3 {
-        self.space.grid_position_double(&self.grid, &self.transform)
+        self.pos.grid_position_double(self.space)
     }
     pub fn directions(&self) -> Directions {
         let up = self.pos().normalize().as_vec3();
@@ -50,14 +59,13 @@ pub struct Directions {
 
 impl<'w, 's> Player<'w, 's> {
     pub fn pos(&self) -> PlayerPosition<'_> {
-        let (&transform, &grid) = if let Ok(xr_pos) = self.xr_pos.get_single() {
+        let pos = if let Ok(xr_pos) = self.xr_pos.get_single() {
             xr_pos
         } else {
             self.flycam_pos.single()
         };
         PlayerPosition {
-            transform,
-            grid,
+            pos,
             space: &self.space,
         }
     }
