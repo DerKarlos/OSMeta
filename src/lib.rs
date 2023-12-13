@@ -28,6 +28,7 @@ use tilemap::{TileIndex, TileMap, TILE_ZOOM};
 
 mod flycam;
 mod geopos;
+mod geoview;
 mod http_assets;
 mod sun;
 mod tilemap;
@@ -135,6 +136,7 @@ pub fn main() {
         .add_plugins(ScreenEntityDiagnosticsPlugin)
         .add_plugins(sun::Plugin)
         .add_plugins(flycam::Plugin)
+        .add_plugins(geoview::Plugin)
         .insert_resource(TileMap::default())
         .add_systems(Startup, setup)
         .add_systems(
