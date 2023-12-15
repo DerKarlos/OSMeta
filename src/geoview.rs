@@ -1,5 +1,5 @@
 use super::geopos::*;
-use crate::{GalacticTransform, GalacticTransformItem};
+use crate::player::Player;
 use bevy::prelude::*;
 use big_space::FloatingOriginSettings;
 use std::{collections::HashMap, f32::consts::FRAC_PI_2};
@@ -92,46 +92,37 @@ impl GeoView {
         &self,
         space: &FloatingOriginSettings,
         //movement_settings: &mut ResMut<'_, MovementSettings>,
-        camera: &mut GalacticTransformItem,
+        player: &mut Player,
     ) {
-        let starting_position = self.geo_pos.to_cartesian().to_galactic_position(space);
+        let mut starting_position = self.geo_pos.to_cartesian().to_galactic_position(space);
         let directions = starting_position.directions();
 
-        *camera.cell = starting_position.cell;
-        *camera.transform = starting_position.transform;
-        camera.transform.translation += directions.up * self.height;
+        starting_position.transform.translation += directions.up * self.height;
         // Look northwards
-        camera.transform.look_to(directions.north, directions.up);
+        starting_position
+            .transform
+            .look_to(directions.north, directions.up);
 
         // Rotate to west or east
-        camera
+        starting_position
             .transform
             .rotate_axis(directions.up, self.dir.to_radians());
         // Pan up or down. We subtract 90°, because the view is an angle from looking
         // straight down. We don't default to looking down, as that doesn't guarantee us
         // that the forward direction is north.
-        camera
+        starting_position
             .transform
             .rotate_local_x(self.view.to_radians() - FRAC_PI_2);
+        player.set_pos(starting_position);
     }
 
-    // Todo: This does not work yet. @Oli?
-    pub fn get_camera_view(space: &FloatingOriginSettings, camera: &GalacticTransformItem) -> Self {
-        let in_grid_pos = camera.transform.translation; // GPU-translation = ? Not Earth, Galaqctic?
-        let grid = *camera.cell;
-        info!("grid: {:?} in_grid_pos: {:?}", grid, in_grid_pos);
+    pub fn get_camera_view(space: &FloatingOriginSettings, player: &Player) -> Self {
+        let position = player.pos();
 
-        // add grid to get galactic pos
-
-        let g = GeoPos::from_cartesian(in_grid_pos.as_dvec3());
-        info!("g: {:?}", g); // wrong!: lat: 31.906904, lon: 93.580765
-        let lat = g.lat;
-        let lon = g.lon;
-        info!("lat/lon: {:?}/{:?}", lat, lon);
-        let height = camera.position_double(space).length() as f32; // - crate::geopos::EARTH_RADIUS; ??? // f32 = 6_378_000.
-        info!("height: {:?}", height); // 897.622 ???
-
-        let geo_pos = GeoPos { lat, lon };
+        let geo_pos = position.to_planetary_position().to_geopos();
+        info!(?geo_pos); // wrong!: lat: 31.906904, lon: 93.580765
+        let height = position.position_double(space).length() as f32 - crate::geopos::EARTH_RADIUS;
+        info!(?height);
 
         Self {
             geo_pos,
@@ -147,12 +138,11 @@ impl GeoView {
 // System: If keys pressed, store and restore camera views
 fn keys_ui(
     keys: Res<Input<KeyCode>>,
-    mut query: Query<GalacticTransform, With<bevy_flycam::FlyCam>>,
+    mut player: Player,
     mut views: ResMut<Views>,
     args: Res<crate::Args>,
     space: Res<FloatingOriginSettings>,
 ) {
-    let mut transform = query.single_mut();
     {
         for key in keys.get_just_pressed() {
             let key = *key;
@@ -174,7 +164,7 @@ fn keys_ui(
                         fov: 7.,
                     };
                     start_view.store("start".to_string(), &mut views.map);
-                    start_view.set_camera_view(&space, &mut transform);
+                    start_view.set_camera_view(&space, &mut player);
                     // todo: set "start" while setup/build by args. And read "start" here
                 }
 
@@ -191,14 +181,14 @@ fn keys_ui(
                     let key = format!("{:?}", key);
                     if keys.pressed(KeyCode::ShiftRight) {
                         info!("*** KEY: {:?}", key);
-                        let view = GeoView::get_camera_view(&space, &transform);
+                        let view = GeoView::get_camera_view(&space, &player);
                         view.store(key.to_string(), &mut views.map);
                     } else {
                         info!("*** key: {:?}", key);
                         let view3 = GeoView::restore(key.to_string(), &mut views.map);
                         if let Some(view3) = view3 {
                             info!("*** out: {:?}", view3);
-                            view3.set_camera_view(&space, &mut transform);
+                            view3.set_camera_view(&space, &mut player);
                         }
                     }
                 }
