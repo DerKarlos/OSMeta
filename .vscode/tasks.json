@@ -57,6 +57,15 @@
 			}
 		},
 		{
+			"label": "clippy",
+			"type": "shell",
+			"command": "cargo clippy --fix",
+			"problemMatcher": [],
+			"group": {
+				"kind": "test"
+			}
+		},
+		{
 			"type": "cargo",
 			"command": "test",
 			"problemMatcher": [

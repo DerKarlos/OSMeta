@@ -92,15 +92,9 @@ impl GeoView {
         &self,
         space: &Res<'_, FloatingOriginSettings>,
         //movement_settings: &mut ResMut<'_, MovementSettings>,
-        transform: &mut GalacticTransformItem,
+        camera: &mut GalacticTransformItem,
     ) {
-        // Todo: @Oli? This code does not handle big_space yet and does not work, if the player is far form GPU::ZERRO  SEE #64
-        //let galactic_position = args.starting_position.to_galactic_position(space).pos().as_vec3();
-        //transform.translation = galactic_position + directions.up * (args.height + _test);
-        //transform.look_at(galactic_position, Vec3::Z);
-
         let starting_position = self.geo_pos.to_cartesian();
-        //t _pos = Vec3::new(self.geo_pos.lat, self.geo_pos.lon, 0.);
         let direction: Vec3 = starting_position.normalize().as_vec3();
 
         let (cell, subgrid): (GalacticGrid, _) = space.translation_to_grid(starting_position);
@@ -109,41 +103,42 @@ impl GeoView {
             * Quat::from_axis_angle(Vec3::X, self.view.to_radians());
 
         // First to position and looking down, head to north
-        //info!("*** grid {:?} h: {:?}", _grid, args.height + _test);
-        transform.transform.translation = subgrid + direction * self.height;
-        transform.transform.look_at(subgrid, Vec3::Z);
+        camera.transform.translation = subgrid + direction * self.height;
+        camera.transform.look_at(subgrid, Vec3::Z);
         // Next rotate to up and to west or east
-        // bad *transform = *transform * Transform::from_rotation(rotation);
-        transform.transform.rotation *= rotation;
-        *transform.cell = cell;
+        camera.transform.rotation *= rotation;
+        *camera.cell = cell;
     }
 
     // Todo: This does not work yet. @Oli?
     pub fn get_camera_view(
         space: &Res<FloatingOriginSettings>,
-        transform: &GalacticTransformItem,
+        camera: &GalacticTransformItem,
     ) -> Self {
-        let in_grid_pos = transform.transform.translation; // GPU-translation = ? Not Earth, Galaqctic?
-        let grid = *transform.cell;
+        let in_grid_pos = camera.transform.translation; // GPU-translation = ? Not Earth, Galaqctic?
+        let grid = *camera.cell;
         info!("grid: {:?} in_grid_pos: {:?}", grid, in_grid_pos);
+
+        // add grid to get galactic pos
+
         let g = GeoPos::from_cartesian(in_grid_pos.as_dvec3());
         info!("g: {:?}", g); // wrong!: lat: 31.906904, lon: 93.580765
         let lat = g.lat;
         let lon = g.lon;
         info!("lat/lon: {:?}/{:?}", lat, lon);
-        let height = transform.position_double(space).length() as f32; // - crate::geopos::EARTH_RADIUS; ??? // f32 = 6_378_000.
+        let height = camera.position_double(space).length() as f32; // - crate::geopos::EARTH_RADIUS; ??? // f32 = 6_378_000.
         info!("height: {:?}", height); // 897.622 ???
 
         let geo_pos = GeoPos { lat, lon };
-        let view = Self {
+        
+        Self {
             geo_pos,
             height,
             dir: 0.,
             view: 0.,
             radius: 6.,
             fov: 7.,
-        };
-        view
+        }
     }
 }
 
