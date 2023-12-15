@@ -90,7 +90,7 @@ impl GeoView {
 
     pub fn set_camera_view(
         &self,
-        space: &Res<'_, FloatingOriginSettings>,
+        space: &FloatingOriginSettings,
         //movement_settings: &mut ResMut<'_, MovementSettings>,
         camera: &mut GalacticTransformItem,
     ) {
@@ -111,10 +111,7 @@ impl GeoView {
     }
 
     // Todo: This does not work yet. @Oli?
-    pub fn get_camera_view(
-        space: &Res<FloatingOriginSettings>,
-        camera: &GalacticTransformItem,
-    ) -> Self {
+    pub fn get_camera_view(space: &FloatingOriginSettings, camera: &GalacticTransformItem) -> Self {
         let in_grid_pos = camera.transform.translation; // GPU-translation = ? Not Earth, Galaqctic?
         let grid = *camera.cell;
         info!("grid: {:?} in_grid_pos: {:?}", grid, in_grid_pos);
