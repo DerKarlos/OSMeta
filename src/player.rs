@@ -1,3 +1,4 @@
+use crate::geopos::GeoPos;
 use crate::GalacticTransform;
 use crate::GalacticTransformOwned;
 
@@ -61,12 +62,23 @@ impl PlanetaryPosition {
         let north = up.cross(west);
         Directions { up, north, west }
     }
+
+    pub fn to_geopos(self) -> GeoPos {
+        GeoPos::from_cartesian(self.pos)
+    }
 }
 
 /// A helper for working with galactic positions.
+#[derive(Copy, Clone)]
 pub struct Position<'a> {
     pub pos: GalacticTransformOwned,
     pub space: &'a FloatingOriginSettings,
+}
+
+impl<'a> std::ops::DerefMut for Position<'a> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.pos
+    }
 }
 
 impl<'a> std::ops::Deref for Position<'a> {
@@ -91,6 +103,11 @@ impl Position<'_> {
         let north = up.cross(west);
         Directions { up, north, west }
     }
+
+    pub fn to_planetary_position(self) -> PlanetaryPosition {
+        let pos = self.pos();
+        PlanetaryPosition { pos }
+    }
 }
 
 /// A coordinate system where "forward" is north, "right" is west and "up" is away from the planet.
@@ -113,5 +130,15 @@ impl<'w, 's> Player<'w, 's> {
             pos,
             space: &self.space,
         }
+    }
+
+    pub fn set_pos(&mut self, new_pos: Position<'_>) {
+        let mut pos = if let Ok(xr_pos) = self.xr_pos.get_single_mut() {
+            xr_pos
+        } else {
+            self.flycam_pos.single_mut()
+        };
+        *pos.cell = new_pos.cell;
+        *pos.transform = new_pos.transform;
     }
 }
