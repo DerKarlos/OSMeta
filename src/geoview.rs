@@ -1,8 +1,8 @@
 use super::geopos::*;
-use crate::{GalacticGrid, GalacticTransform, GalacticTransformItem};
+use crate::{GalacticTransform, GalacticTransformItem};
 use bevy::prelude::*;
 use big_space::FloatingOriginSettings;
-use std::collections::HashMap;
+use std::{collections::HashMap, f32::consts::FRAC_PI_2};
 
 #[derive(Resource)]
 pub struct Views {
@@ -94,20 +94,25 @@ impl GeoView {
         //movement_settings: &mut ResMut<'_, MovementSettings>,
         camera: &mut GalacticTransformItem,
     ) {
-        let starting_position = self.geo_pos.to_cartesian();
-        let direction: Vec3 = starting_position.normalize().as_vec3();
+        let starting_position = self.geo_pos.to_cartesian().to_galactic_position(space);
+        let directions = starting_position.directions();
 
-        let (cell, subgrid): (GalacticGrid, _) = space.translation_to_grid(starting_position);
+        *camera.cell = starting_position.cell;
+        *camera.transform = starting_position.transform;
+        camera.transform.translation += directions.up * self.height;
+        // Look northwards
+        camera.transform.look_to(directions.north, directions.up);
 
-        let rotation = Quat::from_axis_angle(Vec3::Z, self.dir.to_radians())  // Todo: change ::Z to ::Y
-            * Quat::from_axis_angle(Vec3::X, self.view.to_radians());
-
-        // First to position and looking down, head to north
-        camera.transform.translation = subgrid + direction * self.height;
-        camera.transform.look_at(subgrid, Vec3::Z);
-        // Next rotate to up and to west or east
-        camera.transform.rotation *= rotation;
-        *camera.cell = cell;
+        // Rotate to west or east
+        camera
+            .transform
+            .rotate_axis(directions.up, self.dir.to_radians());
+        // Pan up or down. We subtract 90°, because the view is an angle from looking
+        // straight down. We don't default to looking down, as that doesn't guarantee us
+        // that the forward direction is north.
+        camera
+            .transform
+            .rotate_local_x(self.view.to_radians() - FRAC_PI_2);
     }
 
     // Todo: This does not work yet. @Oli?
