@@ -1,7 +1,7 @@
 use super::geopos::*;
-use crate::GalacticGrid;
+use crate::{GalacticGrid, GalacticTransform, GalacticTransformItem};
 use bevy::prelude::*;
-use big_space::{FloatingOriginSettings, GridCell};
+use big_space::FloatingOriginSettings;
 use std::collections::HashMap;
 
 #[derive(Resource)]
@@ -92,7 +92,7 @@ impl GeoView {
         &self,
         space: &Res<'_, FloatingOriginSettings>,
         //movement_settings: &mut ResMut<'_, MovementSettings>,
-        transform: &mut Transform,
+        transform: &mut GalacticTransformItem,
     ) {
         // Todo: @Oli? This code does not handle big_space yet and does not work, if the player is far form GPU::ZERRO  SEE #64
         //let galactic_position = args.starting_position.to_galactic_position(space).pos().as_vec3();
@@ -103,60 +103,59 @@ impl GeoView {
         //t _pos = Vec3::new(self.geo_pos.lat, self.geo_pos.lon, 0.);
         let direction: Vec3 = starting_position.normalize().as_vec3();
 
-        let starting_position = self.geo_pos.to_cartesian();
-        let (_grid, subgrid): (GalacticGrid, _) = space.translation_to_grid(starting_position);
+        let (cell, subgrid): (GalacticGrid, _) = space.translation_to_grid(starting_position);
 
         let rotation = Quat::from_axis_angle(Vec3::Z, self.dir.to_radians())  // Todo: change ::Z to ::Y
             * Quat::from_axis_angle(Vec3::X, self.view.to_radians());
 
-        // First to positon and looking down, head to nord
+        // First to position and looking down, head to north
         //info!("*** grid {:?} h: {:?}", _grid, args.height + _test);
-        transform.translation = subgrid + direction * self.height;
-        transform.look_at(subgrid, Vec3::Z);
+        transform.transform.translation = subgrid + direction * self.height;
+        transform.transform.look_at(subgrid, Vec3::Z);
         // Next rotate to up and to west or east
         // bad *transform = *transform * Transform::from_rotation(rotation);
-        transform.rotation *= rotation;
+        transform.transform.rotation *= rotation;
+        *transform.cell = cell;
     }
 
     // Todo: This does not work yet. @Oli?
-    pub fn get_camera_view(space: &Res<FloatingOriginSettings>, transform: &Transform) -> Self {
-        let translation = transform.translation; // GPU-translation = ? Not Earth, Galaqctic?
-        info!("translation: {:?}", translation);
-        let (grid, in_grid_pos): (GridCell<i64>, Vec3) = space.translation_to_grid(translation);
+    pub fn get_camera_view(
+        space: &Res<FloatingOriginSettings>,
+        transform: &GalacticTransformItem,
+    ) -> Self {
+        let in_grid_pos = transform.transform.translation; // GPU-translation = ? Not Earth, Galaqctic?
+        let grid = *transform.cell;
         info!("grid: {:?} in_grid_pos: {:?}", grid, in_grid_pos);
         let g = GeoPos::from_cartesian(in_grid_pos.as_dvec3());
         info!("g: {:?}", g); // wrong!: lat: 31.906904, lon: 93.580765
         let lat = g.lat;
         let lon = g.lon;
         info!("lat/lon: {:?}/{:?}", lat, lon);
-        let height = translation.length(); // - crate::geopos::EARTH_RADIUS; ??? // f32 = 6_378_000.
+        let height = transform.position_double(space).length() as f32; // - crate::geopos::EARTH_RADIUS; ??? // f32 = 6_378_000.
         info!("height: {:?}", height); // 897.622 ???
 
-        let geo_pos = GeoPos {
-            lat,
-            lon,
-        };
-        
-        Self {
+        let geo_pos = GeoPos { lat, lon };
+        let view = Self {
             geo_pos,
             height,
             dir: 0.,
             view: 0.,
             radius: 6.,
             fov: 7.,
-        }
+        };
+        view
     }
 }
 
-// System: If keys pessed, store and restore camera views
+// System: If keys pressed, store and restore camera views
 fn keys_ui(
     keys: Res<Input<KeyCode>>,
-    mut query: Query<(&mut Transform, &GalacticGrid), With<bevy_flycam::FlyCam>>,
+    mut query: Query<GalacticTransform, With<bevy_flycam::FlyCam>>,
     mut views: ResMut<Views>,
     args: Res<crate::Args>,
     space: Res<FloatingOriginSettings>,
 ) {
-    let (mut transform, _grid) = query.single_mut();
+    let mut transform = query.single_mut();
     {
         for key in keys.get_just_pressed() {
             let key = *key;
