@@ -130,7 +130,7 @@ impl GeoView {
         info!("height: {:?}", height); // 897.622 ???
 
         let geo_pos = GeoPos { lat, lon };
-        
+
         Self {
             geo_pos,
             height,
