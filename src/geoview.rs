@@ -115,7 +115,7 @@ impl GeoView {
         transform.look_at(subgrid, Vec3::Z);
         // Next rotate to up and to west or east
         // bad *transform = *transform * Transform::from_rotation(rotation);
-        transform.rotation = transform.rotation * rotation;
+        transform.rotation *= rotation;
     }
 
     // Todo: This does not work yet. @Oli?
@@ -129,22 +129,22 @@ impl GeoView {
         let lat = g.lat;
         let lon = g.lon;
         info!("lat/lon: {:?}/{:?}", lat, lon);
-        let height = translation.length() as f32; // - crate::geopos::EARTH_RADIUS; ??? // f32 = 6_378_000.
+        let height = translation.length(); // - crate::geopos::EARTH_RADIUS; ??? // f32 = 6_378_000.
         info!("height: {:?}", height); // 897.622 ???
 
         let geo_pos = GeoPos {
-            lat: lat as f32,
-            lon: lon as f32,
+            lat,
+            lon,
         };
-        let view = Self {
+        
+        Self {
             geo_pos,
             height,
             dir: 0.,
             view: 0.,
             radius: 6.,
             fov: 7.,
-        };
-        view
+        }
     }
 }
 
