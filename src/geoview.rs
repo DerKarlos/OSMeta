@@ -126,7 +126,8 @@ impl GeoView {
 
         let geo_coord = position.to_planetary_position().to_geocoord();
         //info!(?geo_coord);
-        let height = position.position_double(space).length() as f32 - crate::geocoord::EARTH_RADIUS;
+        let height =
+            position.position_double(space).length() as f32 - crate::geocoord::EARTH_RADIUS;
         //info!(?height);
 
         /*
@@ -147,9 +148,7 @@ impl GeoView {
             .cross(directions.up)
             .cross(position.pos.transform.right())
             .angle_between(directions.north)
-            .to_degrees()
-            ;
-
+            .to_degrees();
 
         Self {
             geo_coord,
