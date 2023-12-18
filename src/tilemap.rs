@@ -33,8 +33,8 @@ impl TileMap {
     ) {
         for (tile, mut vis) in tiles.iter_mut() {
             // FIXME: use tile zoom level to increase view distance for lower zoom tiles.
-            let offset = tile.distance_squared(origin);
-            let oob = offset > (radius*radius) as u32;  // todo: doubled code with tile set "distance"
+            let offset = tile.distance_squared(origin) as f32;
+            let oob = offset > (radius * radius); // ääätodo: doubled code with tile set "distance"
             if oob {
                 *vis = Visibility::Hidden;
             } else {
@@ -57,7 +57,7 @@ impl TileMap {
         for x_i in -dist_max..=dist_max {
             for y_i in -dist_max..=dist_max {
                 let offset = IVec2::new(x_i, y_i);
-                if offset.length_squared() > (dist_max * dist_max) {
+                if offset.length_squared() as f32 > (radius * radius) { //äää
                     continue;
                 }
 
