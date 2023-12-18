@@ -28,13 +28,13 @@ pub const TILE_ZOOM: u8 = 15;
 
 impl TileMap {
     pub fn hide_faraway_tiles(
-        In((origin, radius)): In<(TileIndex, Vec2)>,
+        In((origin, radius)): In<(TileIndex, f32)>,
         mut tiles: Query<(&TileIndex, &mut Visibility)>,
     ) {
         for (tile, mut vis) in tiles.iter_mut() {
             // FIXME: use tile zoom level to increase view distance for lower zoom tiles.
             let offset = tile.distance_squared(origin);
-            let oob = offset > radius.as_uvec2().length_squared();
+            let oob = offset > (radius*radius) as u32;  // todo: doubled code with tile set "distance"
             if oob {
                 *vis = Visibility::Hidden;
             } else {
@@ -44,20 +44,20 @@ impl TileMap {
     }
 
     pub fn load_next(
-        In((origin, radius)): In<(TileIndex, Vec2)>,
+        In((origin, radius)): In<(TileIndex, f32)>,
         tilemap: Res<TileMap>,
         loading: Query<&Loading>,
     ) -> Option<TileIndex> {
         if !loading.is_empty() {
             return None;
         }
-        let radius = radius.abs().ceil().copysign(radius).as_ivec2();
+        let dist_max = radius.abs().ceil().copysign(radius) as i32;
         let mut best_score = f32::INFINITY;
         let mut best_pos = None;
-        for x_i in -radius.x..=radius.x {
-            for y_i in -radius.y..=radius.y {
+        for x_i in -dist_max..=dist_max {
+            for y_i in -dist_max..=dist_max {
                 let offset = IVec2::new(x_i, y_i);
-                if offset.length_squared() > radius.length_squared() {
+                if offset.length_squared() > (dist_max * dist_max) {
                     continue;
                 }
 

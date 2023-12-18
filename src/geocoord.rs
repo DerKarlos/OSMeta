@@ -76,13 +76,11 @@ impl GeoCoord {
         }
     }
 
-    /// Tile width and height in meters
-    pub fn tile_size(self, zoom: u8) -> Vec2 {
+    /// Tile width and height in meters (are equal)
+    pub fn tile_size(self, zoom: u8) -> f32 {
         let coord = self.to_tile_coordinates(zoom);
         let pos = self.to_cartesian();
-        let x = coord.right().to_geo_coord().to_cartesian().distance(*pos) as f32;
-        let y = coord.down().to_geo_coord().to_cartesian().distance(*pos) as f32;
-        Vec2 { x, y }
+        coord.right().to_geo_coord().to_cartesian().distance(*pos) as f32
     }
 }
 
