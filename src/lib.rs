@@ -255,7 +255,7 @@ fn get_main_camera_position(
     let pos = player.pos();
     let origin = GeoCoord::from_cartesian(pos);
     let tile_size = origin.tile_size(TILE_ZOOM);
-    let radius = view_distance.0 / tile_size + 0.5;
+    let radius = view_distance.0 + tile_size + 0.5;
     let origin = origin.to_tile_coordinates(TILE_ZOOM);
 
     (origin.as_tile_index(), radius)

@@ -5,9 +5,10 @@ use bevy::{
     render::{mesh::Indices, render_resource::PrimitiveTopology},
     utils::HashSet,
 };
+use bevy_flycam::FlyCam;
 use big_space::FloatingOriginSettings;
 
-use crate::{GalacticGrid, GalacticTransformOwned};
+use crate::{geocoord::EARTH_RADIUS, GalacticGrid, GalacticTransform, GalacticTransformOwned};
 
 mod coord;
 mod index;
@@ -26,16 +27,24 @@ pub struct Loading;
 
 pub const TILE_ZOOM: u8 = 15;
 
+fn phytagoras(a: f32, b: f32) -> f32 {
+    (a * a + b * b).sqrt()
+}
+
 impl TileMap {
     pub fn hide_faraway_tiles(
         In((origin, radius)): In<(TileIndex, f32)>,
         mut tiles: Query<(&TileIndex, &mut Visibility)>,
+        fly_cam: Query<GalacticTransform, With<FlyCam>>, // todo: make camera elevation a global resource?
+        space: Res<FloatingOriginSettings>,
     ) {
+        let elevation = fly_cam.single().position_double(&space).length() as f32 - EARTH_RADIUS;
         for (tile, mut vis) in tiles.iter_mut() {
             // FIXME: use tile zoom level to increase view distance for lower zoom tiles.
-            let offset = tile.distance_squared(origin) as f32;
-            let oob = offset > (radius * radius); // ääätodo: doubled code with tile set "distance"
-            if oob {
+            let tile_size = tile.as_coord().to_geo_coord().tile_size(TILE_ZOOM);
+            let distance = (tile.distance_squared(origin) as f32).sqrt() * tile_size;
+            //info!("o_e_r {:?} {:?} {:?}", distance, elevation, radius);
+            if phytagoras(distance, elevation) > radius {
                 *vis = Visibility::Hidden;
             } else {
                 *vis = Visibility::Inherited;
@@ -47,17 +56,23 @@ impl TileMap {
         In((origin, radius)): In<(TileIndex, f32)>,
         tilemap: Res<TileMap>,
         loading: Query<&Loading>,
+        fly_cam: Query<GalacticTransform, With<FlyCam>>,
+        space: Res<FloatingOriginSettings>,
     ) -> Option<TileIndex> {
         if !loading.is_empty() {
             return None;
         }
-        let dist_max = radius.abs().ceil().copysign(radius) as i32;
+        let tile_size = origin.as_coord().to_geo_coord().tile_size(TILE_ZOOM);
         let mut best_score = f32::INFINITY;
         let mut best_pos = None;
+        let elevation = fly_cam.single().position_double(&space).length() as f32 - EARTH_RADIUS;
+        let dist_max = (radius / tile_size).ceil() as i32;
         for x_i in -dist_max..=dist_max {
             for y_i in -dist_max..=dist_max {
                 let offset = IVec2::new(x_i, y_i);
-                if offset.length_squared() as f32 > (radius * radius) { //äää
+                let distance = (offset.length_squared() as f32).sqrt() * tile_size;
+                //info!("o e r {:?} {:?} {:?}",distance,elevation,radius);
+                if phytagoras(distance, elevation) > radius {
                     continue;
                 }
 
