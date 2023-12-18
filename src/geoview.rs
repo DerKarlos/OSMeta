@@ -1,6 +1,10 @@
-use super::geopos::*;
+use super::geocoord::*;
 use crate::player::Player;
-use bevy::prelude::*;
+//use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    utils::tracing::{self, instrument},
+};
 use big_space::FloatingOriginSettings;
 use std::{collections::HashMap, f32::consts::FRAC_PI_2};
 
@@ -23,7 +27,7 @@ pub struct Views {
  */
 #[derive(Default, Debug, Clone, Copy)]
 pub struct GeoView {
-    geo_pos: GeoPos, // lat/lon
+    geo_coord: GeoCoord, // lat/lon
     height: f32,
     dir: f32,
     view: f32,
@@ -43,8 +47,8 @@ impl GeoView {
         //t cookie = format!("OSM2World_GeoView_{}={} {} {} {} {} {} {};samesite=strict",  //  todo? {:.2}
         let cookie = format!(
             "{} {} {} {} {} {} {}",
-            self.geo_pos.lat,
-            self.geo_pos.lon,
+            self.geo_coord.lat,
+            self.geo_coord.lon,
             self.height,
             self.dir,  // alpha, compas
             self.view, // beta, headupdown
@@ -70,13 +74,13 @@ impl GeoView {
 
             let floats: Vec<&str> = cookie.split(' ').collect();
 
-            let geo_pos = GeoPos {
+            let geo_coord = GeoCoord {
                 lat: (floats[0]).parse().unwrap(),
                 lon: (floats[1]).parse().unwrap(),
             };
 
             Some(GeoView {
-                geo_pos,
+                geo_coord,
                 height: (floats[2]).parse().unwrap(),
                 dir: (floats[3]).parse().unwrap(),
                 view: (floats[4]).parse().unwrap(),
@@ -94,7 +98,7 @@ impl GeoView {
         //movement_settings: &mut ResMut<'_, MovementSettings>,
         player: &mut Player,
     ) {
-        let mut starting_position = self.geo_pos.to_cartesian().to_galactic_position(space);
+        let mut starting_position = self.geo_coord.to_cartesian().to_galactic_position(space);
         let directions = starting_position.directions();
 
         starting_position.transform.translation += directions.up * self.height;
@@ -116,19 +120,42 @@ impl GeoView {
         player.set_pos(starting_position);
     }
 
+    #[instrument(level = "debug", skip(space, player), ret)]
     pub fn get_camera_view(space: &FloatingOriginSettings, player: &Player) -> Self {
         let position = player.pos();
 
-        let geo_pos = position.to_planetary_position().to_geopos();
-        info!(?geo_pos); // wrong!: lat: 31.906904, lon: 93.580765
-        let height = position.position_double(space).length() as f32 - crate::geopos::EARTH_RADIUS;
-        info!(?height);
+        let geo_coord = position.to_planetary_position().to_geocoord();
+        //info!(?geo_coord);
+        let height = position.position_double(space).length() as f32 - crate::geocoord::EARTH_RADIUS;
+        //info!(?height);
+
+        /*
+        let mut transform = player.pos().transform;
+
+        // Un-Pan up or down.
+        transform.rotate_local_x(geo_coord.lat.to_radians() + FRAC_PI_2);
+        // Un-Rotate to west or east
+        transform.rotate_local_z(geo_coord.lon.to_radians());
+        let view = transform.rotation.x.to_degrees(); // lat
+        let dir =  transform.rotation.z.to_degrees(); // llon
+        */
+
+        let forward = position.pos.transform.forward();
+        let directions = position.directions();
+        let view = forward.angle_between(-directions.up).to_degrees();
+        let dir = forward
+            .cross(directions.up)
+            .cross(position.pos.transform.right())
+            .angle_between(directions.north)
+            .to_degrees()
+            ;
+
 
         Self {
-            geo_pos,
+            geo_coord,
             height,
-            dir: 0.,
-            view: 0.,
+            dir,
+            view,
             radius: 6.,
             fov: 7.,
         }
@@ -151,12 +178,12 @@ fn keys_ui(
                 KeyCode::Key0 => {
                     info!("*** Key: {:?}", key);
                     // Set camera form Args
-                    let geo_pos = GeoPos {
+                    let geo_coord = GeoCoord {
                         lat: 48.1408,
                         lon: 11.5577,
                     };
                     let start_view = GeoView {
-                        geo_pos,
+                        geo_coord,
                         height: args.height,
                         dir: args.direction,
                         view: args.view,

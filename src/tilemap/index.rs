@@ -66,7 +66,7 @@ impl TileIndex {
 
     pub fn to_cartesian(self, space: &FloatingOriginSettings) -> GalacticTransformOwned {
         let coord = self.as_coord().center();
-        let pos = coord.to_geo_pos().to_cartesian();
+        let pos = coord.to_geo_coord().to_cartesian();
         let Directions { up, north, west: _ } = pos.directions();
         let mut pos = pos.to_galactic_position(space).pos;
         pos.transform.look_to(north, up);

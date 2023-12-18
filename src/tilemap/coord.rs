@@ -1,5 +1,5 @@
 use super::TileIndex;
-use crate::geopos::GeoPos;
+use crate::geocoord::GeoCoord;
 use bevy::prelude::*;
 use std::f32::consts::PI;
 
@@ -30,13 +30,13 @@ impl From<TileIndex> for TileCoord {
 }
 
 impl TileCoord {
-    pub fn to_geo_pos(self) -> GeoPos {
+    pub fn to_geo_coord(self) -> GeoCoord {
         let pow_zoom = 2_u32.pow(self.zoom.into()) as f32;
 
         let lon = self.x / pow_zoom * 360.0 - 180.0;
         let lat_rad = (PI * (1. - 2. * self.y / pow_zoom)).sinh().atan();
         let lat = lat_rad.to_degrees();
-        GeoPos { lat, lon }
+        GeoCoord { lat, lon }
     }
 
     /// Offset this position by half a tile size. If you started out with a left upper

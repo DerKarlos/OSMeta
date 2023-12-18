@@ -21,13 +21,13 @@ use big_space::{
     },
     FloatingOriginPlugin, FloatingOriginSettings, GridCell,
 };
-use geopos::{GeoPos, EARTH_RADIUS};
+use geocoord::{GeoCoord, EARTH_RADIUS};
 use http_assets::HttpAssetReaderPlugin;
 use player::PlanetaryPosition;
 use tilemap::{TileIndex, TileMap, TILE_ZOOM};
 
 mod flycam;
-mod geopos;
+mod geocoord;
 mod geoview;
 mod http_assets;
 mod sun;
@@ -75,7 +75,7 @@ pub fn main() {
         args.extend(std::env::args().skip(1));
     }
 
-    let mut pos = GeoPos {
+    let mut pos = GeoCoord {
         lat: 48.1408, // Germany, Munic, Main railway station
         lon: 11.5577,
     };
@@ -83,7 +83,7 @@ pub fn main() {
 
     // View to city center, Marienplatz
     let mut direction: f32 = (-105.0_f32); // Compass view direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
-    let mut view: f32 = (75.0_f32); // View slightly down. 0 = starit down, 90 = horizontal
+    let mut view: f32 = (75.0_f32); // View slightly down. 0 = starit down, 90 = horizontal   TODO: check!: 0=down or ahead
 
     let mut xr = false;
 
@@ -253,7 +253,7 @@ fn get_main_camera_position(
     let player = player.pos();
 
     let pos = player.pos();
-    let origin = GeoPos::from_cartesian(pos);
+    let origin = GeoCoord::from_cartesian(pos);
     let tile_size = origin.tile_size(TILE_ZOOM);
     let radius = view_distance.0 / tile_size + 0.5;
     let origin = origin.to_tile_coordinates(TILE_ZOOM);

@@ -12,12 +12,12 @@ use std::f32::consts::PI;
  */
 
 #[derive(Default, Debug, Clone, Copy)]
-pub struct GeoPos {
+pub struct GeoCoord {
     pub lat: f32,
     pub lon: f32,
 }
 
-impl GeoPos {
+impl GeoCoord {
     /**
      * Convert GPS coordinates to tile coordinates.
      * We use the OSM naming for tiles:
@@ -70,7 +70,7 @@ impl GeoPos {
     pub fn from_cartesian(pos: DVec3) -> Self {
         let cart = CartesianPoint::new(-pos.x, -pos.y, pos.z);
         let geo = GeographicPoint::from_cartesian(&cart);
-        GeoPos {
+        GeoCoord {
             lat: geo.latitude().to_degrees() as f32,
             lon: geo.longitude().to_degrees() as f32,
         }
@@ -80,8 +80,8 @@ impl GeoPos {
     pub fn tile_size(self, zoom: u8) -> Vec2 {
         let coord = self.to_tile_coordinates(zoom);
         let pos = self.to_cartesian();
-        let x = coord.right().to_geo_pos().to_cartesian().distance(*pos) as f32;
-        let y = coord.down().to_geo_pos().to_cartesian().distance(*pos) as f32;
+        let x = coord.right().to_geo_coord().to_cartesian().distance(*pos) as f32;
+        let y = coord.down().to_geo_coord().to_cartesian().distance(*pos) as f32;
         Vec2 { x, y }
     }
 }

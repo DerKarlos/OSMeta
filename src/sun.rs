@@ -11,7 +11,7 @@ use bevy::{
 use std::f32::consts::*;
 
 use crate::{
-    geopos::{EARTH_RADIUS, MOON_ORBIT, MOON_RADIUS},
+    geocoord::{EARTH_RADIUS, MOON_ORBIT, MOON_RADIUS},
     GalacticGrid,
 };
 

@@ -1,4 +1,4 @@
-use crate::geopos::GeoPos;
+use crate::geocoord::GeoCoord;
 use crate::GalacticTransform;
 use crate::GalacticTransformOwned;
 
@@ -63,8 +63,8 @@ impl PlanetaryPosition {
         Directions { up, north, west }
     }
 
-    pub fn to_geopos(self) -> GeoPos {
-        GeoPos::from_cartesian(self.pos)
+    pub fn to_geocoord(self) -> GeoCoord {
+        GeoCoord::from_cartesian(self.pos)
     }
 }
 
