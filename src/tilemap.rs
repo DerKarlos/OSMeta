@@ -40,7 +40,7 @@ impl TileMap {
     ) {
         let elevation = fly_cam.single().position_double(&space).length() as f32 - EARTH_RADIUS;
         for (tile, mut vis) in tiles.iter_mut() {
-            // FIXME: use tile zoom level to increase view distance for lower zoom tiles.
+            // FIXME: use tile zoom level to increase view-distance for lower zoom tiles.
             let tile_size = tile.as_coord().to_geo_coord().tile_size(TILE_ZOOM);
             let distance = (tile.distance_squared(origin) as f32).sqrt() * tile_size;
             //info!("o_e_r {:?} {:?} {:?}", distance, elevation, radius);

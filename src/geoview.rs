@@ -17,7 +17,7 @@ pub struct Views {
  * Geo position on Earth and rotation at/abowe a GPU scene
  *
  * An instance of self [[GeoView]] serves
- * to define a geo Position and a camera position and view angles,
+ * to define a geo Position and a camera position and view-angles,
  *
  * A crate user, by the lib API
  * may create an instance to define a (or find an existing) GPU scene
@@ -28,16 +28,16 @@ pub struct Views {
 #[derive(Default, Debug, Clone, Copy)]
 pub struct GeoView {
     geo_coord: GeoCoord, // lat/lon
-    height: f32,
-    dir: f32,
-    view: f32,
-    radius: f32, // todo: use fov and radius(by ArcControl)
-    fov: f32,
+    elevation: f32,
+    direction: f32,
+    up_view: f32,
+    distance: f32, // todo: use distance and camera_fov (by ArcControl)
+    camera_fov: f32,
 }
 
 impl GeoView {
     /**
-     * Store self geo view in a browser cookie
+     * Store self GeoView in a browser cookie
      * To restore it into your viewer, use [[GeoView]].[[restore]]
      * internal, util [[restore]] is called.
      * @param id  "name" of the cookie
@@ -49,11 +49,11 @@ impl GeoView {
             "{} {} {} {} {} {} {}",
             self.geo_coord.lat,
             self.geo_coord.lon,
-            self.height,
-            self.dir,  // alpha, compas
-            self.view, // beta, headupdown
-            self.radius,
-            self.fov,
+            self.elevation,
+            self.direction, // alpha, compas
+            self.up_view,   // beta, headupdown
+            self.distance,
+            self.camera_fov,
         );
         println!(">>> id: {} cookie: {}", id, cookie);
 
@@ -64,7 +64,7 @@ impl GeoView {
     /**
      * restore this geo pos from browser cookie
      * @param id  "name" of the cookie to restore it
-     * @return restored geo view
+     * @return restored GeoView
      */
     pub fn restore(id: String, views: &mut HashMap<String, String>) -> Option<GeoView> {
         let cookie = views.get(&id); //.unwrap();//_or(&or);
@@ -81,11 +81,11 @@ impl GeoView {
 
             Some(GeoView {
                 geo_coord,
-                height: (floats[2]).parse().unwrap(),
-                dir: (floats[3]).parse().unwrap(),
-                view: (floats[4]).parse().unwrap(),
-                radius: (floats[5]).parse().unwrap(),
-                fov: (floats[6]).parse().unwrap(),
+                elevation: (floats[2]).parse().unwrap(),
+                direction: (floats[3]).parse().unwrap(),
+                up_view: (floats[4]).parse().unwrap(),
+                distance: (floats[5]).parse().unwrap(),
+                camera_fov: (floats[6]).parse().unwrap(),
             })
         } else {
             None
@@ -101,7 +101,7 @@ impl GeoView {
         let mut starting_position = self.geo_coord.to_cartesian().to_galactic_position(space);
         let directions = starting_position.directions();
 
-        starting_position.transform.translation += directions.up * self.height;
+        starting_position.transform.translation += directions.up * self.elevation;
         // Look northwards
         starting_position
             .transform
@@ -110,13 +110,13 @@ impl GeoView {
         // Rotate to west or east
         starting_position
             .transform
-            .rotate_axis(directions.up, self.dir.to_radians());
-        // Pan up or down. We subtract 90°, because the view is an angle from looking
+            .rotate_axis(directions.up, self.direction.to_radians());
+        // Pan up or down. We subtract 90°, because the up-view is an angle from looking
         // straight down. We don't default to looking down, as that doesn't guarantee us
         // that the forward direction is north.
         starting_position
             .transform
-            .rotate_local_x(self.view.to_radians() - FRAC_PI_2);
+            .rotate_local_x(self.up_view.to_radians() - FRAC_PI_2);
         player.set_pos(starting_position);
     }
 
@@ -126,9 +126,9 @@ impl GeoView {
 
         let geo_coord = position.to_planetary_position().to_geocoord();
         //info!(?geo_coord);
-        let height =
+        let elevation =
             position.position_double(space).length() as f32 - crate::geocoord::EARTH_RADIUS;
-        //info!(?height);
+        //info!(?elevation);
 
         /*
         let mut transform = player.pos().transform;
@@ -137,14 +137,14 @@ impl GeoView {
         transform.rotate_local_x(geo_coord.lat.to_radians() + FRAC_PI_2);
         // Un-Rotate to west or east
         transform.rotate_local_z(geo_coord.lon.to_radians());
-        let view = transform.rotation.x.to_degrees(); // lat
-        let dir =  transform.rotation.z.to_degrees(); // llon
+        let up_view = transform.rotation.x.to_degrees(); // lat
+        let direction =  transform.rotation.z.to_degrees(); // llon
         */
 
         let forward = position.pos.transform.forward();
         let directions = position.directions();
-        let view = forward.angle_between(-directions.up).to_degrees();
-        let dir = forward
+        let up_view = forward.angle_between(-directions.up).to_degrees();
+        let direction = forward
             .cross(directions.up)
             .cross(position.pos.transform.right())
             .angle_between(directions.north)
@@ -152,11 +152,11 @@ impl GeoView {
 
         Self {
             geo_coord,
-            height,
-            dir,
-            view,
-            radius: 6.,
-            fov: 7.,
+            elevation,
+            direction,
+            up_view,
+            distance: 6.,
+            camera_fov: 7.,
         }
     }
 }
@@ -183,11 +183,11 @@ fn keys_ui(
                     };
                     let start_view = GeoView {
                         geo_coord,
-                        height: args.height,
-                        dir: args.direction,
-                        view: args.view,
-                        radius: 6.,
-                        fov: 7.,
+                        elevation: args.elevation,
+                        direction: args.direction,
+                        up_view: args.up_view,
+                        distance: 6.,
+                        camera_fov: 7.,
                     };
                     start_view.store("start".to_string(), &mut views.map);
                     start_view.set_camera_view(&space, &mut player);
@@ -207,8 +207,8 @@ fn keys_ui(
                     let key = format!("{:?}", key);
                     if keys.pressed(KeyCode::ShiftRight) {
                         info!("*** KEY: {:?}", key);
-                        let view = GeoView::get_camera_view(&space, &player);
-                        view.store(key.to_string(), &mut views.map);
+                        let geo_view = GeoView::get_camera_view(&space, &player);
+                        geo_view.store(key.to_string(), &mut views.map);
                     } else {
                         info!("*** key: {:?}", key);
                         let view3 = GeoView::restore(key.to_string(), &mut views.map);

@@ -61,16 +61,16 @@ fn setup(
     args: Res<crate::Args>,
     space: Res<FloatingOriginSettings>,
 ) {
-    let pos = args.starting_position.normalize().as_vec3();
+    let height_direction = args.starting_position.normalize().as_vec3();
     let (grid, subgrid): (GalacticGrid, _) = space.translation_to_grid(args.starting_position);
-    let mut transform =
-        Transform::from_translation(subgrid + pos * args.height).looking_at(subgrid, Vec3::Z); // ::Z for Nord
+    let mut transform = Transform::from_translation(subgrid + height_direction * args.elevation)
+        .looking_at(subgrid, Vec3::Z); // ::Z for Nord
 
     let rotation = Quat::from_axis_angle(Vec3::Z, args.direction.to_radians())  // Todo: why ::Z??
-        * Quat::from_axis_angle(Vec3::X, args.view.to_radians());
+        * Quat::from_axis_angle(Vec3::X, args.up_view.to_radians());
     transform = transform * Transform::from_rotation(rotation);
 
-    movement_settings.up = pos;
+    movement_settings.up = height_direction;
 
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),

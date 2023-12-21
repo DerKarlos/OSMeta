@@ -47,9 +47,9 @@ type GalacticTransformItem<'a> = GridTransformItem<'a, GridPrecision>;
 #[derive(Resource)]
 struct Args {
     starting_position: PlanetaryPosition,
-    height: f32,
+    elevation: f32,
     direction: f32,
-    view: f32,
+    up_view: f32,
     xr: bool,
 }
 
@@ -76,14 +76,14 @@ pub fn main() {
     }
 
     let mut pos = GeoCoord {
-        lat: 48.1408, // Germany, Munic, Main railway station
-        lon: 11.5577,
+        lat: 0., //48.1408, // Germany, Munic, Main railway station
+        lon: 0., //11.5577,
     };
-    let mut height: f32 = 300.0; // Camare hight about ground
+    let mut elevation: f32 = 5000000.; //300.0; // Camare hight about ground
 
-    // View to city center, Marienplatz
-    let mut direction: f32 = (-105.0_f32); // Compass view direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
-    let mut view: f32 = (75.0_f32); // View slightly down. 0 = starit down, 90 = horizontal   TODO: check!: 0=down or ahead
+    // GeoView to city center, Marienplatz
+    let mut direction: f32 = 0.; //(-105.0_f32); // Compass view-direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
+    let mut up_view: f32 = 0.; //(75.0_f32); // Up-view slightly down. -90 = down, 0 = horizontal 90 = Up
 
     let mut xr = false;
 
@@ -94,8 +94,8 @@ pub fn main() {
         match k {
             "lat" => pos.lat = v.parse().unwrap(),
             "lon" => pos.lon = v.parse().unwrap(),
-            "ele" => height = v.parse().unwrap(),
-            "view" => view = v.parse().unwrap(),
+            "ele" => elevation = v.parse().unwrap(),
+            "view" => up_view = v.parse().unwrap(),
             "dir" => direction = v.parse().unwrap(),
             "xr" => xr = v.parse().unwrap(),
             other => panic!("unknown key `{other}`"),
@@ -105,9 +105,9 @@ pub fn main() {
     let mut app = App::new();
     app.insert_resource(Args {
         starting_position: pos.to_cartesian(),
-        height,
+        elevation,
         direction,
-        view,
+        up_view,
         xr,
     });
     app.insert_resource(ViewDistance(2000.0));
@@ -143,12 +143,12 @@ pub fn main() {
             Update,
             (
                 (
-                    // After recomputing the view distance from the FPS
+                    // After recomputing the view-distance from the FPS
                     recompute_view_distance,
                     (
-                        // Hide tiles that are now beyond the view distance
+                        // Hide tiles that are now beyond the view-distance
                         get_main_camera_position.pipe(TileMap::hide_faraway_tiles),
-                        // And load tiles that are now within the view distance
+                        // And load tiles that are now within the view-distance
                         get_main_camera_position
                             .pipe(TileMap::load_next)
                             .pipe(TileMap::load),
