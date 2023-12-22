@@ -156,6 +156,13 @@ impl GeoView {
     }
 }
 
+fn keys_ui_setup(mut player: Player, mut views: ResMut<Views>, space: Res<FloatingOriginSettings>) {
+    let start_view = GeoView::restore(("Key0").to_string(), &mut views.map);
+    if let Some(start_view) = start_view {
+        start_view.set_camera_view(&space, &mut player);
+    }
+}
+
 // System: If keys pressed, store and restore camera views
 fn keys_ui(
     keys: Res<Input<KeyCode>>,
@@ -214,6 +221,7 @@ impl bevy::prelude::Plugin for Plugin {
         self.start_view.store("Key0".to_string(), &mut map);
         //lf.start_view.set_camera_view(&space, &mut player);
         app.insert_resource(Views { map });
+        app.add_systems(PostStartup, keys_ui_setup);
     }
 }
 

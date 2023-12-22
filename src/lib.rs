@@ -48,9 +48,6 @@ type GalacticTransformItem<'a> = GridTransformItem<'a, GridPrecision>;
 #[derive(Resource)]
 struct Args {
     starting_position: PlanetaryPosition,
-    elevation: f32,
-    direction: f32,
-    up_view: f32,
     xr: bool,
 }
 
@@ -77,14 +74,14 @@ pub fn main() {
     }
 
     let mut geo_coord = GeoCoord {
-        lat: 0., //48.1408, // Germany, Munic, Main railway station
-        lon: 0., //11.5577,
+        lat: 48.1408, // Germany, Munic, Main railway station
+        lon: 11.5577,
     };
-    let mut elevation: f32 = 5000000.; //300.0; // Camare hight about ground
+    let mut elevation: f32 = 300.0; // Camare hight about ground  5000000.; //
 
     // GeoView to city center, Marienplatz
-    let mut direction: f32 = 0.; //(-105.0_f32); // Compass view-direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
-    let mut up_view: f32 = 0.; //(75.0_f32); // Up-view slightly down. -90 = down, 0 = horizontal 90 = Up
+    let mut direction: f32 = -105.0; // Compass view-direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
+    let mut up_view: f32 = 75.0; // Up-view slightly down. -90 = down, 0 = horizontal 90 = Up
 
     let mut xr = false;
 
@@ -106,9 +103,6 @@ pub fn main() {
     let mut app = App::new();
     app.insert_resource(Args {
         starting_position: geo_coord.to_cartesian(),
-        elevation,
-        direction,
-        up_view,
         xr,
     });
 

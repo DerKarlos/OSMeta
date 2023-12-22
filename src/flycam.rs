@@ -61,26 +61,9 @@ fn setup(
     args: Res<crate::Args>,
     space: Res<FloatingOriginSettings>,
 ) {
-    let height_direction = args.starting_position.normalize().as_vec3();
-    let (grid, subgrid): (GalacticGrid, _) = space.translation_to_grid(args.starting_position);
-
-    let mut transform = Transform::from_translation(subgrid + height_direction * args.elevation)
-        // This "hack" rotates the camera-view down and accroding to Lat/Lon
-        .looking_at(subgrid, Vec3::Z) // ::Z for Nord
-        ;
-
-    // Todo?: Rotate realy by Lat/Lon
-    // Bevy Camera default-rotation is: view to -z and up = +y
-    // OSMeta Earth is Nord = +Z and Greenwich at 0 degrees to -Y? so the default view should be +Y.
-    // So the initial rotaton needs to be 90 degrees -X ???
-    // let mut rotation = Quat::from_axis_angle(Vec3::Y, (-90_f32).to_radians())
-    //                  * Quat::from_axis_angle(Vec3::Z, (-90_f32).to_radians())
-
-    let rotation = Quat::from_axis_angle(Vec3::Z, args.direction.to_radians())
-        * Quat::from_axis_angle(Vec3::X, args.up_view.to_radians());
-    transform = transform * Transform::from_rotation(rotation);
-
-    movement_settings.up = height_direction;
+    // set up accroding to lat/lon relative to Earth center
+    movement_settings.up = args.starting_position.normalize().as_vec3();
+    let (grid, _): (GalacticGrid, _) = space.translation_to_grid(args.starting_position);
 
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
@@ -103,10 +86,7 @@ fn setup(
         .id();
 
     let mut camera = commands.spawn((
-        Camera3dBundle {
-            transform,
-            ..default()
-        },
+        Camera3dBundle { ..default() },
         InheritedVisibility::default(),
         FlyCam,
         grid,
