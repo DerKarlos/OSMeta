@@ -326,14 +326,21 @@ fn reposition_compass(
 
 fn update_camera_orientations(
     mut movement_settings: ResMut<MovementSettings>,
-    fly_cam: Query<GalacticTransform, With<FlyCam>>,
+    mut fly_cam: Query<GalacticTransform, With<FlyCam>>,
     space: Res<FloatingOriginSettings>,
 ) {
-    movement_settings.up = fly_cam
-        .single() // the only FlyCam's calactic position <grid,f32>
+    // the only FlyCam's calactic position <grid,f32>
+    let mut fly_cam = fly_cam.single_mut();
+
+    let up = fly_cam
         .position_double(&space)
         .normalize() // direction from galactic NULL = from the Earth center
         .as_vec3();
+    movement_settings.up = up;
+
+    // Reorient "up" axis without introducing other rotations.
+    let forward = fly_cam.transform.forward();
+    fly_cam.transform.look_to(forward, up);
 }
 
 fn pull_to_ground(
