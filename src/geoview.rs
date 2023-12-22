@@ -120,29 +120,18 @@ impl GeoView {
         let position = player.pos();
 
         let geo_coord = position.to_planetary_position().to_geocoord();
-        //info!(?geo_coord);
         let elevation =
             position.position_double(space).length() as f32 - crate::geocoord::EARTH_RADIUS;
-        //info!(?elevation);
-
-        /*
-        let mut transform = player.pos().transform;
-
-        // Un-Pan up or down.
-        transform.rotate_local_x(geo_coord.lat.to_radians() + FRAC_PI_2);
-        // Un-Rotate to west or east
-        transform.rotate_local_z(geo_coord.lon.to_radians());
-        let up_view = transform.rotation.x.to_degrees(); // lat
-        let direction =  transform.rotation.z.to_degrees(); // llon
-        */
 
         let forward = position.pos.transform.forward();
         let directions = position.directions();
         let up_view = forward.angle_between(-directions.up).to_degrees();
+
+        // we have to "rotate back the up" before calculating delta north
         let direction = forward
-            .cross(directions.up)
-            .cross(position.pos.transform.right())
-            .angle_between(directions.north)
+            .cross(directions.up) // rotate back up ?    https://en.wikipedia.org/wiki/Cross_product   cross product or vector product
+            .cross(position.pos.transform.right()) // what ????
+            .angle_between(directions.north) // calculating delta north
             .to_degrees();
 
         Self {
@@ -197,7 +186,6 @@ fn keys_ui(
                         info!("*** key: {:?}", key_string);
                         let view3 = GeoView::restore(key_string, &mut views.map);
                         if let Some(view3) = view3 {
-                            info!("*** out: {:?}", view3);
                             view3.set_camera_view(&space, &mut player);
                         }
                     }

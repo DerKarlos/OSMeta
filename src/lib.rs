@@ -77,7 +77,7 @@ pub fn main() {
         lat: 48.1408, // Germany, Munic, Main railway station
         lon: 11.5577,
     };
-    let mut elevation: f32 = 300.0; // Camare hight about ground  5000000.; //
+    let mut elevation: f32 = 300.0;
 
     // GeoView to city center, Marienplatz
     let mut direction: f32 = -105.0; // Compass view-direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
@@ -106,11 +106,21 @@ pub fn main() {
         xr,
     });
 
-    let start_view = GeoView {
+    let _start_view = GeoView {
         geo_coord,
         elevation,
         direction,
         up_view,
+        distance: 6.,
+        camera_fov: 7.,
+    };
+
+    let start_view = GeoView {
+        // test only
+        geo_coord: GeoCoord { lat: 33., lon: 0. }, // up,dir
+        elevation: 5000000.,
+        direction: 0.,
+        up_view: 0.02,
         distance: 6.,
         camera_fov: 7.,
     };
