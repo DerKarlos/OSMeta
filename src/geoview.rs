@@ -27,12 +27,12 @@ pub struct Views {
  */
 #[derive(Default, Debug, Clone, Copy)]
 pub struct GeoView {
-    geo_coord: GeoCoord, // lat/lon
-    elevation: f32,
-    direction: f32,
-    up_view: f32,
-    distance: f32, // todo: use distance and camera_fov (by ArcControl)
-    camera_fov: f32,
+    pub geo_coord: GeoCoord, // lat/lon
+    pub elevation: f32,
+    pub direction: f32,
+    pub up_view: f32,
+    pub distance: f32, // todo: use distance and camera_fov (by ArcControl)
+    pub camera_fov: f32,
 }
 
 impl GeoView {
@@ -92,12 +92,7 @@ impl GeoView {
         }
     }
 
-    pub fn set_camera_view(
-        &self,
-        space: &FloatingOriginSettings,
-        //movement_settings: &mut ResMut<'_, MovementSettings>,
-        player: &mut Player,
-    ) {
+    pub fn set_camera_view(&self, space: &FloatingOriginSettings, player: &mut Player) {
         let mut starting_position = self.geo_coord.to_cartesian().to_galactic_position(space);
         let directions = starting_position.directions();
 
@@ -166,7 +161,6 @@ fn keys_ui(
     keys: Res<Input<KeyCode>>,
     mut player: Player,
     mut views: ResMut<Views>,
-    args: Res<crate::Args>,
     space: Res<FloatingOriginSettings>,
 ) {
     {
@@ -174,28 +168,9 @@ fn keys_ui(
             let key = *key;
 
             match key {
-                KeyCode::Key0 => {
-                    info!("*** Key: {:?}", key);
-                    // Set camera form Args
-                    let geo_coord = GeoCoord {
-                        lat: 48.1408,
-                        lon: 11.5577,
-                    };
-                    let start_view = GeoView {
-                        geo_coord,
-                        elevation: args.elevation,
-                        direction: args.direction,
-                        up_view: args.up_view,
-                        distance: 6.,
-                        camera_fov: 7.,
-                    };
-                    start_view.store("start".to_string(), &mut views.map);
-                    start_view.set_camera_view(&space, &mut player);
-                    // todo: set "start" while setup/build by args. And read "start" here
-                }
-
-                // (>= KeyCode::Key1 & <=KeyCode::Key9) => {
-                KeyCode::Key1
+                // (>= KeyCode::Key0 & <=KeyCode::Key9) => {
+                KeyCode::Key0
+                | KeyCode::Key1
                 | KeyCode::Key2
                 | KeyCode::Key3
                 | KeyCode::Key4
@@ -204,14 +179,16 @@ fn keys_ui(
                 | KeyCode::Key7
                 | KeyCode::Key8
                 | KeyCode::Key9 => {
-                    let key = format!("{:?}", key);
+                    let key_string = format!("{:?}", key).to_string();
                     if keys.pressed(KeyCode::ShiftRight) {
-                        info!("*** KEY: {:?}", key);
-                        let geo_view = GeoView::get_camera_view(&space, &player);
-                        geo_view.store(key.to_string(), &mut views.map);
+                        info!("*** KEY: {:?}", key_string);
+                        if key != KeyCode::Key0 {
+                            let geo_view = GeoView::get_camera_view(&space, &player);
+                            geo_view.store(key_string, &mut views.map);
+                        }
                     } else {
-                        info!("*** key: {:?}", key);
-                        let view3 = GeoView::restore(key.to_string(), &mut views.map);
+                        info!("*** key: {:?}", key_string);
+                        let view3 = GeoView::restore(key_string, &mut views.map);
                         if let Some(view3) = view3 {
                             info!("*** out: {:?}", view3);
                             view3.set_camera_view(&space, &mut player);
@@ -224,14 +201,18 @@ fn keys_ui(
     }
 }
 
-pub struct Plugin;
+pub struct Plugin {
+    pub start_view: GeoView,
+}
 
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         // todo: Is there a OnKeyPressed instead of Update?
         // todo: the reaction is bad? Mayh be this helps: Pairing with bevy_framepace to smooth out input latency
         app.add_systems(Update, keys_ui);
-        let map = HashMap::new();
+        let mut map = HashMap::new();
+        self.start_view.store("Key0".to_string(), &mut map);
+        //lf.start_view.set_camera_view(&space, &mut player);
         app.insert_resource(Views { map });
     }
 }

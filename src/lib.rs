@@ -22,6 +22,7 @@ use big_space::{
     FloatingOriginPlugin, FloatingOriginSettings, GridCell,
 };
 use geocoord::{GeoCoord, EARTH_RADIUS};
+use geoview::GeoView;
 use http_assets::HttpAssetReaderPlugin;
 use player::PlanetaryPosition;
 use tilemap::{TileIndex, TileMap, TILE_ZOOM};
@@ -75,7 +76,7 @@ pub fn main() {
         args.extend(std::env::args().skip(1));
     }
 
-    let mut pos = GeoCoord {
+    let mut geo_coord = GeoCoord {
         lat: 0., //48.1408, // Germany, Munic, Main railway station
         lon: 0., //11.5577,
     };
@@ -92,8 +93,8 @@ pub fn main() {
             .split_once('=')
             .expect("arguments must be `key=value` pairs");
         match k {
-            "lat" => pos.lat = v.parse().unwrap(),
-            "lon" => pos.lon = v.parse().unwrap(),
+            "lat" => geo_coord.lat = v.parse().unwrap(),
+            "lon" => geo_coord.lon = v.parse().unwrap(),
             "ele" => elevation = v.parse().unwrap(),
             "view" => up_view = v.parse().unwrap(),
             "dir" => direction = v.parse().unwrap(),
@@ -104,12 +105,22 @@ pub fn main() {
 
     let mut app = App::new();
     app.insert_resource(Args {
-        starting_position: pos.to_cartesian(),
+        starting_position: geo_coord.to_cartesian(),
         elevation,
         direction,
         up_view,
         xr,
     });
+
+    let start_view = GeoView {
+        geo_coord,
+        elevation,
+        direction,
+        up_view,
+        distance: 6.,
+        camera_fov: 7.,
+    };
+
     app.insert_resource(ViewDistance(2000.0));
     app.add_plugins(HttpAssetReaderPlugin {
         base_url: "gltiles.osm2world.org/glb/".into(),
@@ -136,7 +147,7 @@ pub fn main() {
         .add_plugins(ScreenEntityDiagnosticsPlugin)
         .add_plugins(sun::Plugin)
         .add_plugins(flycam::Plugin)
-        .add_plugins(geoview::Plugin)
+        .add_plugins(geoview::Plugin { start_view })
         .insert_resource(TileMap::default())
         .add_systems(Startup, setup)
         .add_systems(
@@ -315,9 +326,9 @@ fn update_camera_orientations(
     space: Res<FloatingOriginSettings>,
 ) {
     movement_settings.up = fly_cam
-        .single()
+        .single() // the only FlyCam's calactic position <grid,f32>
         .position_double(&space)
-        .normalize()
+        .normalize() // direction from galactic NULL = from the Earth center
         .as_vec3();
 }
 
