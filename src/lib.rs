@@ -1,10 +1,6 @@
 //! Loads and renders a glTF file as a scene.
 
-use bevy::{
-    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
-    pbr::NotShadowCaster,
-    prelude::*,
-};
+use bevy::{pbr::NotShadowCaster, prelude::*};
 use bevy_embedded_assets::EmbeddedAssetPlugin;
 use bevy_flycam::{FlyCam, MovementSettings};
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
@@ -23,7 +19,7 @@ use geocoord::{GeoCoord, EARTH_RADIUS};
 use geoview::GeoView;
 use http_assets::HttpAssetReaderPlugin;
 use player::PlanetaryPosition;
-use tilemap::{TileIndex, TileMap, TILE_ZOOM};
+use tilemap::TileMap;
 
 mod flycam;
 mod geocoord;
@@ -152,25 +148,7 @@ pub fn main() {
         .add_plugins(geoview::Plugin { start_view })
         .insert_resource(TileMap::default())
         .add_systems(Startup, setup)
-        .add_systems(
-            Update,
-            (
-                (
-                    // After recomputing the view-distance from the FPS
-                    recompute_view_distance,
-                    (
-                        // Hide tiles that are now beyond the view-distance
-                        get_main_camera_position.pipe(TileMap::hide_faraway_tiles),
-                        // And load tiles that are now within the view-distance
-                        get_main_camera_position
-                            .pipe(TileMap::load_next)
-                            .pipe(TileMap::load),
-                    ),
-                )
-                    .chain(),
-                TileMap::update,
-            ),
-        )
+        .add_plugins(tilemap::Plugin)
         .add_systems(Update, update_camera_orientations)
         .add_systems(PostUpdate, reposition_compass)
         .run();
@@ -189,37 +167,6 @@ pub struct OpenXRTrackingRoot;
 
 #[derive(Resource, Copy, Clone)]
 pub struct ViewDistance(f32);
-
-fn recompute_view_distance(
-    diagnostics: Res<DiagnosticsStore>,
-    mut view_distance: ResMut<ViewDistance>,
-) {
-    if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
-        if let Some(fps) = fps.smoothed() {
-            if fps < 40.0 {
-                view_distance.0 *= 0.99;
-            } else if fps > 59.5 {
-                view_distance.0 *= 1.01;
-            }
-            view_distance.0 = view_distance.0.clamp(1000.0, 10000.0);
-        }
-    }
-}
-
-fn get_main_camera_position(
-    player: player::Player,
-    view_distance: Res<ViewDistance>,
-) -> (TileIndex, f32) {
-    let player = player.pos();
-
-    let pos = player.pos();
-    let origin = GeoCoord::from_cartesian(pos);
-    let tile_size = origin.tile_size(TILE_ZOOM);
-    let radius = view_distance.0 + tile_size + 0.5;
-    let origin = origin.to_tile_coordinates(TILE_ZOOM);
-
-    (origin.as_tile_index(), radius)
-}
 
 #[derive(Component)]
 struct Compass;

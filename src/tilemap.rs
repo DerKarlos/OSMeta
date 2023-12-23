@@ -1,14 +1,19 @@
 use bevy::{
     asset::LoadState,
+    diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     gltf::Gltf,
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
     utils::HashSet,
 };
+
+use crate::geocoord::{GeoCoord, EARTH_RADIUS};
+use crate::ViewDistance;
+
 use bevy_flycam::FlyCam;
 use big_space::FloatingOriginSettings;
 
-use crate::{geocoord::EARTH_RADIUS, GalacticGrid, GalacticTransform, GalacticTransformOwned};
+use crate::{GalacticGrid, GalacticTransform, GalacticTransformOwned};
 
 mod coord;
 mod index;
@@ -227,4 +232,61 @@ fn flat_tile(
         .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
         .with_indices(Some(indices));
     (grid, coord, mesh)
+}
+
+pub struct Plugin;
+
+impl bevy::prelude::Plugin for Plugin {
+    fn build(&self, app: &mut App) {
+        app.add_systems(
+            Update,
+            (
+                (
+                    // After recomputing the view-distance from the FPS
+                    recompute_view_distance,
+                    (
+                        // Hide tiles that are now beyond the view-distance
+                        get_main_camera_position.pipe(TileMap::hide_faraway_tiles),
+                        // And load tiles that are now within the view-distance
+                        get_main_camera_position
+                            .pipe(TileMap::load_next)
+                            .pipe(TileMap::load),
+                    ),
+                )
+                    .chain(),
+                TileMap::update,
+            ),
+        );
+    }
+}
+
+fn recompute_view_distance(
+    diagnostics: Res<DiagnosticsStore>,
+    mut view_distance: ResMut<ViewDistance>,
+) {
+    if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+        if let Some(fps) = fps.smoothed() {
+            if fps < 40.0 {
+                view_distance.0 *= 0.99;
+            } else if fps > 59.5 {
+                view_distance.0 *= 1.01;
+            }
+            view_distance.0 = view_distance.0.clamp(1000.0, 10000.0);
+        }
+    }
+}
+
+fn get_main_camera_position(
+    player: crate::player::Player,
+    view_distance: Res<ViewDistance>,
+) -> (TileIndex, f32) {
+    let player = player.pos();
+
+    let pos = player.pos();
+    let origin = GeoCoord::from_cartesian(pos);
+    let tile_size = origin.tile_size(TILE_ZOOM);
+    let radius = view_distance.0 + tile_size + 0.5;
+    let origin = origin.to_tile_coordinates(TILE_ZOOM);
+
+    (origin.as_tile_index(), radius)
 }
