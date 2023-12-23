@@ -167,3 +167,12 @@ If check_assets_ready is used before the Vec is filed: runtime error :-(
 gltf scheint neben BaseColor und Normal in einer Datei "Metallic_Roughness" in Green_Blue zu haben (Aus der Stadt von ThirdRoom)
 
 AoMRTextures Combined: ao/m/r_texture:  Texture with Ambient Occlusion in R, Metallic in G, and Roughness in B
+
+
+
+
+***********************************************
+
+EARTH_RADIUS + Above-Earth-elevation (+ Terrain-elevaton) = Earth-elevation
+GeoCoord=Earth-rotation * (dir&view)Player-rotatoin = Galactic-rotation
+
