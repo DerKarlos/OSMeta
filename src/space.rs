@@ -78,7 +78,7 @@ fn setup(
         ..default()
     });
 
-    let mesh = meshes.add(
+    let sphere = meshes.add(
         shape::UVSphere {
             radius: 1.0,
             sectors: 128,
@@ -92,7 +92,7 @@ fn setup(
     let image = server.load("embedded://8k_stars.jpg");
     commands.spawn((
         PbrBundle {
-            mesh: mesh.clone(),
+            mesh: sphere.clone(),
             material: materials.add(StandardMaterial {
                 base_color: Color::WHITE,
                 unlit: true,
@@ -110,11 +110,62 @@ fn setup(
         GalacticGrid::ZERO,
     ));
 
+    // Earth
+
+    let rot = Quat::from_axis_angle(Vec3::X, FRAC_PI_2);
+    let transform =
+        Transform::from_translation(Vec3::NEG_Z * EARTH_RADIUS * 1.5).with_rotation(rot);
+
+    let material = materials.add(StandardMaterial {
+        fog_enabled: false,
+        ..default()
+    });
+
+    // Rotational axis
+    let mesh = meshes.add(
+        shape::Cylinder {
+            radius: 1000.0,
+            height: EARTH_RADIUS * 6.0,
+            resolution: 16,
+            segments: 1,
+        }
+        .into(),
+    );
+    commands.spawn((
+        PbrBundle {
+            mesh,
+            transform,
+            material: material.clone(),
+            ..default()
+        },
+        GalacticGrid::ZERO,
+    ));
+
+    // Equator
+    let mesh = meshes.add(
+        shape::Cylinder {
+            radius: EARTH_RADIUS + 1000.0,
+            height: 1.0,
+            resolution: 64,
+            segments: 1,
+        }
+        .into(),
+    );
+    commands.spawn((
+        PbrBundle {
+            mesh,
+            transform: Transform::from_rotation(rot),
+            material,
+            ..default()
+        },
+        GalacticGrid::ZERO,
+    ));
+
     // Clouds visible from earth and space
     let image = server.load("embedded://8k_earth_clouds.jpg");
     commands.spawn((
         PbrBundle {
-            mesh: mesh.clone(),
+            mesh: sphere.clone(),
             material: materials.add(StandardMaterial {
                 base_color: Color::WHITE,
                 unlit: true,
@@ -135,7 +186,7 @@ fn setup(
     // Sky
     commands.spawn((
         PbrBundle {
-            mesh: mesh.clone(),
+            mesh: sphere.clone(),
             material: materials.add(StandardMaterial {
                 base_color: Color::hex("000088").unwrap(),
                 unlit: true,
@@ -154,7 +205,7 @@ fn setup(
     // ground
     commands.spawn((
         PbrBundle {
-            mesh: mesh.clone(),
+            mesh: sphere.clone(),
             material: materials.add(StandardMaterial {
                 base_color: Color::WHITE,
                 unlit: true,
@@ -177,7 +228,7 @@ fn setup(
     // moon
     commands.spawn((
         PbrBundle {
-            mesh,
+            mesh: sphere,
             material: materials.add(StandardMaterial {
                 base_color: Color::WHITE,
                 unlit: true,

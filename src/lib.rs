@@ -1,7 +1,5 @@
 //! Loads and renders a glTF file as a scene.
 
-use std::f32::consts::FRAC_PI_2;
-
 use bevy::{
     diagnostic::{DiagnosticsStore, FrameTimeDiagnosticsPlugin},
     pbr::NotShadowCaster,
@@ -31,7 +29,7 @@ mod flycam;
 mod geocoord;
 mod geoview;
 mod http_assets;
-mod sun;
+mod space;
 mod tilemap;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 mod xr;
@@ -106,7 +104,7 @@ pub fn main() {
         xr,
     });
 
-    let _start_view = GeoView {
+    let start_view = GeoView {
         geo_coord,
         elevation,
         direction,
@@ -115,7 +113,7 @@ pub fn main() {
         camera_fov: 7.,
     };
 
-    let start_view = GeoView {
+    let _start_view = GeoView {
         // test only
         geo_coord: GeoCoord { lat: 33., lon: 0. }, // up,dir
         elevation: 5000000.,
@@ -149,7 +147,7 @@ pub fn main() {
         })
         .add_plugins(ScreenFrameDiagnosticsPlugin)
         .add_plugins(ScreenEntityDiagnosticsPlugin)
-        .add_plugins(sun::Plugin)
+        .add_plugins(space::Plugin)
         .add_plugins(flycam::Plugin)
         .add_plugins(geoview::Plugin { start_view })
         .insert_resource(TileMap::default())
@@ -178,61 +176,8 @@ pub fn main() {
         .run();
 }
 
-fn setup(
-    mut diags: ResMut<ScreenDiagnostics>,
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
+fn setup(mut diags: ResMut<ScreenDiagnostics>) {
     diags.modify("fps").aggregate(Aggregate::Average);
-    let rot = Quat::from_axis_angle(Vec3::X, FRAC_PI_2);
-    let transform =
-        Transform::from_translation(Vec3::NEG_Z * EARTH_RADIUS * 1.5).with_rotation(rot);
-
-    let material = materials.add(StandardMaterial {
-        fog_enabled: false,
-        ..default()
-    });
-
-    // Rotational axis
-    let mesh = meshes.add(
-        shape::Cylinder {
-            radius: 1000.0,
-            height: EARTH_RADIUS * 6.0,
-            resolution: 16,
-            segments: 1,
-        }
-        .into(),
-    );
-    commands.spawn((
-        PbrBundle {
-            mesh,
-            transform,
-            material: material.clone(),
-            ..default()
-        },
-        GalacticGrid::ZERO,
-    ));
-
-    // Equator
-    let mesh = meshes.add(
-        shape::Cylinder {
-            radius: EARTH_RADIUS + 1000.0,
-            height: 1.0,
-            resolution: 64,
-            segments: 1,
-        }
-        .into(),
-    );
-    commands.spawn((
-        PbrBundle {
-            mesh,
-            transform: Transform::from_rotation(rot),
-            material,
-            ..default()
-        },
-        GalacticGrid::ZERO,
-    ));
 }
 
 #[cfg(not(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32")))))]
