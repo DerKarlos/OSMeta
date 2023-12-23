@@ -168,7 +168,6 @@ fn update_grabbables(
     }
 }
 
-
 pub fn pull_to_ground(
     time: Res<Time>,
     mut tracking_root_query: Query<GalacticTransform, With<OpenXRTrackingRoot>>,

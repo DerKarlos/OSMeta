@@ -2,11 +2,8 @@
 
 use bevy::{pbr::NotShadowCaster, prelude::*};
 use bevy_embedded_assets::EmbeddedAssetPlugin;
-use flycam::update_camera_orientations;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
-#[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
-use xr::pull_to_ground;
 use bevy_screen_diagnostics::{
     Aggregate, ScreenDiagnostics, ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin,
     ScreenFrameDiagnosticsPlugin,
@@ -17,11 +14,14 @@ use big_space::{
     },
     FloatingOriginPlugin, GridCell,
 };
+use flycam::update_camera_orientations;
 use geocoord::GeoCoord;
 use geoview::GeoView;
 use http_assets::HttpAssetReaderPlugin;
 use player::PlanetaryPosition;
 use tilemap::TileMap;
+#[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
+use xr::pull_to_ground;
 
 mod flycam;
 mod geocoord;
@@ -181,7 +181,11 @@ mod player;
 fn reposition_compass(
     mut compass: Query<
         GalacticTransform,
-        (With<Compass>, Without<bevy_flycam::FlyCam>, Without<OpenXRTrackingRoot>),
+        (
+            With<Compass>,
+            Without<bevy_flycam::FlyCam>,
+            Without<OpenXRTrackingRoot>,
+        ),
     >,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -220,4 +224,3 @@ fn reposition_compass(
         ));
     }
 }
-
