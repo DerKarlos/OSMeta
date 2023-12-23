@@ -2,9 +2,11 @@
 
 use bevy::{pbr::NotShadowCaster, prelude::*};
 use bevy_embedded_assets::EmbeddedAssetPlugin;
-use bevy_flycam::{FlyCam, MovementSettings};
+use flycam::update_camera_orientations;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
+#[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
+use xr::pull_to_ground;
 use bevy_screen_diagnostics::{
     Aggregate, ScreenDiagnostics, ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin,
     ScreenFrameDiagnosticsPlugin,
@@ -13,9 +15,9 @@ use big_space::{
     world_query::{
         GridTransform, GridTransformItem, GridTransformOwned, GridTransformReadOnlyItem,
     },
-    FloatingOriginPlugin, FloatingOriginSettings, GridCell,
+    FloatingOriginPlugin, GridCell,
 };
-use geocoord::{GeoCoord, EARTH_RADIUS};
+use geocoord::GeoCoord;
 use geoview::GeoView;
 use http_assets::HttpAssetReaderPlugin;
 use player::PlanetaryPosition;
@@ -130,8 +132,10 @@ pub fn main() {
     });
     if xr {
         #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
-        app.add_plugins(xr::Plugin);
-        app.add_systems(Update, pull_to_ground);
+        {
+            app.add_plugins(xr::Plugin);
+            app.add_systems(Update, pull_to_ground);
+        }
     } else {
         app.add_plugins(DefaultPlugins.build().disable::<TransformPlugin>());
     }
@@ -168,6 +172,7 @@ pub struct OpenXRTrackingRoot;
 #[derive(Resource, Copy, Clone)]
 pub struct ViewDistance(f32);
 
+// Compass   Todo: move out of lib.rs
 #[derive(Component)]
 struct Compass;
 
@@ -176,7 +181,7 @@ mod player;
 fn reposition_compass(
     mut compass: Query<
         GalacticTransform,
-        (With<Compass>, Without<FlyCam>, Without<OpenXRTrackingRoot>),
+        (With<Compass>, Without<bevy_flycam::FlyCam>, Without<OpenXRTrackingRoot>),
     >,
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -216,44 +221,3 @@ fn reposition_compass(
     }
 }
 
-fn update_camera_orientations(
-    mut movement_settings: ResMut<MovementSettings>,
-    mut fly_cam: Query<GalacticTransform, With<FlyCam>>,
-    space: Res<FloatingOriginSettings>,
-) {
-    // the only FlyCam's calactic position <grid,f32>
-    let mut fly_cam = fly_cam.single_mut();
-
-    let up = fly_cam
-        .position_double(&space)
-        .normalize() // direction from galactic NULL = from the Earth center
-        .as_vec3();
-    movement_settings.up = up;
-
-    // Reorient "up" axis without introducing other rotations.
-    let forward = fly_cam.transform.forward();
-    fly_cam.transform.look_to(forward, up);
-}
-
-fn pull_to_ground(
-    time: Res<Time>,
-    mut tracking_root_query: Query<GalacticTransform, With<OpenXRTrackingRoot>>,
-    space: Res<FloatingOriginSettings>,
-) {
-    let Ok(mut root) = tracking_root_query.get_single_mut() else {
-        return;
-    };
-
-    let adjustment_rate = (time.delta_seconds() * 10.0).min(1.0);
-
-    // Lower player onto sphere
-    let real_pos = root.position_double(&space);
-    let up = real_pos.normalize();
-    let diff = up * EARTH_RADIUS as f64 - real_pos;
-    root.transform.translation += diff.as_vec3() * adjustment_rate;
-
-    // Rotate player to be upright on sphere
-    let angle_diff = Quat::from_rotation_arc(root.transform.up(), up.as_vec3());
-    root.transform
-        .rotate(Quat::IDENTITY.slerp(angle_diff, adjustment_rate));
-}
