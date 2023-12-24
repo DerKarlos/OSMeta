@@ -13,10 +13,10 @@ pub struct Views {
 }
 
 /**
- * Geo position on Earth and rotation at/abowe a GPU scene
+ * Geo coordinates on Earth and rotation at/abowe a GPU scene
  *
  * An instance of self [[GeoView]] serves
- * to define a geo Position and a camera position and view-angles,
+ * to define geo coordinates as a camera-position and view-angles,
  *
  * A crate user, by the lib API
  * may create an instance to define a (or find an existing) GPU scene

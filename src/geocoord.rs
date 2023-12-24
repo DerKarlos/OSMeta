@@ -5,9 +5,9 @@ use globe_rs::{CartesianPoint, GeographicPoint};
 use std::f32::consts::PI;
 
 /**
- * Geo-position on the (OSM-) world map (GPS position)
+ * Geo-coordinates on the (OSM-) world map (GPS position)
  *
- * Does also calculations: tile_Name, the position is located in
+ * Does also calculations: tile_Name, the coordinates aer located in
  * and distance in meters from the tiles corner
  */
 
@@ -22,7 +22,7 @@ impl GeoCoord {
      * Convert GPS coordinates to tile coordinates.
      * We use the OSM naming for tiles:
      * https://wiki.openstreetmap.org/wiki/Slippy_map_tilenames.
-     * x and y relate to a lonitude and latitude position on Earth.
+     * x and y relate to a lonitude and latitude-position on Earth.
      * In OSM he two values are only used as part of the filename of a tile.
      * even if it is an x/y coordinate in numbers.
      * @param zoom  Zoom level of the OSM tile-name(x/y) system
@@ -55,7 +55,7 @@ impl GeoCoord {
         TileCoord::new(Vec2 { x, y }, zoom)
     }
 
-    /// Compute the galactic position on the planet's surface.
+    /// Compute the planet-position on the surface.
     pub fn to_cartesian(self) -> PlanetaryPosition {
         let geo = GeographicPoint::new(
             (self.lon as f64).to_radians(),

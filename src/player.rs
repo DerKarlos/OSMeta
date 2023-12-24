@@ -49,11 +49,11 @@ impl std::ops::Deref for PlanetaryPosition {
 }
 
 impl PlanetaryPosition {
-    pub fn to_galactic_position(self, space: &FloatingOriginSettings) -> Position<'_> {
+    pub fn to_galactic_position(self, space: &FloatingOriginSettings) -> GalacticPosition<'_> {
         let (cell, pos) = space.translation_to_grid(self.pos);
         let transform = Transform::from_translation(pos);
         let pos = GalacticTransformOwned { transform, cell };
-        Position { pos, space }
+        GalacticPosition { pos, space }
     }
 
     pub fn directions(self) -> Directions {
@@ -70,18 +70,18 @@ impl PlanetaryPosition {
 
 /// A helper for working with galactic positions.
 #[derive(Copy, Clone)]
-pub struct Position<'a> {
+pub struct GalacticPosition<'a> {
     pub pos: GalacticTransformOwned,
     pub space: &'a FloatingOriginSettings,
 }
 
-impl<'a> std::ops::DerefMut for Position<'a> {
+impl<'a> std::ops::DerefMut for GalacticPosition<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.pos
     }
 }
 
-impl<'a> std::ops::Deref for Position<'a> {
+impl<'a> std::ops::Deref for GalacticPosition<'a> {
     type Target = GalacticTransformOwned;
 
     fn deref(&self) -> &Self::Target {
@@ -89,7 +89,7 @@ impl<'a> std::ops::Deref for Position<'a> {
     }
 }
 
-impl Position<'_> {
+impl GalacticPosition<'_> {
     /// Compute the cartesian coordinates by combining the grid cell and the position from within
     /// the grid.
     pub fn pos(&self) -> DVec3 {
@@ -119,20 +119,20 @@ pub struct Directions {
 
 impl<'w, 's> Player<'w, 's> {
     /// Computes the galactic position of the main player (prefers XR player).
-    pub fn pos(&self) -> Position<'_> {
+    pub fn pos(&self) -> GalacticPosition<'_> {
         let pos = if let Ok(xr_pos) = self.xr_pos.get_single() {
             xr_pos
         } else {
             self.flycam_pos.single()
         }
         .to_owned();
-        Position {
+        GalacticPosition {
             pos,
             space: &self.space,
         }
     }
 
-    pub fn set_pos(&mut self, new_pos: Position<'_>) {
+    pub fn set_pos(&mut self, new_pos: GalacticPosition<'_>) {
         let mut pos = if let Ok(xr_pos) = self.xr_pos.get_single_mut() {
             xr_pos
         } else {
