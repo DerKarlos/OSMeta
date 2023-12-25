@@ -176,3 +176,35 @@ AoMRTextures Combined: ao/m/r_texture:  Texture with Ambient Occlusion in R, Met
 EARTH_RADIUS + Above-Earth-elevation (+ Terrain-elevaton) = Earth-elevation
 GeoCoord=Earth-rotation * (dir&view)Player-rotatoin = Galactic-rotation
 
+With EARTH_RADIUS we get to see level.
+Later we may add terrain height to get ground level.
+Adding the height about ground we get the player/camera elevaton.
+Wording: elevation is absolute distance to Earth center, height is an offset to be added.
+
+Our Earth is placet Center to Zerro-Position in the galactic space.
+Wit Latitude/Longitude we can calculate a rotation/directoin and a geographic position on see level
+Adding the heigt(s) we get the players geographic position. Because the Earth is huge we use f64.
+By .to_xxxx returns the galactic postion, consisting on a grid cube
+and a grid-local position inside the cube as.
+The renderer calculates a position in the GPU space as.
+As f32 is used, for far away objects that will cause results with small, not visible errors.
+Positions are absloute in the 3D space, except grid-local popsitions. Needed?/Missing: relative distance between places on ground.
+
+A rotatoin may be given as lat/lon coordinates, xyz values or quad/quaternion or part of a transformation. And Cartesian/Matrix...?
+With the Lad/Lon in GeoCoord, we can get a geo-rotation, needed to direct the camera parallel to the ground and to North.
+Wit the direction/up_view in GeoView, we get a roataion-offset onto the geo-rotation to get the galactic-rotation of the player.
+Can we calculate the offset-rotation by "dividing" the galactic-roation by the geo-rotation?
+Rotatons are allways relative. Bevy starts with a defined default rotation. geo- and offset-rotation "add/multiply" to this.
+
+What "classes" and to/from-functions do we have or need for our project and our futur users?
+* GeoCoords {lat,lon}: to_cartesian -> PlanetaryPosition,     -> GeoView::new
+* PlanetaryPosition {pos: DVec3/3*f64}: to_galactic_position -> GalacticPosition
+* GalacticPosition {GalacticTransform,space/FloatingOriginSettings}:
+* GalacticTransform/GridTransform){Transform,GridCell}:
+* GridCell {x,y,z}:
+
+* GeoView {GeoCoords,direction,up_view,...}:
+
+Internal used, but modified, it could be usefull:
+* geographic::GeographicPoint {longitude,latitude,altitude}:  Cartesian coordinates
+* geographic::CartesianPoint (Vector3/Matrix):

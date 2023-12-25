@@ -31,6 +31,7 @@ pub struct Player<'w, 's> {
 /// A helper for working with positions relative to the planet center.
 #[derive(Clone, Copy)]
 pub struct PlanetaryPosition {
+    // todo?  eliminate pos by (DVec3);
     pub pos: DVec3,
 }
 

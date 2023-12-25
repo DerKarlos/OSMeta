@@ -23,6 +23,7 @@ use tilemap::TileMap;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use xr::pull_to_ground;
 
+mod f4control;
 mod flycam;
 mod geocoord;
 mod geoview;
@@ -47,6 +48,12 @@ struct Args {
     xr: bool,
 }
 
+enum CamControlMode {
+    F4,
+    Fly,
+    // todo: more to come
+}
+
 #[bevy_main]
 pub fn main() {
     let mut args: Vec<String> = vec![];
@@ -69,6 +76,8 @@ pub fn main() {
         args.extend(std::env::args().skip(1));
     }
 
+    let mut cam_control_mode = CamControlMode::F4;
+
     let mut geo_coord = GeoCoord {
         lat: 48.1408, // Germany, Munic, Main railway station
         lon: 11.5577,
@@ -86,6 +95,15 @@ pub fn main() {
             .split_once('=')
             .expect("arguments must be `key=value` pairs");
         match k {
+            "con" => {
+                let arg: String = v.parse().unwrap();
+                let arg: &str = arg.as_str(); // todo: better rust?
+                match arg {
+                    "fly" => cam_control_mode = CamControlMode::Fly,
+                    "ufo" => cam_control_mode = CamControlMode::Fly,
+                    _ => (), // F4 is default
+                }
+            }
             "lat" => geo_coord.lat = v.parse().unwrap(),
             "lon" => geo_coord.lon = v.parse().unwrap(),
             "ele" => elevation = v.parse().unwrap(),
@@ -147,13 +165,22 @@ pub fn main() {
         })
         .add_plugins(ScreenFrameDiagnosticsPlugin)
         .add_plugins(ScreenEntityDiagnosticsPlugin)
-        .add_plugins(space::Plugin)
-        .add_plugins(flycam::Plugin)
-        .add_plugins(geoview::Plugin { start_view })
+        .add_plugins(space::Plugin);
+
+    match cam_control_mode {
+        CamControlMode::F4 => {
+            app.add_plugins(f4control::Plugin);
+        }
+        CamControlMode::Fly => {
+            app.add_plugins(flycam::Plugin)
+                .add_systems(Update, update_camera_orientations);
+        }
+    }
+
+    app.add_plugins(geoview::Plugin { start_view })
         .insert_resource(TileMap::default())
         .add_systems(Startup, setup)
         .add_plugins(tilemap::Plugin)
-        .add_systems(Update, update_camera_orientations)
         .add_systems(PostUpdate, reposition_compass)
         .run();
 }
