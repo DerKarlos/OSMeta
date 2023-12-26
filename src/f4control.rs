@@ -39,8 +39,11 @@ use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
 
+use crate::geoview::GeoView;
 use crate::GalacticGrid;
 use big_space::{FloatingOrigin, FloatingOriginSettings};
+
+use crate::player::Player;
 
 pub mod prelude {
     pub use crate::*;
@@ -49,7 +52,7 @@ pub mod prelude {
 /// Keeps track of mouse motion events, pitch, and yaw
 #[derive(Resource, Default)]
 struct InputState {
-    reader_motion: ManualEventReader<MouseMotion>,
+    _reader_motion: ManualEventReader<MouseMotion>,
 }
 
 /// Mouse sensitivity and movement speed
@@ -58,13 +61,7 @@ pub struct MovementValues {
     pub sensitivity: f32,
     pub speed: f32,
     pub up: Vec3,
-    pub lat: f32,
-    pub lon: f32,
-    pub elevation: f32,
-    pub direction: f32,
-    pub up_view: f32,
-    pub distance: f32,
-    pub camera_fov: f32,
+    pub view: GeoView,
 }
 
 impl Default for MovementValues {
@@ -73,13 +70,7 @@ impl Default for MovementValues {
             sensitivity: 0.00012,
             speed: 12.,
             up: Vec3::Y,
-            lat: 0.,
-            lon: 0.,
-            elevation: 0.,
-            direction: 0.,
-            up_view: 0.,
-            distance: 0.,
-            camera_fov: 0.,
+            view: GeoView::new(),
         }
     }
 }
@@ -114,56 +105,72 @@ impl Default for KeyBindings {
 // pub struct FlyCam;
 use bevy_flycam::FlyCam; // not F4Control  Todo: name it CamControl for the just running control  --
 
+#[derive(Component)]
+pub struct F4Control;
+
+/*
+thread 'main' panicked at /Users/karlos/.cargo/registry/src/index.crates.io-6f17d22bba15001f/bevy_ecs-0.12.1/src/system/system_param.rs:225:5:
+error[B0001]:
+Query<(&bevy_flycam::FlyCam, &mut bevy_transform::components::transform::Transform), ()>
+in system osmeta::f4control::player_move accesses component(s) bevy_transform::components::transform::Transform
+in a way that conflicts with a previous system parameter.
+Consider using `Without<T>` to create disjoint Queries or merging conflicting Queries into a `ParamSet`.
+
+
+thread 'main' panicked at /Users/karlos/.cargo/registry/src/index.crates.io-6f17d22bba15001f/bevy_ecs-0.12.1/src/system/system_param.rs:225:5:
+error[B0001]:
+Query<big_space::world_query::GridTransform<i64>, (bevy_ecs::query::filter::With<bevy_flycam::FlyCam>, bevy_ecs::query::filter::Without<osmeta::OpenXRTrackingRoot>,
+bevy_ecs::query::filter::Without<osmeta::Compass>)>
+in system osmeta::f4control::player_move accesses component(s)
+bevy_transform::components::transform::Transform
+in a way that conflicts with a previous system parameter.
+Consider using `Without<T>` to create disjoint Queries or merging conflicting Queries into a `ParamSet`.
+
+*/
+
 /// Handles keyboard input and movement
 fn player_move(
     keys: Res<Input<KeyCode>>,
+    key_bindings: Res<KeyBindings>,
     time: Res<Time>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
+    space: Res<FloatingOriginSettings>,
     mut movement_values: ResMut<MovementValues>,
-    key_bindings: Res<KeyBindings>,
-    mut query: Query<(&FlyCam, &mut Transform)>, //    mut query: Query<&mut Transform, With<F4Control>>,
+    mut player: Player,
 ) {
     if let Ok(_window) = primary_window.get_single() {
-        for (_camera, mut transform) in query.iter_mut() {
+        let speed = (1. * (movement_values.view.elevation - 300.0)).max(100.0);
+        movement_values.speed = speed;
 
-            let speed = (1. * (movement_values.elevation - crate::geocoord::EARTH_RADIUS - 300.0)).max(100.0);
-            movement_values.speed = speed;
+        let view = &mut movement_values.view;
+        let elevation_fakt = 1. + time.delta_seconds() / 1.0;
+        let groundmove_fact = speed * time.delta_seconds() / 100000.0;
 
-            let mut velocity = Vec3::ZERO;
-            let forward = transform.forward();
-            let right = transform.right();
-
-            for key in keys.get_pressed() {
-                let key = *key;
-                if key == key_bindings.move_forward {
-                    velocity += forward;
-                } else if key == key_bindings.move_backward {
-                    velocity -= forward;
-                } else if key == key_bindings.move_left {
-                    velocity -= right;
-                } else if key == key_bindings.move_right {
-                    velocity += right;
-                } else if key == key_bindings.move_ascend {
-                    velocity += movement_values.up;
-                } else if key == key_bindings.move_descend {
-                    velocity -= movement_values.up;
-                }
-
-                velocity = velocity.normalize_or_zero();
-
-                transform.translation += velocity * time.delta_seconds() * movement_values.speed;
-
-                
-
+        for key in keys.get_pressed() {
+            // match key does not work with struct key_bindings
+            let key = *key;
+            if key == key_bindings.move_forward {
+                view.geo_coord.lat += groundmove_fact;
+            } else if key == key_bindings.move_backward {
+                view.geo_coord.lat -= groundmove_fact;
+            } else if key == key_bindings.move_left {
+                view.geo_coord.lon -= groundmove_fact;
+            } else if key == key_bindings.move_right {
+                view.geo_coord.lon += groundmove_fact;
+            } else if key == key_bindings.move_ascend {
+                view.elevation *= elevation_fakt;
+            } else if key == key_bindings.move_descend {
+                view.elevation /= elevation_fakt;
             }
         }
+        view.set_camera_view(&space, &mut player);
     } else {
         warn!("Primary window not found for `player_move`!");
     }
 }
 
 /// Handles looking around if cursor is locked
-fn player_look(
+fn _player_look(
     settings: Res<MovementValues>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut state: ResMut<InputState>,
@@ -172,7 +179,7 @@ fn player_look(
 ) {
     if let Ok(window) = primary_window.get_single() {
         for mut transform in query.iter_mut() {
-            for ev in state.reader_motion.read(&motion) {
+            for ev in state._reader_motion.read(&motion) {
                 let mut yaw = 0.0;
                 let mut pitch = 0.0;
                 match window.cursor.grab_mode {
@@ -213,8 +220,6 @@ fn setup(
     starting_values: Res<crate::StartingValues>,
     space: Res<FloatingOriginSettings>,
 ) {
-    // set up accroding to lat/lon relative to Earth center
-    movement_values.up = starting_values.planetary_position.normalize().as_vec3();
     let (grid, _): (GalacticGrid, _) =
         space.translation_to_grid(starting_values.planetary_position);
 
@@ -222,29 +227,28 @@ fn setup(
         Camera3dBundle { ..default() },
         InheritedVisibility::default(),
         FlyCam,
+        F4Control,
         grid,
     ));
     camera.insert(FloatingOrigin);
+
+    // set up accroding to lat/lon relative to Earth center
+    movement_values.up = starting_values.planetary_position.normalize().as_vec3();
     movement_values.speed = 100.0;
-    movement_values.lat = starting_values.start_view.geo_coord.lat;
-    movement_values.lon = starting_values.start_view.geo_coord.lon;
-    movement_values.elevation = starting_values.start_view.elevation;
-    movement_values.direction = starting_values.start_view.direction;
-    movement_values.up_view = starting_values.start_view.up_view;
-    movement_values.distance = starting_values.start_view.distance;
-    movement_values.camera_fov = starting_values.start_view.camera_fov;
-    
+    movement_values.view = starting_values.start_view;
 }
 
 pub struct Plugin;
 
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, setup)
-            .init_resource::<InputState>()
+        app
             .init_resource::<MovementValues>()
+            .add_systems(Startup, setup)
             .init_resource::<KeyBindings>()
             .add_systems(Update, player_move)
-            .add_systems(Update, player_look);
+            //.init_resource::<InputState>()
+            //.add_systems(Update, player_look)
+            ;
     }
 }

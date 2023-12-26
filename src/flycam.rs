@@ -63,7 +63,8 @@ fn setup(
 ) {
     // set up accroding to lat/lon relative to Earth center
     movement_settings.up = starting_values.planetary_position.normalize().as_vec3();
-    let (grid, _): (GalacticGrid, _) = space.translation_to_grid(starting_values.planetary_position);
+    let (grid, _): (GalacticGrid, _) =
+        space.translation_to_grid(starting_values.planetary_position);
 
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
@@ -157,7 +158,7 @@ pub fn update_camera_orientations(
     mut fly_cam: Query<GalacticTransform, With<FlyCam>>,
     space: Res<FloatingOriginSettings>,
 ) {
-    // the only FlyCam's GalacticPosition <grid,f32>
+    // the only FlyCam's GalacticTransfor <grid,f32>
     let mut fly_cam = fly_cam.single_mut();
 
     let up = fly_cam

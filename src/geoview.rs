@@ -35,6 +35,16 @@ pub struct GeoView {
 }
 
 impl GeoView {
+    pub fn new() -> GeoView {
+        GeoView {
+            geo_coord: GeoCoord { lat: 0., lon: 0. },
+            elevation: 0.,
+            direction: 0.,
+            up_view: 0.,
+            distance: 0.,
+            camera_fov: 0.,
+        }
+    }
     /**
      * Store self GeoView in a browser cookie
      * To restore it into your viewer, use [[GeoView]].[[restore]]
@@ -92,26 +102,28 @@ impl GeoView {
     }
 
     pub fn set_camera_view(&self, space: &FloatingOriginSettings, player: &mut Player) {
-        let mut starting_position = self.geo_coord.to_cartesian().to_galactic_position(space);
-        let directions = starting_position.directions();
+        // Position on Earth ground
+        let mut starting_transform = self.geo_coord.to_cartesian().to_galactic_transform(space);
+        let directions = starting_transform.directions();
 
-        starting_position.transform.translation += directions.up * self.elevation;
-        // Look northwards
-        starting_position
+        // Add camera / player height above ground
+        starting_transform.transform.translation += directions.up * self.elevation;
+        // Look northwards (to Earth center)
+        starting_transform
             .transform
             .look_to(directions.north, directions.up);
-
         // Rotate to west or east
-        starting_position
+        starting_transform
             .transform
             .rotate_axis(directions.up, self.direction.to_radians());
-        // Pan up or down. We subtract 90°, because the up-view is an angle from looking
+        // Pan up or down. We subtract 90° (FRAC_PI_2), because the up-view is an angle from looking
         // straight down. We don't default to looking down, as that doesn't guarantee us
         // that the forward direction is north.
-        starting_position
+        starting_transform
             .transform
             .rotate_local_x(self.up_view.to_radians() - FRAC_PI_2);
-        player.set_pos(starting_position);
+
+        player.set_pos(starting_transform);
     }
 
     #[instrument(level = "debug", skip(space, player), ret)]
@@ -210,7 +222,6 @@ impl bevy::prelude::Plugin for Plugin {
         // todo: the reaction is bad? Mayh be this helps: Pairing with bevy_framepace to smooth out input latency
         app.add_systems(Update, keys_ui);
         let map = HashMap::new();
-        //lf.start_view.set_camera_view(&space, &mut player);
         app.insert_resource(Views { map });
         app.add_systems(PostStartup, keys_ui_setup);
     }

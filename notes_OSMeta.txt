@@ -198,8 +198,8 @@ Rotatons are allways relative. Bevy starts with a defined default rotation. geo-
 
 What "classes" and to/from-functions do we have or need for our project and our futur users?
 * GeoCoords {lat,lon}: to_cartesian -> PlanetaryPosition,     -> GeoView::new
-* PlanetaryPosition {pos: DVec3/3*f64}: to_galactic_position -> GalacticPosition
-* GalacticPosition {GalacticTransform,space/FloatingOriginSettings}:
+* PlanetaryPosition {pos: DVec3/3*f64}: to_galactic_transform -> GalacticTransfor
+* GalacticTransfor {GalacticTransform,space/FloatingOriginSettings}:
 * GalacticTransform/GridTransform){Transform,GridCell}:
 * GridCell {x,y,z}:
 

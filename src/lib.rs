@@ -122,7 +122,7 @@ pub fn main() {
         }
     }
 
-    let start_view = GeoView {
+    let _start_view = GeoView {
         geo_coord,
         elevation,
         direction,
@@ -131,14 +131,14 @@ pub fn main() {
         camera_fov,
     };
 
-    let _start_view = GeoView {
+    let start_view = GeoView {
         // test only
-        geo_coord: GeoCoord { lat: 33., lon: 0. }, // up,dir
-        elevation: 5000000.,
+        geo_coord, //: GeoCoord { lat: 33., lon: 0. }, // up,dir
+        elevation: 1000.,
         direction: 0.,
-        up_view: 0.02,
-        distance,
-        camera_fov,
+        up_view: 0.,
+        distance: 1000.,
+        camera_fov: 44.,
     };
 
     let mut app = App::new();
@@ -183,7 +183,8 @@ pub fn main() {
         }
         CamControlMode::Fly => {
             app.add_plugins(flycam::Plugin)
-                .add_systems(Update, update_camera_orientations);
+                .add_systems(Update, update_camera_orientations)
+                .add_systems(PostUpdate, reposition_compass);
         }
     }
 
@@ -191,7 +192,6 @@ pub fn main() {
         .insert_resource(TileMap::default())
         .add_systems(Startup, setup)
         .add_plugins(tilemap::Plugin)
-        .add_systems(PostUpdate, reposition_compass)
         .run();
 }
 
