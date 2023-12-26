@@ -43,8 +43,11 @@ type GalacticTransformReadOnlyItem<'a> = GridTransformReadOnlyItem<'a, GridPreci
 type GalacticTransformItem<'a> = GridTransformItem<'a, GridPrecision>;
 
 #[derive(Resource)]
-struct Args {
-    starting_position: PlanetaryPosition,
+struct StartingValues {
+    // was Args
+    _args: Vec<String>, // Todo: You never know where you may need it
+    planetary_position: PlanetaryPosition,
+    start_view: GeoView,
     xr: bool,
 }
 
@@ -87,10 +90,12 @@ pub fn main() {
     // GeoView to city center, Marienplatz
     let mut direction: f32 = -105.0; // Compass view-direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
     let mut up_view: f32 = 75.0; // Up-view slightly down. -90 = down, 0 = horizontal 90 = Up
+    let mut distance: f32 = 300.; // radius of the sphere, the arc rotate camera rotates on
+    let mut camera_fov: f32 = 30.; // todo: default?  field of view, the angle widht of the world, the camera is showing
 
     let mut xr = false;
 
-    for arg in args {
+    for arg in &args {
         let (k, v) = arg
             .split_once('=')
             .expect("arguments must be `key=value` pairs");
@@ -109,24 +114,21 @@ pub fn main() {
             "ele" => elevation = v.parse().unwrap(),
             "view" => up_view = v.parse().unwrap(),
             "dir" => direction = v.parse().unwrap(),
+            "dist" => distance = v.parse().unwrap(),
+            "fov" => camera_fov = v.parse().unwrap(),
+
             "xr" => xr = v.parse().unwrap(),
             other => panic!("unknown key `{other}`"),
         }
     }
-
-    let mut app = App::new();
-    app.insert_resource(Args {
-        starting_position: geo_coord.to_cartesian(),
-        xr,
-    });
 
     let start_view = GeoView {
         geo_coord,
         elevation,
         direction,
         up_view,
-        distance: 6.,
-        camera_fov: 7.,
+        distance,
+        camera_fov,
     };
 
     let _start_view = GeoView {
@@ -135,9 +137,17 @@ pub fn main() {
         elevation: 5000000.,
         direction: 0.,
         up_view: 0.02,
-        distance: 6.,
-        camera_fov: 7.,
+        distance,
+        camera_fov,
     };
+
+    let mut app = App::new();
+    app.insert_resource(StartingValues {
+        _args: args,
+        planetary_position: geo_coord.to_cartesian(),
+        start_view,
+        xr,
+    });
 
     app.insert_resource(ViewDistance(2000.0));
     app.add_plugins(HttpAssetReaderPlugin {
@@ -177,7 +187,7 @@ pub fn main() {
         }
     }
 
-    app.add_plugins(geoview::Plugin { start_view })
+    app.add_plugins(geoview::Plugin)
         .insert_resource(TileMap::default())
         .add_systems(Startup, setup)
         .add_plugins(tilemap::Plugin)

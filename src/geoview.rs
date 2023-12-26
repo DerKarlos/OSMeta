@@ -122,14 +122,14 @@ impl GeoView {
         let elevation =
             position.position_double(space).length() as f32 - crate::geocoord::EARTH_RADIUS;
 
-        let forward = position.pos.transform.forward();
+        let forward = position.transform_pos.transform.forward();
         let directions = position.directions();
         let up_view = forward.angle_between(-directions.up).to_degrees();
 
         // we have to "rotate back the up" before calculating delta north
         let direction = forward
             .cross(directions.up) // rotate back up ?    https://en.wikipedia.org/wiki/Cross_product   cross product or vector product
-            .cross(position.pos.transform.right()) // what ????
+            .cross(position.transform_pos.transform.right()) // what ????
             .angle_between(directions.north) // calculating delta north
             .to_degrees();
 
@@ -141,13 +141,6 @@ impl GeoView {
             distance: 6.,
             camera_fov: 7.,
         }
-    }
-}
-
-fn keys_ui_setup(mut player: Player, mut views: ResMut<Views>, space: Res<FloatingOriginSettings>) {
-    let start_view = GeoView::restore(("Key0").to_string(), &mut views.map);
-    if let Some(start_view) = start_view {
-        start_view.set_camera_view(&space, &mut player);
     }
 }
 
@@ -195,17 +188,28 @@ fn keys_ui(
     }
 }
 
-pub struct Plugin {
-    pub start_view: GeoView,
+fn keys_ui_setup(
+    starting_values: Res<crate::StartingValues>,
+    mut player: Player,
+    mut views: ResMut<Views>,
+    space: Res<FloatingOriginSettings>,
+) {
+    starting_values
+        .start_view
+        .store("Key0".to_string(), &mut views.map);
+    starting_values
+        .start_view
+        .set_camera_view(&space, &mut player);
 }
+
+pub struct Plugin;
 
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         // todo: Is there a OnKeyPressed instead of Update?
         // todo: the reaction is bad? Mayh be this helps: Pairing with bevy_framepace to smooth out input latency
         app.add_systems(Update, keys_ui);
-        let mut map = HashMap::new();
-        self.start_view.store("Key0".to_string(), &mut map);
+        let map = HashMap::new();
         //lf.start_view.set_camera_view(&space, &mut player);
         app.insert_resource(Views { map });
         app.add_systems(PostStartup, keys_ui_setup);

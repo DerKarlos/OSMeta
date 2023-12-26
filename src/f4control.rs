@@ -1,4 +1,6 @@
 /*
+    This code was done, starting with https://github.com/sburris0/bevy_flycam
+
     To welcome our users, we offer a camera control as it is used with OpenStreetMap 3D rendering
     The first was www.f4map.com . We offer the same key, mouse and wheel (todo: touch)
     But we extend it with more keys for all mouse moves too
@@ -52,18 +54,32 @@ struct InputState {
 
 /// Mouse sensitivity and movement speed
 #[derive(Resource)]
-pub struct MovementSettings {
+pub struct MovementValues {
     pub sensitivity: f32,
     pub speed: f32,
     pub up: Vec3,
+    pub lat: f32,
+    pub lon: f32,
+    pub elevation: f32,
+    pub direction: f32,
+    pub up_view: f32,
+    pub distance: f32,
+    pub camera_fov: f32,
 }
 
-impl Default for MovementSettings {
+impl Default for MovementValues {
     fn default() -> Self {
         Self {
             sensitivity: 0.00012,
             speed: 12.,
             up: Vec3::Y,
+            lat: 0.,
+            lon: 0.,
+            elevation: 0.,
+            direction: 0.,
+            up_view: 0.,
+            distance: 0.,
+            camera_fov: 0.,
         }
     }
 }
@@ -103,12 +119,16 @@ fn player_move(
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
-    settings: Res<MovementSettings>,
+    mut movement_values: ResMut<MovementValues>,
     key_bindings: Res<KeyBindings>,
     mut query: Query<(&FlyCam, &mut Transform)>, //    mut query: Query<&mut Transform, With<F4Control>>,
 ) {
     if let Ok(_window) = primary_window.get_single() {
         for (_camera, mut transform) in query.iter_mut() {
+
+            let speed = (1. * (movement_values.elevation - crate::geocoord::EARTH_RADIUS - 300.0)).max(100.0);
+            movement_values.speed = speed;
+
             let mut velocity = Vec3::ZERO;
             let forward = transform.forward();
             let right = transform.right();
@@ -124,14 +144,17 @@ fn player_move(
                 } else if key == key_bindings.move_right {
                     velocity += right;
                 } else if key == key_bindings.move_ascend {
-                    velocity += settings.up;
+                    velocity += movement_values.up;
                 } else if key == key_bindings.move_descend {
-                    velocity -= settings.up;
+                    velocity -= movement_values.up;
                 }
 
                 velocity = velocity.normalize_or_zero();
 
-                transform.translation += velocity * time.delta_seconds() * settings.speed
+                transform.translation += velocity * time.delta_seconds() * movement_values.speed;
+
+                
+
             }
         }
     } else {
@@ -141,7 +164,7 @@ fn player_move(
 
 /// Handles looking around if cursor is locked
 fn player_look(
-    settings: Res<MovementSettings>,
+    settings: Res<MovementValues>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut state: ResMut<InputState>,
     motion: Res<Events<MouseMotion>>,
@@ -184,27 +207,16 @@ fn player_look(
     }
 }
 
-/// Same as [`PlayerPlugin`] but does not spawn a camera
-pub struct NoCameraPlayerPlugin;
-impl bevy::prelude::Plugin for NoCameraPlayerPlugin {
-    fn build(&self, app: &mut App) {
-        app.init_resource::<InputState>()
-            .init_resource::<MovementSettings>()
-            .init_resource::<KeyBindings>()
-            .add_systems(Update, player_move)
-            .add_systems(Update, player_look);
-    }
-}
-
 fn setup(
     mut commands: Commands,
-    mut movement_settings: ResMut<MovementSettings>,
-    args: Res<crate::Args>,
+    mut movement_values: ResMut<MovementValues>,
+    starting_values: Res<crate::StartingValues>,
     space: Res<FloatingOriginSettings>,
 ) {
     // set up accroding to lat/lon relative to Earth center
-    movement_settings.up = args.starting_position.normalize().as_vec3();
-    let (grid, _): (GalacticGrid, _) = space.translation_to_grid(args.starting_position);
+    movement_values.up = starting_values.planetary_position.normalize().as_vec3();
+    let (grid, _): (GalacticGrid, _) =
+        space.translation_to_grid(starting_values.planetary_position);
 
     let mut camera = commands.spawn((
         Camera3dBundle { ..default() },
@@ -213,15 +225,26 @@ fn setup(
         grid,
     ));
     camera.insert(FloatingOrigin);
-    movement_settings.speed = 100.0;
+    movement_values.speed = 100.0;
+    movement_values.lat = starting_values.start_view.geo_coord.lat;
+    movement_values.lon = starting_values.start_view.geo_coord.lon;
+    movement_values.elevation = starting_values.start_view.elevation;
+    movement_values.direction = starting_values.start_view.direction;
+    movement_values.up_view = starting_values.start_view.up_view;
+    movement_values.distance = starting_values.start_view.distance;
+    movement_values.camera_fov = starting_values.start_view.camera_fov;
+    
 }
 
 pub struct Plugin;
 
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
-        app .add_systems(Startup, setup)
-            .add_plugins(NoCameraPlayerPlugin) // https://github.com/sburris0/bevy_flycam (bevy_config_cam dies not work wiht Bevy 12)
-            ;
+        app.add_systems(Startup, setup)
+            .init_resource::<InputState>()
+            .init_resource::<MovementValues>()
+            .init_resource::<KeyBindings>()
+            .add_systems(Update, player_move)
+            .add_systems(Update, player_look);
     }
 }

@@ -58,12 +58,12 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut movement_settings: ResMut<MovementSettings>,
     mut keys: ResMut<KeyBindings>,
-    args: Res<crate::Args>,
+    starting_values: Res<crate::StartingValues>,
     space: Res<FloatingOriginSettings>,
 ) {
     // set up accroding to lat/lon relative to Earth center
-    movement_settings.up = args.starting_position.normalize().as_vec3();
-    let (grid, _): (GalacticGrid, _) = space.translation_to_grid(args.starting_position);
+    movement_settings.up = starting_values.planetary_position.normalize().as_vec3();
+    let (grid, _): (GalacticGrid, _) = space.translation_to_grid(starting_values.planetary_position);
 
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
@@ -102,7 +102,7 @@ fn setup(
         },
     ));
     camera.add_child(sphere);
-    if !args.xr {
+    if !starting_values.xr {
         camera.insert(FloatingOrigin);
     }
     // FIXME: attach the camera bundle to the world, so when we move the world, the player is automatically moved with it.
