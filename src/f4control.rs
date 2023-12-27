@@ -125,26 +125,6 @@ use bevy_flycam::FlyCam; // not F4Control  Todo: name it CamControl for the just
 #[derive(Component)]
 pub struct F4Control;
 
-/*
-thread 'main' panicked at /Users/karlos/.cargo/registry/src/index.crates.io-6f17d22bba15001f/bevy_ecs-0.12.1/src/system/system_param.rs:225:5:
-error[B0001]:
-Query<(&bevy_flycam::FlyCam, &mut bevy_transform::components::transform::Transform), ()>
-in system osmeta::f4control::player_move accesses component(s) bevy_transform::components::transform::Transform
-in a way that conflicts with a previous system parameter.
-Consider using `Without<T>` to create disjoint Queries or merging conflicting Queries into a `ParamSet`.
-
-
-thread 'main' panicked at /Users/karlos/.cargo/registry/src/index.crates.io-6f17d22bba15001f/bevy_ecs-0.12.1/src/system/system_param.rs:225:5:
-error[B0001]:
-Query<big_space::world_query::GridTransform<i64>, (bevy_ecs::query::filter::With<bevy_flycam::FlyCam>, bevy_ecs::query::filter::Without<osmeta::OpenXRTrackingRoot>,
-bevy_ecs::query::filter::Without<osmeta::Compass>)>
-in system osmeta::f4control::player_move accesses component(s)
-bevy_transform::components::transform::Transform
-in a way that conflicts with a previous system parameter.
-Consider using `Without<T>` to create disjoint Queries or merging conflicting Queries into a `ParamSet`.
-
-*/
-
 /// Handles keyboard input and movement
 fn player_move(
     keys: Res<Input<KeyCode>>,

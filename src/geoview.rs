@@ -5,7 +5,7 @@ use bevy::{
     utils::tracing::{self, instrument},
 };
 use big_space::FloatingOriginSettings;
-use std::{collections::HashMap, f32::consts::FRAC_PI_2};
+use std::collections::HashMap; // {, f32::consts::FRAC_PI_2};
 
 #[derive(Resource)]
 pub struct Views {
@@ -119,9 +119,11 @@ impl GeoView {
         // Pan up or down. We subtract 90° (FRAC_PI_2), because the up-view is an angle from looking
         // straight down. We don't default to looking down, as that doesn't guarantee us
         // that the forward direction is north.
+info!("self: {:?}",self.up_view);
+
         starting_transform
             .transform
-            .rotate_local_x(self.up_view.to_radians()); // ???  - FRAC_PI_2
+            .rotate_local_x(self.up_view.to_radians()); // todo: ok? tested:not needed   - FRAC_PI_2
 
         player.set_pos(starting_transform);
     }

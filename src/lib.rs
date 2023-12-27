@@ -59,6 +59,15 @@ enum CamControlMode {
 
 #[bevy_main]
 pub fn main() {
+
+    // todo: NOT VISIBLE! WHY?
+    error!("Main START ++++++++++++++++++++++++++++++++++++++");
+    warn!( "Main START ++++++++++++++++++++++++++++++++++++++");
+    info!( "Main START ++++++++++++++++++++++++++++++++++++++");
+    // THIS WORKS:
+    // panic!("The last ouptut of the app");
+    // assert_eq!( up_view, -30. );
+  
     let mut args: Vec<String> = vec![];
 
     #[cfg(target_arch = "wasm32")]
@@ -89,17 +98,15 @@ pub fn main() {
 
     // GeoView to city center, Marienplatz
     let mut direction: f32 = -105.0; // Compass view-direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
-    let mut up_view: f32 = 75.0; // Up-view slightly down. -90 = down, 0 = horizontal 90 = Up
+    let mut up_view: f32 = -30.0; // Up-view slightly down. -90 = down, 0 = horizontal 90 = Up
     let mut distance: f32 = 300.; // radius of the sphere, the arc rotate camera rotates on
     let mut camera_fov: f32 = 30.; // todo: default?  field of view, the angle widht of the world, the camera is showing
 
     let mut xr = false;
 
     for arg in &args {
-        let (k, v) = arg
-            .split_once('=')
-            .expect("arguments must be `key=value` pairs");
-        match k {
+        let (k, v) = arg.split_once('=').expect("arguments must be `key=value` pairs");
+            match k {
             "con" => {
                 let arg: String = v.parse().unwrap();
                 let arg: &str = arg.as_str(); // todo: better rust?
@@ -108,7 +115,7 @@ pub fn main() {
                     "ufo" => cam_control_mode = CamControlMode::Fly,
                     _ => (), // F4 is default
                 }
-            }
+            },
             "lat" => geo_coord.lat = v.parse().unwrap(),
             "lon" => geo_coord.lon = v.parse().unwrap(),
             "ele" => elevation = v.parse().unwrap(),
@@ -122,7 +129,7 @@ pub fn main() {
         }
     }
 
-    let _start_view = GeoView {
+    let start_view = GeoView {
         geo_coord,
         elevation,
         direction,
@@ -131,7 +138,7 @@ pub fn main() {
         camera_fov,
     };
 
-    let start_view = GeoView {
+    let _start_view = GeoView {
         // test only
         geo_coord, //: GeoCoord { lat: 33., lon: 0. }, // up,dir
         elevation: 1000.,
