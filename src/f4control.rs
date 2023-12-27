@@ -189,7 +189,7 @@ fn player_move(
                 view.distance = view.distance.max(0.4);
             }
         }
-        view.set_camera_view(&space, &mut player);
+        view.set_camera_view(&space, &mut player, None);
     } else {
         warn!("Primary window not found for `player_move`!");
     }

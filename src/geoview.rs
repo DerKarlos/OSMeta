@@ -1,4 +1,5 @@
 use super::geocoord::*;
+use super::f4control::MovementValues;
 use crate::player::Player;
 use bevy::{
     prelude::*,
@@ -101,7 +102,11 @@ impl GeoView {
         }
     }
 
-    pub fn set_camera_view(&self, space: &FloatingOriginSettings, player: &mut Player) {
+    pub fn set_camera_view(&self, space: &FloatingOriginSettings, player: &mut Player, movement_values: Option<&mut MovementValues>) {
+        if let Some( movement_values) = movement_values {
+            movement_values.view = self.clone();
+        } 
+ 
         // Position on Earth ground
         let mut starting_transform = self.geo_coord.to_cartesian().to_galactic_transform(space);
         let directions = starting_transform.directions();
@@ -119,7 +124,6 @@ impl GeoView {
         // Pan up or down. We subtract 90° (FRAC_PI_2), because the up-view is an angle from looking
         // straight down. We don't default to looking down, as that doesn't guarantee us
         // that the forward direction is north.
-info!("self: {:?}",self.up_view);
 
         starting_transform
             .transform
@@ -162,6 +166,7 @@ info!("self: {:?}",self.up_view);
 fn keys_ui(
     keys: Res<Input<KeyCode>>,
     mut player: Player,
+    mut movement_values: ResMut<MovementValues>,
     mut views: ResMut<Views>,
     space: Res<FloatingOriginSettings>,
 ) {
@@ -192,7 +197,7 @@ fn keys_ui(
                         info!("*** key: {:?}", key_string);
                         let view3 = GeoView::restore(key_string, &mut views.map);
                         if let Some(view3) = view3 {
-                            view3.set_camera_view(&space, &mut player);
+                            view3.set_camera_view(&space, &mut player, Some(&mut movement_values));
                         }
                     }
                 }
@@ -213,7 +218,7 @@ fn keys_ui_setup(
         .store("Key0".to_string(), &mut views.map);
     starting_values
         .start_view
-        .set_camera_view(&space, &mut player);
+        .set_camera_view(&space, &mut player, None);
 }
 
 pub struct Plugin;
