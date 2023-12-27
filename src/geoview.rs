@@ -121,7 +121,7 @@ impl GeoView {
         // that the forward direction is north.
         starting_transform
             .transform
-            .rotate_local_x(self.up_view.to_radians() - FRAC_PI_2);
+            .rotate_local_x(self.up_view.to_radians()); // ???  - FRAC_PI_2
 
         player.set_pos(starting_transform);
     }

@@ -271,7 +271,7 @@ fn recompute_view_distance(
             } else if fps > 59.5 {
                 view_distance.0 *= 1.01;
             }
-            view_distance.0 = view_distance.0.clamp(1000.0, 10000.0);
+            view_distance.0 = view_distance.0.clamp(2000.0, 10000.0);
         }
     }
 }

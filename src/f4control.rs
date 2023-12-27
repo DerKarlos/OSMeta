@@ -32,6 +32,9 @@ Maximal one control/plurgin/systems should run (may be none)
 
 What about the Player? Is it for FlyCam or for all controls
 
+
+See also: https://bevy-cheatbook.github.io/cookbook/pan-orbit-camera.html
+
  */
 
 use bevy::ecs::event::{Events, ManualEventReader};
@@ -84,6 +87,13 @@ pub struct KeyBindings {
     pub move_right: KeyCode,
     pub move_ascend: KeyCode,
     pub move_descend: KeyCode,
+    //
+    pub rotate_up: KeyCode,
+    pub rotate_down: KeyCode,
+    pub rotate_left: KeyCode,
+    pub rotate_right: KeyCode,
+    pub zoom_in: KeyCode,
+    pub zoom_out: KeyCode,
 }
 
 impl Default for KeyBindings {
@@ -95,6 +105,13 @@ impl Default for KeyBindings {
             move_right: KeyCode::D,
             move_ascend: KeyCode::T,  // TODO use + and PgUp also
             move_descend: KeyCode::G, // TODO use # and PgDown also
+            //
+            rotate_up: KeyCode::R,
+            rotate_down: KeyCode::F,
+            rotate_left: KeyCode::Q,
+            rotate_right: KeyCode::E,
+            zoom_in: KeyCode::Z, // todo: Y or Z for English/German keyboards
+            zoom_out: KeyCode::H,
         }
     }
 }
@@ -144,23 +161,52 @@ fn player_move(
 
         let view = &mut movement_values.view;
         let elevation_fakt = 1. + time.delta_seconds() / 1.0;
-        let groundmove_fact = speed * time.delta_seconds() / 100000.0;
+        let groundmove_fact_lat = speed * time.delta_seconds() / 100000.0;
+        let groundmove_fact_lon = groundmove_fact_lat /  view.geo_coord.lat.to_radians().sin();
+        const OSM_LAT_LIMIT: f32 = 85.0511; // degrees
+        const ELEVATION_LIMIT: f32 = 20_000_000.0; // meter
+        let rotation_fact = time.delta_seconds() * 20.0; // delta time * degrees per second = delta degrees
 
         for key in keys.get_pressed() {
             // match key does not work with struct key_bindings
             let key = *key;
+            // ahead
             if key == key_bindings.move_forward {
-                view.geo_coord.lat += groundmove_fact;
+                view.geo_coord.lat += groundmove_fact_lat;
+                view.geo_coord.lat = view.geo_coord.lat.min(OSM_LAT_LIMIT);
             } else if key == key_bindings.move_backward {
-                view.geo_coord.lat -= groundmove_fact;
+                view.geo_coord.lat -= groundmove_fact_lat;
+                view.geo_coord.lat = view.geo_coord.lat.max(-OSM_LAT_LIMIT);
+            // sidewise
             } else if key == key_bindings.move_left {
-                view.geo_coord.lon -= groundmove_fact;
+                view.geo_coord.lon -= groundmove_fact_lon;
             } else if key == key_bindings.move_right {
-                view.geo_coord.lon += groundmove_fact;
+                view.geo_coord.lon += groundmove_fact_lon;
+            // elevate
             } else if key == key_bindings.move_ascend {
                 view.elevation *= elevation_fakt;
+                view.elevation = view.elevation.min(ELEVATION_LIMIT);
             } else if key == key_bindings.move_descend {
                 view.elevation /= elevation_fakt;
+                view.elevation = view.elevation.max(0.4);
+            // rotate
+            } else if key == key_bindings.rotate_right {
+                view.direction -= rotation_fact;
+            } else if key == key_bindings.rotate_left {
+                view.direction += rotation_fact;
+            } else if key == key_bindings.rotate_up {
+                view.up_view += rotation_fact;
+                view.up_view = view.up_view.min(OSM_LAT_LIMIT);
+            } else if key == key_bindings.rotate_down {
+                view.up_view -= rotation_fact;
+                view.up_view = view.up_view.max(-OSM_LAT_LIMIT);
+            // zoom
+            } else if key == key_bindings.zoom_out {
+                view.distance *= elevation_fakt;
+                view.distance = view.distance.min(ELEVATION_LIMIT);
+            } else if key == key_bindings.zoom_in {
+                view.distance /= elevation_fakt;
+                view.distance = view.distance.max(0.4);
             }
         }
         view.set_camera_view(&space, &mut player);
