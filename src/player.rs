@@ -50,12 +50,15 @@ impl std::ops::Deref for PlanetaryPosition {
 }
 
 impl PlanetaryPosition {
-    pub fn to_galactic_transform(self, space: &FloatingOriginSettings) -> GalacticTransfor<'_> {
+    pub fn to_galactic_transform_space(
+        self,
+        space: &FloatingOriginSettings,
+    ) -> GalacticTransformSpace<'_> {
         let (cell, pos) = space.translation_to_grid(self.pos);
         let transform = Transform::from_translation(pos);
-        let transform_pos = GalacticTransformOwned { transform, cell };
-        GalacticTransfor {
-            transform_pos,
+        let galactic_transform = GalacticTransformOwned { transform, cell };
+        GalacticTransformSpace {
+            galactic_transform,
             space,
         }
     }
@@ -74,30 +77,30 @@ impl PlanetaryPosition {
 
 /// A helper for working with galactic positions.
 #[derive(Copy, Clone)]
-pub struct GalacticTransfor<'a> {
-    pub transform_pos: GalacticTransformOwned,
+pub struct GalacticTransformSpace<'a> {
+    pub galactic_transform: GalacticTransformOwned,
     pub space: &'a FloatingOriginSettings,
 }
 
-impl<'a> std::ops::DerefMut for GalacticTransfor<'a> {
+impl<'a> std::ops::DerefMut for GalacticTransformSpace<'a> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.transform_pos
+        &mut self.galactic_transform
     }
 }
 
-impl<'a> std::ops::Deref for GalacticTransfor<'a> {
+impl<'a> std::ops::Deref for GalacticTransformSpace<'a> {
     type Target = GalacticTransformOwned;
 
     fn deref(&self) -> &Self::Target {
-        &self.transform_pos
+        &self.galactic_transform
     }
 }
 
-impl GalacticTransfor<'_> {
+impl GalacticTransformSpace<'_> {
     /// Compute the cartesian coordinates by combining the grid cell and the position from within
     /// the grid.
     pub fn pos(&self) -> DVec3 {
-        self.transform_pos.position_double(self.space)
+        self.galactic_transform.position_double(self.space)
     }
 
     /// Calculates cardinal directions at any cartesian position.
@@ -123,20 +126,20 @@ pub struct Directions {
 
 impl<'w, 's> Player<'w, 's> {
     /// Computes the galactic position of the main player (prefers XR player).
-    pub fn pos(&self) -> GalacticTransfor<'_> {
-        let transform_pos = if let Ok(xr_pos) = self.xr_pos.get_single() {
+    pub fn pos(&self) -> GalacticTransformSpace<'_> {
+        let galactic_transform = if let Ok(xr_pos) = self.xr_pos.get_single() {
             xr_pos
         } else {
             self.flycam_pos.single()
         }
         .to_owned();
-        GalacticTransfor {
-            transform_pos,
+        GalacticTransformSpace {
+            galactic_transform,
             space: &self.space,
         }
     }
 
-    pub fn set_pos(&mut self, new_pos: GalacticTransfor<'_>) {
+    pub fn set_pos(&mut self, new_pos: GalacticTransformSpace<'_>) {
         let mut pos = if let Ok(xr_pos) = self.xr_pos.get_single_mut() {
             xr_pos
         } else {

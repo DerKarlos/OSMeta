@@ -158,7 +158,7 @@ pub fn update_camera_orientations(
     mut fly_cam: Query<GalacticTransform, With<FlyCam>>,
     space: Res<FloatingOriginSettings>,
 ) {
-    // the only FlyCam's GalacticTransfor <grid,f32>
+    // the only FlyCam's GalacticTransform <grid,f32>
     let mut fly_cam = fly_cam.single_mut();
 
     let up = fly_cam

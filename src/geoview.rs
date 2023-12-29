@@ -1,5 +1,5 @@
-use super::geocoord::*;
 use super::f4control::MovementValues;
+use super::geocoord::*;
 use crate::player::Player;
 use bevy::{
     prelude::*,
@@ -102,21 +102,31 @@ impl GeoView {
         }
     }
 
-    pub fn set_camera_view(&self, space: &FloatingOriginSettings, player: &mut Player, movement_values: Option<&mut MovementValues>) {
-        if let Some( movement_values) = movement_values {
-            movement_values.view = self.clone();
-        } 
- 
+    pub fn set_camera_view(
+        &self,
+        space: &FloatingOriginSettings,
+        player: &mut Player,
+        movement_values: Option<&mut MovementValues>,
+    ) {
+        if let Some(movement_values) = movement_values {
+            movement_values.view = *self;
+        }
+
         // Position on Earth ground
-        let mut starting_transform = self.geo_coord.to_cartesian().to_galactic_transform(space);
+        let mut starting_transform = self
+            .geo_coord
+            .to_cartesian()
+            .to_galactic_transform_space(space);
         let directions = starting_transform.directions();
 
         // Add camera / player height above ground
         starting_transform.transform.translation += directions.up * self.elevation;
+        let _camera_spot = starting_transform.transform.translation;
         // Look northwards (to Earth center)
         starting_transform
             .transform
             .look_to(directions.north, directions.up);
+
         // Rotate to west or east
         starting_transform
             .transform
@@ -129,6 +139,13 @@ impl GeoView {
             .transform
             .rotate_local_x(self.up_view.to_radians()); // todo: ok? tested:not needed   - FRAC_PI_2
 
+        if self.distance > 0.0 {
+            //let beam_directon = starting_transform.transform.rotation; // quat
+            //let (angle,_) = beam_directon.to_axis_angle();
+            starting_transform.transform.translation += directions.west * self.distance;
+            //starting_transform.transform.look_at(_camera_spot);
+        }
+
         player.set_pos(starting_transform);
     }
 
@@ -140,14 +157,14 @@ impl GeoView {
         let elevation =
             position.position_double(space).length() as f32 - crate::geocoord::EARTH_RADIUS;
 
-        let forward = position.transform_pos.transform.forward();
+        let forward = position.galactic_transform.transform.forward();
         let directions = position.directions();
         let up_view = forward.angle_between(-directions.up).to_degrees();
 
         // we have to "rotate back the up" before calculating delta north
         let direction = forward
             .cross(directions.up) // rotate back up ?    https://en.wikipedia.org/wiki/Cross_product   cross product or vector product
-            .cross(position.transform_pos.transform.right()) // what ????
+            .cross(position.galactic_transform.transform.right()) // what ????
             .angle_between(directions.north) // calculating delta north
             .to_degrees();
 
@@ -156,8 +173,8 @@ impl GeoView {
             elevation,
             direction,
             up_view,
-            distance: 6.,
-            camera_fov: 7.,
+            distance: 66.,
+            camera_fov: 77.,
         }
     }
 }

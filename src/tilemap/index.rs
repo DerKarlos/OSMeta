@@ -68,9 +68,9 @@ impl TileIndex {
         let coord = self.as_coord().center();
         let pos = coord.to_geo_coord().to_cartesian();
         let Directions { up, north, west: _ } = pos.directions();
-        let mut pos = pos.to_galactic_transform(space).transform_pos;
-        pos.transform.look_to(north, up);
-        pos
+        let mut galactic_transform = pos.to_galactic_transform_space(space).galactic_transform;
+        galactic_transform.transform.look_to(north, up);
+        galactic_transform
     }
 
     pub fn zoom(&self) -> u8 {

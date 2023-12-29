@@ -142,7 +142,7 @@ fn player_move(
         let view = &mut movement_values.view;
         let elevation_fakt = 1. + time.delta_seconds() / 1.0;
         let groundmove_fact_lat = speed * time.delta_seconds() / 100000.0;
-        let groundmove_fact_lon = groundmove_fact_lat /  view.geo_coord.lat.to_radians().sin();
+        let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
         const OSM_LAT_LIMIT: f32 = 85.0511; // degrees
         const ELEVATION_LIMIT: f32 = 20_000_000.0; // meter
         let rotation_fact = time.delta_seconds() * 20.0; // delta time * degrees per second = delta degrees
