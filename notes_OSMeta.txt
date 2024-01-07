@@ -199,7 +199,7 @@ Rotatons are allways relative. Bevy starts with a defined default rotation. geo-
 What "classes" and to/from-functions do we have or need for our project and our futur users?
 * GeoCoords {lat,lon}: to_cartesian -> PlanetaryPosition,     -> GeoView::new
 * PlanetaryPosition {pos: DVec3/3*f64}: to_galactic_transform_space -> GalacticTransform
-* GalacticTransform {GalacticTransform,space/FloatingOriginSettings}:
+* GalacticTransformSpace {GalacticTransform,space/FloatingOriginSettings}:
 * GalacticTransform/GridTransform){Transform,GridCell}:
 * GridCell {x,y,z}:
 
@@ -208,3 +208,15 @@ What "classes" and to/from-functions do we have or need for our project and our 
 Internal used, but modified, it could be usefull:
 * geographic::GeographicPoint {longitude,latitude,altitude}:  Cartesian coordinates
 * geographic::CartesianPoint (Vector3/Matrix):
+
+
+#############################
+
+If you look on a paper map, you look down and West-East is the X axis, North-South the Y axis. So so you look along the Z axis.
+In 2D games, there only were X and Y axis. When 3D rised, it got the +Z Axis into the backround. That's how Bevy "thinks".
+And the map in a 3D game is layed out flat on X and Z axis now! But what if the game doesn't use a flat map but the Earth sphere?
+As a Bevy user you may assume, the Earth is in front of you (+Z) and the Northpole up (to +Y).
+But if you teleport to the surface, may be to Sitney? The Bevy order makes no sense any more.
+That's why OSMeta follows the https://en.wikipedia.org/wiki/Spherical_coordinate_system:
+You look "dowwn"  at the Northpole as +Z from the Earth center. And 
+
