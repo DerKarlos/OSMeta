@@ -6,7 +6,7 @@ use bevy::{
     utils::tracing::{self, instrument},
 };
 use big_space::FloatingOriginSettings;
-use std::collections::HashMap; // {, f32::consts::FRAC_PI_2};
+use std::{collections::HashMap, f32::consts::FRAC_PI_2};
 
 #[derive(Resource)]
 pub struct Views {
@@ -137,7 +137,7 @@ impl GeoView {
 
         starting_transform
             .transform
-            .rotate_local_x(self.up_view.to_radians()); // todo: ok? tested:not needed   - FRAC_PI_2
+            .rotate_local_x(self.up_view.to_radians());
 
         if self.distance > 0.0 {
             //let beam_directon = starting_transform.transform.rotation; // quat
@@ -159,14 +159,22 @@ impl GeoView {
 
         let forward = position.galactic_transform.transform.forward();
         let directions = position.directions();
-        let up_view = forward.angle_between(-directions.up).to_degrees();
+        let up_view = (forward.angle_between(-directions.up) - FRAC_PI_2).to_degrees();
 
         // we have to "rotate back the up" before calculating delta north
-        let direction = forward
-            .cross(directions.up) // rotate back up ?    https://en.wikipedia.org/wiki/Cross_product   cross product or vector product
-            .cross(position.galactic_transform.transform.right()) // what ????
-            .angle_between(directions.north) // calculating delta north
-            .to_degrees();
+        let flat_forward = directions
+            .up // rotate back up ?    https://en.wikipedia.org/wiki/Cross_product   cross product or vector product
+            .cross(position.galactic_transform.transform.right()); // now we have a vector pointing forward, but parallel to the ground.
+
+        // Cannot use `angle_between` naively, as that gives us a positive angle between 0 and 180 degrees
+        let north_angle = flat_forward.angle_between(directions.north).to_degrees();
+        let west_angle = flat_forward.angle_between(directions.west).to_degrees();
+        // So we pick a positive or negative angle depending on how far away from west we are.
+        let direction = if west_angle < FRAC_PI_2 {
+            north_angle
+        } else {
+            -north_angle
+        };
 
         Self {
             geo_coord,
