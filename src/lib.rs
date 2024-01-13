@@ -18,7 +18,7 @@ use flycam::update_camera_orientations;
 use geocoord::GeoCoord;
 use geoview::GeoView;
 use http_assets::HttpAssetReaderPlugin;
-use player::PlanetaryPosition;
+use player::{ControlValues, PlanetaryPosition};
 use tilemap::TileMap;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use xr::pull_to_ground;
@@ -42,19 +42,20 @@ type GalacticTransformReadOnlyItem<'a> = GridTransformReadOnlyItem<'a, GridPreci
 #[allow(dead_code)]
 type GalacticTransformItem<'a> = GridTransformItem<'a, GridPrecision>;
 
+pub enum CamControlMode {
+    F4,
+    Fly,
+    // todo: more to come
+}
+
 #[derive(Resource)]
 struct StartingValues {
     // was Args
     _args: Vec<String>, // Todo: You never know where you may need it
     planetary_position: PlanetaryPosition,
     start_view: GeoView,
+    _cam_control_mode: CamControlMode,
     xr: bool,
-}
-
-enum CamControlMode {
-    F4,
-    Fly,
-    // todo: more to come
 }
 
 #[bevy_main]
@@ -82,7 +83,7 @@ pub fn main() {
         args.extend(std::env::args().skip(1));
     }
 
-    let mut cam_control_mode = CamControlMode::F4;
+    let mut _cam_control_mode = CamControlMode::Fly;
 
     let mut geo_coord = GeoCoord {
         lat: 48.1408, // Germany, Munic, Main railway station
@@ -107,9 +108,9 @@ pub fn main() {
                 let arg: String = v.parse().unwrap();
                 let arg: &str = arg.as_str(); // todo: better rust?
                 match arg {
-                    "fly" => cam_control_mode = CamControlMode::Fly,
-                    "ufo" => cam_control_mode = CamControlMode::Fly,
-                    _ => (), // F4 is default
+                    "fly" => _cam_control_mode = CamControlMode::Fly,
+                    "ufo" => _cam_control_mode = CamControlMode::Fly,
+                    _ => _cam_control_mode = CamControlMode::F4,
                 }
             }
             "lat" => geo_coord.lat = v.parse().unwrap(),
@@ -145,13 +146,6 @@ pub fn main() {
     };
 
     let mut app = App::new();
-    app.insert_resource(StartingValues {
-        _args: args,
-        planetary_position: geo_coord.to_cartesian(),
-        start_view,
-        xr,
-    });
-
     app.insert_resource(ViewDistance(2000.0));
     app.add_plugins(HttpAssetReaderPlugin {
         base_url: "gltiles.osm2world.org/glb/".into(),
@@ -178,9 +172,11 @@ pub fn main() {
         })
         .add_plugins(ScreenFrameDiagnosticsPlugin)
         .add_plugins(ScreenEntityDiagnosticsPlugin)
-        .add_plugins(space::Plugin);
+        .add_plugins(space::Plugin)
+        //.add_systems(Update, init_controls);
+        .init_resource::<ControlValues>();
 
-    match cam_control_mode {
+    match _cam_control_mode {
         CamControlMode::F4 => {
             app.add_plugins(f4control::Plugin);
         }
@@ -190,6 +186,14 @@ pub fn main() {
                 .add_systems(PostUpdate, reposition_compass);
         }
     }
+
+    app.insert_resource(StartingValues {
+        _args: args,
+        planetary_position: geo_coord.to_cartesian(),
+        start_view,
+        xr,
+        _cam_control_mode,
+    });
 
     app.add_plugins(geoview::Plugin)
         .insert_resource(TileMap::default())
@@ -223,7 +227,7 @@ fn reposition_compass(
         GalacticTransform,
         (
             With<Compass>,
-            Without<bevy_flycam::FlyCam>,
+            Without<player::Control>,
             Without<OpenXRTrackingRoot>,
         ),
     >,

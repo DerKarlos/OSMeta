@@ -8,10 +8,7 @@
 			"type": "shell",
 			"command": "cargo run --example main",
 			"problemMatcher": [],
-			"group": {
-				"kind": "build",
-				"isDefault": true
-			}
+			"group": "build"
 		},
 		{
 			"label": "run",
@@ -20,7 +17,7 @@
 			"problemMatcher": [],
 			"group": {
 				"kind": "build",
-				"isDefault": false
+				"isDefault": true
 			}
 		},
 		{

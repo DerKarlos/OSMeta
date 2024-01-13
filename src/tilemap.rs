@@ -10,7 +10,7 @@ use bevy::{
 use crate::geocoord::{GeoCoord, EARTH_RADIUS};
 use crate::ViewDistance;
 
-use bevy_flycam::FlyCam;
+use crate::player::Control;
 use big_space::FloatingOriginSettings;
 
 use crate::{GalacticGrid, GalacticTransform, GalacticTransformOwned};
@@ -40,7 +40,7 @@ impl TileMap {
     pub fn hide_faraway_tiles(
         In((origin, radius)): In<(TileIndex, f32)>,
         mut tiles: Query<(&TileIndex, &mut Visibility)>,
-        fly_cam: Query<GalacticTransform, With<FlyCam>>, // todo: make camera elevation a global resource?
+        fly_cam: Query<GalacticTransform, With<Control>>, // todo: make camera elevation a global resource?
         space: Res<FloatingOriginSettings>,
     ) {
         let elevation = fly_cam.single().position_double(&space).length() as f32 - EARTH_RADIUS;
@@ -61,7 +61,7 @@ impl TileMap {
         In((origin, radius)): In<(TileIndex, f32)>,
         tilemap: Res<TileMap>,
         loading: Query<&Loading>,
-        fly_cam: Query<GalacticTransform, With<FlyCam>>,
+        fly_cam: Query<GalacticTransform, With<Control>>,
         space: Res<FloatingOriginSettings>,
     ) -> Option<TileIndex> {
         if !loading.is_empty() {

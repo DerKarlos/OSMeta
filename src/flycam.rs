@@ -13,6 +13,7 @@ use bevy::window::{CursorGrabMode, PrimaryWindow};
 use big_space::{FloatingOrigin, FloatingOriginSettings};
 
 use crate::geocoord::EARTH_RADIUS;
+use crate::player::{Control, ControlValues};
 use crate::{GalacticGrid, GalacticTransform};
 
 pub mod prelude {
@@ -25,6 +26,7 @@ struct InputState {
     reader_motion: ManualEventReader<MouseMotion>,
 }
 
+/*
 /// Mouse sensitivity and movement speed
 #[derive(Resource)]
 pub struct MovementSettings {
@@ -42,6 +44,7 @@ impl Default for MovementSettings {
         }
     }
 }
+ */
 
 /// Key configuration
 #[derive(Resource)]
@@ -71,8 +74,6 @@ impl Default for KeyBindings {
 }
 
 /// A marker component used in queries when you want flycams and not other cameras
-#[derive(Component)]
-pub struct FlyCam;
 
 /// Grabs/ungrabs mouse cursor
 fn toggle_grab_cursor(window: &mut Window) {
@@ -97,25 +98,27 @@ fn initial_grab_cursor(mut primary_window: Query<&mut Window, With<PrimaryWindow
     }
 }
 
+/*
 /// Spawns the `Camera3dBundle` to be controlled  Todo: delete
-fn _setup_player(mut commands: Commands, settings: Res<MovementSettings>) {
+fn _setup_player(mut commands: Commands, settings: Res<ControlValues>) {
     commands.spawn((
         Camera3dBundle {
             transform: Transform::from_xyz(-2.0, 5.0, 5.0).looking_at(Vec3::ZERO, settings.up),
             ..Default::default()
         },
-        FlyCam,
+        Control,
     ));
 }
+*/
 
 /// Handles keyboard input and movement
 fn player_move(
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
-    settings: Res<MovementSettings>,
+    settings: Res<ControlValues>,
     key_bindings: Res<KeyBindings>,
-    mut query: Query<(&FlyCam, &mut Transform)>, //    mut query: Query<&mut Transform, With<FlyCam>>,
+    mut query: Query<(&Control, &mut Transform)>, //    mut query: Query<&mut Transform, With<Control>>,
 ) {
     if let Ok(window) = primary_window.get_single() {
         for (_camera, mut transform) in query.iter_mut() {
@@ -156,11 +159,11 @@ fn player_move(
 
 /// Handles looking around if cursor is locked
 fn player_look(
-    settings: Res<MovementSettings>,
+    settings: Res<ControlValues>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut state: ResMut<InputState>,
     motion: Res<Events<MouseMotion>>,
-    mut query: Query<&mut Transform, With<FlyCam>>,
+    mut query: Query<&mut Transform, With<Control>>,
 ) {
     if let Ok(window) = primary_window.get_single() {
         for mut transform in query.iter_mut() {
@@ -213,10 +216,10 @@ fn cursor_grab(
     }
 }
 
-// Grab cursor when an entity with FlyCam is added
+// Grab cursor when an entity with Fly-Cam is added
 fn initial_grab_on_flycam_spawn(
     mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
-    query_added: Query<Entity, Added<FlyCam>>,
+    query_added: Query<Entity, Added<Control>>,
 ) {
     if query_added.is_empty() {
         return;
@@ -243,7 +246,7 @@ impl bevy::prelude::Plugin for Plugin {
             // no_camera_player_plugin
             // Contains everything needed to add first-person fly camera behavior to your game, but does not spawn a camera
             .init_resource::<InputState>()
-            .init_resource::<MovementSettings>()
+            .init_resource::<ControlValues>()
             .init_resource::<KeyBindings>()
             .add_systems(Startup, initial_grab_cursor)
             .add_systems(Startup, initial_grab_on_flycam_spawn)
@@ -286,7 +289,7 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut movement_settings: ResMut<MovementSettings>,
+    mut movement_settings: ResMut<ControlValues>,
     mut keys: ResMut<KeyBindings>,
     starting_values: Res<crate::StartingValues>,
     space: Res<FloatingOriginSettings>,
@@ -319,7 +322,7 @@ fn setup(
     let mut camera = commands.spawn((
         Camera3dBundle { ..default() },
         InheritedVisibility::default(),
-        FlyCam,
+        Control,
         grid,
         FogSettings {
             color: Color::rgba(0.35, 0.48, 0.66, 1.0),
@@ -346,8 +349,8 @@ fn setup(
 }
 
 fn update_camera_speed(
-    mut movement_settings: ResMut<MovementSettings>,
-    fly_cam: Query<GalacticTransform, With<FlyCam>>,
+    mut movement_settings: ResMut<ControlValues>,
+    fly_cam: Query<GalacticTransform, With<Control>>,
     space: Res<FloatingOriginSettings>,
 ) {
     let elevation = fly_cam.single().position_double(&space).length() as f32;
@@ -384,11 +387,11 @@ fn grab_cursor(
 }
 
 pub fn update_camera_orientations(
-    mut movement_settings: ResMut<MovementSettings>,
-    mut fly_cam: Query<GalacticTransform, With<FlyCam>>,
+    mut movement_settings: ResMut<ControlValues>,
+    mut fly_cam: Query<GalacticTransform, With<Control>>,
     space: Res<FloatingOriginSettings>,
 ) {
-    // the only FlyCam's GalacticTransform <grid,f32>
+    // the only controled camera's GalacticTransform <grid,f32>
     let mut fly_cam = fly_cam.single_mut();
 
     let up = fly_cam

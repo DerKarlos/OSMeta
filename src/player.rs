@@ -4,9 +4,9 @@ use crate::GalacticTransformOwned;
 
 use super::Compass;
 use super::OpenXRTrackingRoot;
+use crate::geoview::GeoView;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
-use bevy_flycam::FlyCam;
 use big_space::FloatingOriginSettings;
 use glam::DVec3;
 
@@ -17,13 +17,13 @@ pub struct Player<'w, 's> {
         'w,
         's,
         GalacticTransform,
-        (With<OpenXRTrackingRoot>, Without<FlyCam>, Without<Compass>),
+        (With<OpenXRTrackingRoot>, Without<Control>, Without<Compass>),
     >,
     pub(crate) flycam_pos: Query<
         'w,
         's,
         GalacticTransform,
-        (With<FlyCam>, Without<OpenXRTrackingRoot>, Without<Compass>),
+        (With<Control>, Without<OpenXRTrackingRoot>, Without<Compass>),
     >,
     pub(crate) space: Res<'w, FloatingOriginSettings>,
 }
@@ -149,3 +149,34 @@ impl<'w, 's> Player<'w, 's> {
         *pos.transform = new_pos.transform;
     }
 }
+
+/// A marker component used in queries when you want camera-controls
+#[derive(Component)]
+pub struct Control;
+
+/// Used by all controlers: Mouse sensitivity and movement speed, up vector and set view
+#[derive(Resource)]
+pub struct ControlValues {
+    pub sensitivity: f32,
+    pub speed: f32,
+    pub up: Vec3,
+    pub view: GeoView,
+}
+
+impl Default for ControlValues {
+    fn default() -> Self {
+        Self {
+            sensitivity: 0.00012,
+            speed: 12.,
+            up: Vec3::Y,
+            view: GeoView::new(),
+        }
+    }
+}
+
+/*  plugin?
+pub fn init_controls(&mut App) {
+        app
+            .init_resource::<MovementValues>()
+}
+ */

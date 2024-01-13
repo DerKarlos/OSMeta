@@ -1,6 +1,6 @@
-use super::f4control::MovementValues;
 use super::geocoord::*;
-use crate::player::Player;
+use super::GalacticTransformOwned;
+use crate::player::{ControlValues, GalacticTransformSpace, Player};
 use bevy::{
     prelude::*,
     utils::tracing::{self, instrument},
@@ -102,18 +102,9 @@ impl GeoView {
         }
     }
 
-    pub fn set_camera_view(
-        &self,
-        space: &FloatingOriginSettings,
-        player: &mut Player,
-        movement_values: Option<&mut MovementValues>,
-    ) {
-        if let Some(movement_values) = movement_values {
-            movement_values.view = *self;
-        }
-
+    pub fn to_transform(self, space: &FloatingOriginSettings) -> GalacticTransformOwned {
         // Position on Earth ground
-        let mut starting_transform = self
+        let mut starting_transform: GalacticTransformSpace<'_> = self
             .geo_coord
             .to_cartesian()
             .to_galactic_transform_space(space);
@@ -146,7 +137,71 @@ impl GeoView {
             //starting_transform.transform.look_at(_camera_spot);
         }
 
-        player.set_pos(starting_transform);
+        starting_transform.galactic_transform
+    }
+
+    pub fn set_camera_view(
+        &self,
+        space: &FloatingOriginSettings,
+        player: &mut Player,
+        control_values: Option<&mut ControlValues>,
+    ) {
+        /*
+        match starting_values.cam_control_mode {
+            CamControlMode::F4 => {set_camera_view_f4()},
+            _ => {set_camera_view_fly()},
+        }
+        */
+
+        if let Some(control_values) = control_values {
+            control_values.view = *self;
+        }
+
+        let galactic_transform = self.to_transform(space);
+
+        /* * /
+                // Position on Earth ground
+                let mut starting_transform = self
+                    .geo_coord
+                    .to_cartesian()
+                    .to_galactic_transform_space(space);
+                let directions = starting_transform.directions();
+
+                // Add camera / player height above ground
+                starting_transform.transform.translation += directions.up * self.elevation;
+                let _camera_spot = starting_transform.transform.translation;
+                // Look northwards (to Earth center)
+                starting_transform
+                    .transform
+                    .look_to(directions.north, directions.up);
+
+                // Rotate to west or east
+                starting_transform
+                    .transform
+                    .rotate_axis(directions.up, self.direction.to_radians());
+                // Pan up or down. We subtract 90° (FRAC_PI_2), because the up-view is an angle from looking
+                // straight down. We don't default to looking down, as that doesn't guarantee us
+                // that the forward direction is north.
+
+                starting_transform
+                    .transform
+                    .rotate_local_x(self.up_view.to_radians());
+
+                if self.distance > 0.0 {
+                    //let beam_directon = starting_transform.transform.rotation; // quat
+                    //let (angle,_) = beam_directon.to_axis_angle();
+                    starting_transform.transform.translation += directions.west * self.distance;
+                    //starting_transform.transform.look_at(_camera_spot);
+                }
+                player.set_pos(starting_transform);
+        / * */
+
+        let new_pos = GalacticTransformSpace {
+            galactic_transform,
+            space,
+        };
+
+        player.set_pos(new_pos);
     }
 
     #[instrument(level = "debug", skip(space, player), ret)]
@@ -191,7 +246,7 @@ impl GeoView {
 fn keys_ui(
     keys: Res<Input<KeyCode>>,
     mut player: Player,
-    mut movement_values: ResMut<MovementValues>,
+    mut control_values: ResMut<ControlValues>,
     mut views: ResMut<Views>,
     space: Res<FloatingOriginSettings>,
 ) {
@@ -203,7 +258,7 @@ fn keys_ui(
                 // (>= KeyCode::Key0 & <=KeyCode::Key9) => {
                 KeyCode::Key0
                 | KeyCode::Key1
-                | KeyCode::Key2
+                | KeyCode::Key2 // todo: shift-Key2 does not work. Not in keys 
                 | KeyCode::Key3
                 | KeyCode::Key4
                 | KeyCode::Key5
@@ -222,7 +277,7 @@ fn keys_ui(
                         info!("*** key: {:?}", key_string);
                         let view3 = GeoView::restore(key_string, &mut views.map);
                         if let Some(view3) = view3 {
-                            view3.set_camera_view(&space, &mut player, Some(&mut movement_values));
+                            view3.set_camera_view(&space, &mut player, Some(&mut control_values));
                         }
                     }
                 }

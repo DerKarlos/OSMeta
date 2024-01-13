@@ -220,3 +220,27 @@ But if you teleport to the surface, may be to Sitney? The Bevy order makes no se
 That's why OSMeta follows the https://en.wikipedia.org/wiki/Spherical_coordinate_system:
 You look "dowwn"  at the Northpole as +Z from the Earth center. And 
 
+::::::::::::::::
+
+get fix gemergt
+run läuft - mit F4
+Fly: crash!
+Resource requested by osmeta::geoview::keys_ui does not exist: osmeta::f4control::MovementValues
+
+MovementValues are onyl used by F4Control.
+set_camera_view sets the actual position of the camera but the ControlValues of F4Control
+set_camera_view gets only an Option if F4 is used
+
+But player_move requests it by ResMut, there is no Option for Res
+Solution?: Always init_resource, like the Bevy-Camera?
+OR BETTER?:
+set_camera_view should be a fn of each control!  A traid ???
+
+
+
+:::::::::::::
+
+galileo - OSM Rust crate for rendering
+
+The first wasm_example raster_tiles is realy small (18 lines), fine!
+Oh, it uses common.rs (50 lines) and galileo/examples/raster_tiles.rs (28 lines)

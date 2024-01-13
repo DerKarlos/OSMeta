@@ -27,10 +27,10 @@
 
 
 We start with an argumente to select one control and lager switch dynamically.
-All controls will have the resource type control later (now FlyCam)
+All controls will have the resource type control later (now Control)
 Maximal one control/plurgin/systems should run (may be none)
 
-What about the Player? Is it for FlyCam or for all controls
+What about the Player? Is it for Fly-Cam or for all controls
 
 
 See also: https://bevy-cheatbook.github.io/cookbook/pan-orbit-camera.html
@@ -42,11 +42,10 @@ use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
 
-use crate::geoview::GeoView;
 use crate::GalacticGrid;
 use big_space::{FloatingOrigin, FloatingOriginSettings};
 
-use crate::player::Player;
+use crate::player::{ControlValues, GalacticTransformSpace, Player};
 
 pub mod prelude {
     pub use crate::*;
@@ -56,26 +55,6 @@ pub mod prelude {
 #[derive(Resource, Default)]
 struct InputState {
     _reader_motion: ManualEventReader<MouseMotion>,
-}
-
-/// Mouse sensitivity and movement speed
-#[derive(Resource)]
-pub struct MovementValues {
-    pub sensitivity: f32,
-    pub speed: f32,
-    pub up: Vec3,
-    pub view: GeoView,
-}
-
-impl Default for MovementValues {
-    fn default() -> Self {
-        Self {
-            sensitivity: 0.00012,
-            speed: 12.,
-            up: Vec3::Y,
-            view: GeoView::new(),
-        }
-    }
 }
 
 /// Key configuration
@@ -118,12 +97,7 @@ impl Default for KeyBindings {
 
 /// Used in queries when you want f4controls and not other cameras
 /// A marker component used in queries when you want f4controls and not other cameras
-// #[derive(Component)]
-// pub struct FlyCam;
-use bevy_flycam::FlyCam; // not F4Control  Todo: name it CamControl for the just running control  --
-
-#[derive(Component)]
-pub struct F4Control;
+use crate::player::Control; // not F4Control  Todo: name it CamControl for the just running control  --
 
 /// Handles keyboard input and movement
 fn player_move(
@@ -132,14 +106,14 @@ fn player_move(
     time: Res<Time>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
     space: Res<FloatingOriginSettings>,
-    mut movement_values: ResMut<MovementValues>,
+    mut control_values: ResMut<ControlValues>,
     mut player: Player,
 ) {
     if let Ok(_window) = primary_window.get_single() {
-        let speed = (1. * (movement_values.view.elevation - 300.0)).max(100.0);
-        movement_values.speed = speed;
+        let speed = (1. * (control_values.view.elevation - 300.0)).max(100.0);
+        control_values.speed = speed;
 
-        let view = &mut movement_values.view;
+        let view = &mut control_values.view;
         let elevation_fakt = 1. + time.delta_seconds() / 1.0;
         let groundmove_fact_lat = speed * time.delta_seconds() / 100000.0;
         let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
@@ -189,7 +163,14 @@ fn player_move(
                 view.distance = view.distance.max(0.4);
             }
         }
-        view.set_camera_view(&space, &mut player, None);
+
+        //view.set_camera_view(&space, &mut player, None);
+        let galactic_transform = view.to_transform(&space);
+        let new_pos = GalacticTransformSpace {
+            galactic_transform,
+            space: &space,
+        };
+        player.set_pos(new_pos);
     } else {
         warn!("Primary window not found for `player_move`!");
     }
@@ -197,11 +178,11 @@ fn player_move(
 
 /// Handles looking around if cursor is locked
 fn _player_look(
-    settings: Res<MovementValues>,
+    settings: Res<ControlValues>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mut state: ResMut<InputState>,
     motion: Res<Events<MouseMotion>>,
-    mut query: Query<&mut Transform, With<FlyCam>>,
+    mut query: Query<&mut Transform, With<Control>>,
 ) {
     if let Ok(window) = primary_window.get_single() {
         for mut transform in query.iter_mut() {
@@ -242,7 +223,7 @@ fn _player_look(
 
 fn setup(
     mut commands: Commands,
-    mut movement_values: ResMut<MovementValues>,
+    mut control_values: ResMut<ControlValues>,
     starting_values: Res<crate::StartingValues>,
     space: Res<FloatingOriginSettings>,
 ) {
@@ -252,16 +233,15 @@ fn setup(
     let mut camera = commands.spawn((
         Camera3dBundle { ..default() },
         InheritedVisibility::default(),
-        FlyCam,
-        F4Control,
+        Control,
         grid,
     ));
     camera.insert(FloatingOrigin);
 
     // set up accroding to lat/lon relative to Earth center
-    movement_values.up = starting_values.planetary_position.normalize().as_vec3();
-    movement_values.speed = 100.0;
-    movement_values.view = starting_values.start_view;
+    control_values.up = starting_values.planetary_position.normalize().as_vec3();
+    control_values.speed = 100.0;
+    control_values.view = starting_values.start_view;
 }
 
 pub struct Plugin;
@@ -269,7 +249,7 @@ pub struct Plugin;
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app
-            .init_resource::<MovementValues>()
+//            .init_resource::<MovementValues>()
             .add_systems(Startup, setup)
             .init_resource::<KeyBindings>()
             .add_systems(Update, player_move)
