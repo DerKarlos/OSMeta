@@ -797,14 +797,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_flycam"
-version = "0.12.0"
-source = "git+https://github.com/oli-obk/bevy_flycam?branch=arbitrary_up#e858926e6a9bd9d92e61c33b5467a3296316c254"
-dependencies = [
- "bevy",
-]
-
-[[package]]
 name = "bevy_gilrs"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3495,7 +3487,6 @@ dependencies = [
  "async-fs 2.1.0",
  "bevy",
  "bevy_embedded_assets",
- "bevy_flycam",
  "bevy_oxr",
  "bevy_panorbit_camera",
  "bevy_screen_diagnostics",

@@ -1,9 +1,7 @@
 //! Loads and renders a glTF file as a scene.
 
-use bevy::{pbr::NotShadowCaster, prelude::*};
+use bevy::prelude::*;
 use bevy_embedded_assets::EmbeddedAssetPlugin;
-#[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
-use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 use bevy_screen_diagnostics::{
     Aggregate, ScreenDiagnostics, ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin,
     ScreenFrameDiagnosticsPlugin,
@@ -23,13 +21,16 @@ use tilemap::TileMap;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use xr::pull_to_ground;
 
+mod compass;
 mod f4control;
 mod flycam;
 mod geocoord;
 mod geoview;
 mod http_assets;
+mod player;
 mod space;
 mod tilemap;
+
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 mod xr;
 
@@ -183,7 +184,7 @@ pub fn main() {
         CamControlMode::Fly => {
             app.add_plugins(flycam::Plugin)
                 .add_systems(Update, update_camera_orientations)
-                .add_systems(PostUpdate, reposition_compass);
+                .add_systems(PostUpdate, compass::reposition_compass);
         }
     }
 
@@ -206,66 +207,5 @@ fn setup(mut diags: ResMut<ScreenDiagnostics>) {
     diags.modify("fps").aggregate(Aggregate::Average);
 }
 
-#[cfg(not(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32")))))]
-/// HACK: we can't attach `LocalPlayer` to the xr player yet, so we need
-/// to access the OpenXRTrackingRoot, but that doesn't exist without the xr feature.
-/// So we create a dummy that is not attached to anything on platforms without the XR player.
-#[derive(Component)]
-pub struct OpenXRTrackingRoot;
-
 #[derive(Resource, Copy, Clone)]
 pub struct ViewDistance(f32);
-
-// Compass   Todo: move out of lib.rs
-#[derive(Component)]
-struct Compass;
-
-mod player;
-
-fn reposition_compass(
-    mut compass: Query<
-        GalacticTransform,
-        (
-            With<Compass>,
-            Without<player::Control>,
-            Without<OpenXRTrackingRoot>,
-        ),
-    >,
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-    server: Res<AssetServer>,
-    player: player::Player,
-) {
-    if let Ok(mut compass) = compass.get_single_mut() {
-        let player = player.pos();
-        let directions = player.directions();
-        compass.transform.translation =
-            player.galactic_transform.transform.translation - directions.up * 5.;
-        *compass.cell = player.cell;
-        compass.transform.look_to(directions.north, directions.up)
-    } else {
-        let mesh = shape::Plane::default();
-        let mesh = meshes.add(mesh.into());
-        let image = server.load("embedded://compass.png");
-        let material = materials.add(StandardMaterial {
-            base_color_texture: Some(image),
-            unlit: true,
-            cull_mode: None,
-            perceptual_roughness: 1.0,
-            fog_enabled: false,
-            alpha_mode: AlphaMode::Blend,
-            ..default()
-        });
-        commands.spawn((
-            PbrBundle {
-                mesh,
-                material,
-                ..default()
-            },
-            GalacticGrid::ZERO,
-            Compass,
-            NotShadowCaster,
-        ));
-    }
-}

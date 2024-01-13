@@ -1,14 +1,18 @@
-use crate::geocoord::GeoCoord;
-use crate::GalacticTransform;
-use crate::GalacticTransformOwned;
-
-use super::Compass;
-use super::OpenXRTrackingRoot;
-use crate::geoview::GeoView;
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use big_space::FloatingOriginSettings;
 use glam::DVec3;
+
+#[cfg(not(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32")))))]
+use crate::compass::OpenXRTrackingRoot;
+#[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
+use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
+
+use crate::compass::Compass;
+use crate::geocoord::GeoCoord;
+use crate::geoview::GeoView;
+use crate::GalacticTransform;
+use crate::GalacticTransformOwned;
 
 #[derive(SystemParam)]
 /// A helper argument for bevy systems that obtains the main player's position.
