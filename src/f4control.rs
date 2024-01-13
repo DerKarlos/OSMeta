@@ -165,7 +165,7 @@ fn player_move(
         }
 
         //view.set_camera_view(&space, &mut player, None);
-        let galactic_transform = view.to_transform(&space);
+        let galactic_transform = view.to_galactic_transform(&space);
         let new_pos = GalacticTransformSpace {
             galactic_transform,
             space: &space,

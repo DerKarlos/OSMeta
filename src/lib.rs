@@ -84,7 +84,7 @@ pub fn main() {
         args.extend(std::env::args().skip(1));
     }
 
-    let mut _cam_control_mode = CamControlMode::Fly;
+    let mut _cam_control_mode = CamControlMode::F4;  // default: F4,  test: Fly
 
     let mut geo_coord = GeoCoord {
         lat: 48.1408, // Germany, Munic, Main railway station

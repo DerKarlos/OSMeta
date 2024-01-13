@@ -25,7 +25,7 @@ cargo run --target wasm32-unknown-unknown
 
 brew install mingw-w64
 rustup target add x86_64-pc-windows-gnu
-cargo clippy --fix --allow-dirty --target x86_64-pc-windows-gnu
+cargo clippy --fix --allow-dirty --allow-staged --target x86_64-pc-windows-gnu 
 cargo fmt
 cargo check --target x86_64-pc-windows-gnu
 cargo build --target x86_64-pc-windows-gnu

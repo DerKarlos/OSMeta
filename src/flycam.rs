@@ -116,7 +116,7 @@ fn player_move(
     keys: Res<Input<KeyCode>>,
     time: Res<Time>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
-    settings: Res<ControlValues>,
+    control_values: Res<ControlValues>,
     key_bindings: Res<KeyBindings>,
     mut query: Query<(&Control, &mut Transform)>, //    mut query: Query<&mut Transform, With<Control>>,
 ) {
@@ -140,16 +140,16 @@ fn player_move(
                         } else if key == key_bindings.move_right {
                             velocity += right;
                         } else if key == key_bindings.move_ascend {
-                            velocity += settings.up;
+                            velocity += control_values.up;
                         } else if key == key_bindings.move_descend {
-                            velocity -= settings.up;
+                            velocity -= control_values.up;
                         }
                     }
                 }
 
                 velocity = velocity.normalize_or_zero();
 
-                transform.translation += velocity * time.delta_seconds() * settings.speed
+                transform.translation += velocity * time.delta_seconds() * control_values.speed
             }
         }
     } else {
@@ -243,7 +243,7 @@ impl bevy::prelude::Plugin for Plugin {
         app.add_systems(Startup, setup)
             .add_systems(Update, update_camera_speed)
             .add_systems(Update, grab_cursor)
-            // no_camera_player_plugin
+            // This was the "no_camera_player_plugin"
             // Contains everything needed to add first-person fly camera behavior to your game, but does not spawn a camera
             .init_resource::<InputState>()
             .init_resource::<ControlValues>()
@@ -289,13 +289,13 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    mut movement_settings: ResMut<ControlValues>,
+    mut control_values: ResMut<ControlValues>,
     mut keys: ResMut<KeyBindings>,
     starting_values: Res<crate::StartingValues>,
     space: Res<FloatingOriginSettings>,
 ) {
     // set up accroding to lat/lon relative to Earth center
-    movement_settings.up = starting_values.planetary_position.normalize().as_vec3();
+    control_values.up = starting_values.planetary_position.normalize().as_vec3();
     let (grid, _): (GalacticGrid, _) =
         space.translation_to_grid(starting_values.planetary_position);
 
@@ -343,19 +343,19 @@ fn setup(
     // We'll need this when the player moves very far or teleports to another place, as we need to ensure we don't go into
     // regions where the floating point numbers become imprecise.
 
-    movement_settings.speed = 100.0;
+    control_values.speed = 100.0;
     // Don't use ESC for grabbing/releasing the cursor. That's what browsers use, too, so it gets grabbed by bevy and released by the browser at the same time.
     keys.toggle_grab_cursor = KeyCode::G;
 }
 
 fn update_camera_speed(
-    mut movement_settings: ResMut<ControlValues>,
+    mut control_values: ResMut<ControlValues>,
     fly_cam: Query<GalacticTransform, With<Control>>,
     space: Res<FloatingOriginSettings>,
 ) {
     let elevation = fly_cam.single().position_double(&space).length() as f32;
     let speed = (1. * (elevation - crate::geocoord::EARTH_RADIUS - 300.0)).max(100.0);
-    movement_settings.speed = speed;
+    control_values.speed = speed;
 }
 
 // Todo ? Merge both to fn update? To many different parameters?
@@ -387,7 +387,7 @@ fn grab_cursor(
 }
 
 pub fn update_camera_orientations(
-    mut movement_settings: ResMut<ControlValues>,
+    mut control_values: ResMut<ControlValues>,
     mut fly_cam: Query<GalacticTransform, With<Control>>,
     space: Res<FloatingOriginSettings>,
 ) {
@@ -398,7 +398,7 @@ pub fn update_camera_orientations(
         .position_double(&space)
         .normalize() // direction from galactic NULL = from the Earth center
         .as_vec3();
-    movement_settings.up = up;
+    control_values.up = up;
 
     // Reorient "up" axis without introducing other rotations.
     let forward = fly_cam.transform.forward();

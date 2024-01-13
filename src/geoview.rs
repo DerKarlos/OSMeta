@@ -102,7 +102,7 @@ impl GeoView {
         }
     }
 
-    pub fn to_transform(self, space: &FloatingOriginSettings) -> GalacticTransformOwned {
+    pub fn to_galactic_transform(self, space: &FloatingOriginSettings) -> GalacticTransformOwned {
         // Position on Earth ground
         let mut starting_transform: GalacticTransformSpace<'_> = self
             .geo_coord
@@ -144,57 +144,11 @@ impl GeoView {
         &self,
         space: &FloatingOriginSettings,
         player: &mut Player,
-        control_values: Option<&mut ControlValues>,
+        control_values: &mut ControlValues,
     ) {
-        /*
-        match starting_values.cam_control_mode {
-            CamControlMode::F4 => {set_camera_view_f4()},
-            _ => {set_camera_view_fly()},
-        }
-        */
+        control_values.view = *self;
 
-        if let Some(control_values) = control_values {
-            control_values.view = *self;
-        }
-
-        let galactic_transform = self.to_transform(space);
-
-        /* * /
-                // Position on Earth ground
-                let mut starting_transform = self
-                    .geo_coord
-                    .to_cartesian()
-                    .to_galactic_transform_space(space);
-                let directions = starting_transform.directions();
-
-                // Add camera / player height above ground
-                starting_transform.transform.translation += directions.up * self.elevation;
-                let _camera_spot = starting_transform.transform.translation;
-                // Look northwards (to Earth center)
-                starting_transform
-                    .transform
-                    .look_to(directions.north, directions.up);
-
-                // Rotate to west or east
-                starting_transform
-                    .transform
-                    .rotate_axis(directions.up, self.direction.to_radians());
-                // Pan up or down. We subtract 90° (FRAC_PI_2), because the up-view is an angle from looking
-                // straight down. We don't default to looking down, as that doesn't guarantee us
-                // that the forward direction is north.
-
-                starting_transform
-                    .transform
-                    .rotate_local_x(self.up_view.to_radians());
-
-                if self.distance > 0.0 {
-                    //let beam_directon = starting_transform.transform.rotation; // quat
-                    //let (angle,_) = beam_directon.to_axis_angle();
-                    starting_transform.transform.translation += directions.west * self.distance;
-                    //starting_transform.transform.look_at(_camera_spot);
-                }
-                player.set_pos(starting_transform);
-        / * */
+        let galactic_transform = self.to_galactic_transform(space);
 
         let new_pos = GalacticTransformSpace {
             galactic_transform,
@@ -277,7 +231,7 @@ fn keys_ui(
                         info!("*** key: {:?}", key_string);
                         let view3 = GeoView::restore(key_string, &mut views.map);
                         if let Some(view3) = view3 {
-                            view3.set_camera_view(&space, &mut player, Some(&mut control_values));
+                            view3.set_camera_view(&space, &mut player, &mut control_values);
                         }
                     }
                 }
@@ -291,14 +245,17 @@ fn keys_ui_setup(
     starting_values: Res<crate::StartingValues>,
     mut player: Player,
     mut views: ResMut<Views>,
+    mut control_values: ResMut<ControlValues>,
     space: Res<FloatingOriginSettings>,
 ) {
+    // The start view is placed for Key0 and
+    // all controls are set here (also the camera)
     starting_values
         .start_view
         .store("Key0".to_string(), &mut views.map);
     starting_values
         .start_view
-        .set_camera_view(&space, &mut player, None);
+        .set_camera_view(&space, &mut player, &mut control_values);
 }
 
 pub struct Plugin;
