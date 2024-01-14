@@ -160,6 +160,22 @@ impl<'w, 's> Player<'w, 's> {
 #[derive(Component)]
 pub struct Control;
 
+#[derive(Clone, Copy, PartialEq)]
+pub enum CamControlMode {
+    F4,
+    Fly,
+    // todo: more to come
+}
+/*
+impl Clone for CamControlMode {
+    fn clone(&self) -> CamControlMode {
+        match self {
+            F4 => CamControlMode::F4,
+            Fly => CamControlMode::Fly,
+        }
+    }
+}
+*/
 /// Used by all controlers: Mouse sensitivity and movement speed, up vector and set view
 #[derive(Resource)]
 pub struct ControlValues {
@@ -167,6 +183,7 @@ pub struct ControlValues {
     pub speed: f32,
     pub up: Vec3,
     pub view: GeoView,
+    pub cam_control_mode: CamControlMode,
 }
 
 impl Default for ControlValues {
@@ -176,6 +193,7 @@ impl Default for ControlValues {
             speed: 12.,
             up: Vec3::Y,
             view: GeoView::new(),
+            cam_control_mode: CamControlMode::F4,
         }
     }
 }
@@ -215,7 +233,10 @@ pub fn setup_player_controls(
     mut materials: ResMut<Assets<StandardMaterial>>,
     space: Res<FloatingOriginSettings>,
     starting_values: Res<crate::StartingValues>,
+    mut control_values: ResMut<ControlValues>,
 ) {
+    control_values.cam_control_mode = starting_values.cam_control_mode;
+
     let (grid, _): (GalacticGrid, _) =
         space.translation_to_grid(starting_values.planetary_position);
 

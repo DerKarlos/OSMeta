@@ -1,5 +1,6 @@
 use super::geocoord::*;
 use super::GalacticTransformOwned;
+use crate::player::CamControlMode;
 use crate::player::{ControlValues, GalacticTransformSpace, Player};
 use bevy::{
     prelude::*,
@@ -102,7 +103,11 @@ impl GeoView {
         }
     }
 
-    pub fn to_galactic_transform(self, space: &FloatingOriginSettings) -> GalacticTransformOwned {
+    pub fn to_galactic_transform(
+        self,
+        space: &FloatingOriginSettings,
+        use_distance: bool,
+    ) -> GalacticTransformOwned {
         // Position on Earth ground
         let mut starting_transform: GalacticTransformSpace<'_> = self
             .geo_coord
@@ -130,7 +135,7 @@ impl GeoView {
             .transform
             .rotate_local_x(self.up_view.to_radians());
 
-        if self.distance > 0.0 {
+        if use_distance {
             //let beam_directon = starting_transform.transform.rotation; // quat
             //let (angle,_) = beam_directon.to_axis_angle();
             let beam_directon = -starting_transform.transform.forward();
@@ -147,9 +152,9 @@ impl GeoView {
         player: &mut Player,
         control_values: &mut ControlValues,
     ) {
-        control_values.view = *self;
-
-        let galactic_transform = self.to_galactic_transform(space);
+        control_values.view = *self; //
+        let use_distance = control_values.cam_control_mode == CamControlMode::F4;
+        let galactic_transform = self.to_galactic_transform(space, use_distance);
 
         let new_pos = GalacticTransformSpace {
             galactic_transform,
@@ -160,7 +165,7 @@ impl GeoView {
     }
 
     #[instrument(level = "debug", skip(space, player), ret)]
-    pub fn get_camera_view(space: &FloatingOriginSettings, player: &Player) -> Self {
+    pub fn from_player(space: &FloatingOriginSettings, player: &Player) -> Self {
         let position = player.pos();
 
         let geo_coord = position.to_planetary_position().to_geocoord();
@@ -191,7 +196,7 @@ impl GeoView {
             elevation,
             direction,
             up_view,
-            distance: 66.,
+            distance: 0.0,
             camera_fov: 77.,
         }
     }
@@ -225,7 +230,14 @@ fn keys_ui(
                     if keys.pressed(KeyCode::ShiftRight) {
                         info!("*** KEY: {:?}", key_string);
                         if key != KeyCode::Key0 {
-                            let geo_view = GeoView::get_camera_view(&space, &player);
+
+                            let is_orbit_control = control_values.cam_control_mode == CamControlMode::F4;
+                            let mut geo_view = if is_orbit_control {
+                                control_values.view
+                            } else {
+                                GeoView::from_player(&space, &player)
+                            };
+                            geo_view.distance = control_values.view.distance; // keep distance of orbid control
                             geo_view.store(key_string, &mut views.map);
                         }
                     } else {

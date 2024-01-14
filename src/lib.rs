@@ -16,7 +16,7 @@ use flycontrol::update_camera_orientations;
 use geocoord::GeoCoord;
 use geoview::GeoView;
 use http_assets::HttpAssetReaderPlugin;
-use player::{ControlValues, PlanetaryPosition};
+use player::{CamControlMode, ControlValues, PlanetaryPosition};
 use tilemap::TileMap;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use xr::pull_to_ground;
@@ -43,19 +43,13 @@ type GalacticTransformReadOnlyItem<'a> = GridTransformReadOnlyItem<'a, GridPreci
 #[allow(dead_code)]
 type GalacticTransformItem<'a> = GridTransformItem<'a, GridPrecision>;
 
-pub enum CamControlMode {
-    F4,
-    Fly,
-    // todo: more to come
-}
-
 #[derive(Resource)]
 struct StartingValues {
     // was Args
     _args: Vec<String>, // Todo: You never know where you may need it
     planetary_position: PlanetaryPosition,
     start_view: GeoView,
-    _cam_control_mode: CamControlMode,
+    cam_control_mode: CamControlMode,
     xr: bool,
 }
 
@@ -84,7 +78,7 @@ pub fn main() {
         args.extend(std::env::args().skip(1));
     }
 
-    let mut _cam_control_mode = CamControlMode::F4; // default: F4,  test: Fly
+    let mut cam_control_mode = CamControlMode::F4; // default: F4,  test: Fly
 
     let mut geo_coord = GeoCoord {
         lat: 48.1408, // Germany, Munic, Main railway station
@@ -93,7 +87,7 @@ pub fn main() {
     let mut elevation: f32 = 50.0; // todo: default 1.4 for f4control
 
     // GeoView to city center, Marienplatz
-    let mut direction: f32 = -105.0; // Compass view-direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
+    let mut direction: f32 = 0.; //-105.0; // Compass view-direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
     let mut up_view: f32 = -30.0; // Up-view slightly down. -90 = down, 0 = horizontal 90 = Up
     let mut distance: f32 = 500.; // radius of the sphere, the arc rotate camera rotates on
     let mut camera_fov: f32 = 30.; // todo: default?  field of view, the angle widht of the world, the camera is showing
@@ -112,9 +106,9 @@ pub fn main() {
                 let arg: String = v.parse().unwrap();
                 let arg: &str = arg.as_str(); // todo: better rust?
                 match arg {
-                    "fly" => _cam_control_mode = CamControlMode::Fly,
-                    "ufo" => _cam_control_mode = CamControlMode::Fly,
-                    _ => _cam_control_mode = CamControlMode::F4,
+                    "fly" => cam_control_mode = CamControlMode::Fly,
+                    "ufo" => cam_control_mode = CamControlMode::Fly,
+                    _ => cam_control_mode = CamControlMode::F4,
                 }
             }
             "lat" => geo_coord.lat = v.parse().unwrap(),
@@ -181,7 +175,7 @@ pub fn main() {
         //.add_systems(Update, init_controls);
         .init_resource::<ControlValues>();
 
-    match _cam_control_mode {
+    match cam_control_mode {
         CamControlMode::F4 => {
             app.add_plugins(f4control::Plugin);
         }
@@ -196,8 +190,8 @@ pub fn main() {
         _args: args,
         planetary_position: geo_coord.to_cartesian(),
         start_view,
+        cam_control_mode,
         xr,
-        _cam_control_mode,
     });
 
     app.add_plugins(geoview::Plugin)

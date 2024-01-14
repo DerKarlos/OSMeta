@@ -120,21 +120,30 @@ fn player_move(
         const ELEVATION_LIMIT: f32 = 20_000_000.0; // meter
         let rotation_fact = time.delta_seconds() * 20.0; // delta time * degrees per second = delta degrees
 
+        let dir = view.direction.to_radians();
+        // Todo?:  make a geo_forward/east? Put lat/lon in a vec3 or 2?
+        let north = dir.cos();
+        let east = -dir.sin();
+
         for key in keys.get_pressed() {
             // match key does not work with struct key_bindings
             let key = *key;
-            // ahead
+            // ahead/backward
             if key == key_bindings.move_forward {
-                view.geo_coord.lat += groundmove_fact_lat;
-                view.geo_coord.lat = view.geo_coord.lat.min(OSM_LAT_LIMIT);
+                view.geo_coord.lat += north * groundmove_fact_lat;
+                view.geo_coord.lon += east * groundmove_fact_lon;
             } else if key == key_bindings.move_backward {
-                view.geo_coord.lat -= groundmove_fact_lat;
-                view.geo_coord.lat = view.geo_coord.lat.max(-OSM_LAT_LIMIT);
+                view.geo_coord.lat -= north * groundmove_fact_lat;
+                view.geo_coord.lon -= east * groundmove_fact_lon;
+            //
             // sidewise
-            } else if key == key_bindings.move_left {
-                view.geo_coord.lon -= groundmove_fact_lon;
             } else if key == key_bindings.move_right {
-                view.geo_coord.lon += groundmove_fact_lon;
+                view.geo_coord.lat -= east * groundmove_fact_lat;
+                view.geo_coord.lon += north * groundmove_fact_lon;
+            } else if key == key_bindings.move_left {
+                view.geo_coord.lat += east * groundmove_fact_lat;
+                view.geo_coord.lon -= north * groundmove_fact_lon;
+            //
             // elevate
             } else if key == key_bindings.move_ascend {
                 view.elevation *= elevation_fakt;
@@ -142,6 +151,7 @@ fn player_move(
             } else if key == key_bindings.move_descend {
                 view.elevation /= elevation_fakt;
                 view.elevation = view.elevation.max(0.4);
+            //
             // rotate
             } else if key == key_bindings.rotate_right {
                 view.direction -= rotation_fact;
@@ -153,6 +163,7 @@ fn player_move(
             } else if key == key_bindings.rotate_down {
                 view.up_view -= rotation_fact;
                 view.up_view = view.up_view.max(-OSM_LAT_LIMIT);
+            //
             // zoom
             } else if key == key_bindings.zoom_out {
                 view.distance *= elevation_fakt;
@@ -163,8 +174,8 @@ fn player_move(
             }
         }
 
-        //view.set_camera_view(&space, &mut player, None);
-        let galactic_transform = view.to_galactic_transform(&space);
+        view.geo_coord.lat = view.geo_coord.lat.clamp(-OSM_LAT_LIMIT, OSM_LAT_LIMIT);
+        let galactic_transform = view.to_galactic_transform(&space, true);
         let new_pos = GalacticTransformSpace {
             galactic_transform,
             space: &space,
