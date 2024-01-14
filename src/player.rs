@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use bevy::ecs::system::SystemParam;
+use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use big_space::{FloatingOrigin, FloatingOriginSettings};
 use glam::DVec3;
@@ -10,11 +10,11 @@ use crate::compass::OpenXRTrackingRoot;
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 
 use crate::compass::Compass;
-use crate::geocoord::{GeoCoord,EARTH_RADIUS};
+use crate::geocoord::{GeoCoord, EARTH_RADIUS};
 use crate::geoview::GeoView;
+use crate::GalacticGrid;
 use crate::GalacticTransform;
 use crate::GalacticTransformOwned;
-use crate::GalacticGrid;
 
 #[derive(SystemParam)]
 /// A helper argument for bevy systems that obtains the main player's position.
@@ -208,9 +208,8 @@ fn uv_debug_texture() -> Image {
     )
 }
 
-
 pub fn setup_player_controls(
-    mut commands: Commands,    
+    mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -220,7 +219,6 @@ pub fn setup_player_controls(
     let (grid, _): (GalacticGrid, _) =
         space.translation_to_grid(starting_values.planetary_position);
 
-        
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
         ..default()
@@ -246,7 +244,6 @@ pub fn setup_player_controls(
         InheritedVisibility::default(),
         Control,
         grid,
-
         FogSettings {
             color: Color::rgba(0.35, 0.48, 0.66, 1.0),
             directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
@@ -257,7 +254,6 @@ pub fn setup_player_controls(
                 Color::rgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
             ),
         },
-
     ));
     camera.add_child(sphere);
     if !starting_values.xr {
@@ -266,21 +262,13 @@ pub fn setup_player_controls(
     // FIXME: attach the camera bundle to the world, so when we move the world, the player is automatically moved with it.
     // We'll need this when the player moves very far or teleports to another place, as we need to ensure we don't go into
     // regions where the floating point numbers become imprecise.
-
 }
-
-
 
 pub struct Plugin;
 
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
-
-        app
-            .init_resource::<ControlValues>()
-            .add_systems(Startup, setup_player_controls)
-            ;
-
-
+        app.init_resource::<ControlValues>()
+            .add_systems(Startup, setup_player_controls);
     }
 }

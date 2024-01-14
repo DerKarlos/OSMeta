@@ -101,7 +101,9 @@ pub fn main() {
     let mut xr = false;
 
     for arg in &args {
-        if arg.is_empty() {continue;}; // to skipp unneeded & in the browser URL
+        if arg.is_empty() {
+            continue; // skip unneeded & in the browser URL
+        };
         let (k, v) = arg
             .split_once('=')
             .expect("arguments must be `key=value` pairs");

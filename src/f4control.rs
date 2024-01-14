@@ -220,10 +220,7 @@ fn _player_look(
     }
 }
 
-fn setup(
-    mut control_values: ResMut<ControlValues>,
-    starting_values: Res<crate::StartingValues>,
-) {
+fn setup(mut control_values: ResMut<ControlValues>, starting_values: Res<crate::StartingValues>) {
     // set up accroding to lat/lon relative to Earth center
     control_values.up = starting_values.planetary_position.normalize().as_vec3();
     control_values.speed = 100.0;
