@@ -21,7 +21,7 @@ pub mod prelude {
 /// Keeps track of mouse motion events, pitch, and yaw
 #[derive(Resource, Default)]
 struct InputState {
-    reader_motion: ManualEventReader<MouseMotion>,
+    reader_motion: ManualEventReader<MouseMotion>, // todo? add to ControlData ???
 }
 
 /// Key configuration

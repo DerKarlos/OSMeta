@@ -87,7 +87,7 @@ pub fn main() {
     let mut elevation: f32 = 50.0; // todo: default 1.4 for f4control
 
     // GeoView to city center, Marienplatz
-    let mut direction: f32 = 0.; //-105.0; // Compass view-direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
+    let mut direction: f32 = -105.0; // Compass view-direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
     let mut up_view: f32 = -30.0; // Up-view slightly down. -90 = down, 0 = horizontal 90 = Up
     let mut distance: f32 = 500.; // radius of the sphere, the arc rotate camera rotates on
     let mut camera_fov: f32 = 30.; // todo: default?  field of view, the angle widht of the world, the camera is showing

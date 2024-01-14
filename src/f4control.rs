@@ -40,7 +40,7 @@ See also: https://bevy-cheatbook.github.io/cookbook/pan-orbit-camera.html
 use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
-use bevy::window::{CursorGrabMode, PrimaryWindow};
+use bevy::window::PrimaryWindow;
 
 use big_space::FloatingOriginSettings;
 
@@ -53,7 +53,7 @@ pub mod prelude {
 /// Keeps track of mouse motion events, pitch, and yaw
 #[derive(Resource, Default)]
 struct InputState {
-    _reader_motion: ManualEventReader<MouseMotion>,
+    reader_motion: ManualEventReader<MouseMotion>,
 }
 
 /// Key configuration
@@ -187,43 +187,40 @@ fn player_move(
 }
 
 /// Handles looking around if cursor is locked
-fn _player_look(
-    settings: Res<ControlValues>,
+fn player_look(
     primary_window: Query<&Window, With<PrimaryWindow>>,
-    mut state: ResMut<InputState>,
     motion: Res<Events<MouseMotion>>,
+    mouse_input: Res<Input<MouseButton>>,
+    mut state: ResMut<InputState>,
+    mut control_values: ResMut<ControlValues>, // settings
     mut query: Query<&mut Transform, With<Control>>,
 ) {
     if let Ok(window) = primary_window.get_single() {
-        for mut transform in query.iter_mut() {
-            for ev in state._reader_motion.read(&motion) {
+        for mut _transform in query.iter_mut() {
+            for ev in state.reader_motion.read(&motion) {
                 let mut yaw = 0.0;
                 let mut pitch = 0.0;
-                match window.cursor.grab_mode {
-                    CursorGrabMode::None => (),
-                    _ => {
-                        // Using smallest of height or width ensures equal vertical and horizontal sensitivity
-                        let window_scale = window.height().min(window.width());
-                        pitch -= (settings.sensitivity * ev.delta.y * window_scale).to_radians();
-                        yaw -= (settings.sensitivity * ev.delta.x * window_scale).to_radians();
-                    }
+
+                if mouse_input.pressed(MouseButton::Left) {
+                    // Using smallest of height or width ensures equal vertical and horizontal sensitivity
+                    let window_scale = window.height().min(window.width());
+                    pitch -= (control_values.sensitivity * ev.delta.y * window_scale).to_radians();
+                    yaw -= (control_values.sensitivity * ev.delta.x * window_scale).to_radians();
+                    let view = &mut control_values.view;
+                    view.up_view += pitch * 50.; // todo: F4 needs more senivity ???
+                    view.direction += yaw * 50.;
                 }
 
-                // Order is important to prevent unintended roll
-                transform.rotation = Quat::from_axis_angle(settings.up, yaw)
-                    * transform.rotation
-                    * Quat::from_axis_angle(Vec3::X, pitch);
-
-                let up = transform.up();
-                let right = transform.right();
-                let pitch = settings.up.cross(up).dot(right).atan2(settings.up.dot(up));
-                let restricted_pitch = pitch.clamp(-1.54, 1.54);
-                let diff = restricted_pitch - pitch;
-                transform.rotate_axis(right, diff);
-
-                // Eliminate accumulated roll and ensure we don't flip onto our heads.
-                let forward = transform.forward();
-                transform.look_to(forward, settings.up);
+                if mouse_input.pressed(MouseButton::Right) {
+                    // Using smallest of height or width ensures equal vertical and horizontal sensitivity
+                    let window_scale = window.height().min(window.width());
+                    pitch -= (control_values.sensitivity * ev.delta.y * window_scale).to_radians();
+                    yaw -= (control_values.sensitivity * ev.delta.x * window_scale).to_radians();
+                    let view = &mut control_values.view;
+                    let groundmove_fact_lat = 100000.0;
+                    view.geo_coord.lat += yaw / groundmove_fact_lat * 200.;
+                    view.geo_coord.lon += pitch / groundmove_fact_lat * 200.;
+                }
             }
         }
     } else {
@@ -245,10 +242,10 @@ impl bevy::prelude::Plugin for Plugin {
         app
 //            .init_resource::<MovementValues>()
             .add_systems(Startup, setup)
+            .init_resource::<InputState>()
             .init_resource::<KeyBindings>()
-            .add_systems(Update, player_move)
-            //.init_resource::<InputState>()
-            //.add_systems(Update, player_look)
+            .add_systems(Update, player_look)
+            .add_systems(Update, player_move) // Toto: ok? move also sets the changes of look
             ;
     }
 }
