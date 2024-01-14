@@ -4,7 +4,7 @@ https://de.wikipedia.org/wiki/Kugelkoordinaten#Übliche_Konvention
 https://en.wikipedia.org/wiki/Spherical_coordinate_system
 */
 
-use bevy::prelude::*;
+use bevy::{prelude::*, utils::petgraph::matrix_graph::Zero};
 use bevy_panorbit_camera::*; // https://docs.rs/bevy_panorbit_camera/latest/bevy_panorbit_camera/
 use globe_rs::{CartesianPoint, GeographicPoint};
 
@@ -14,14 +14,16 @@ const EARTH_RADIUS: f32 = 1.0;
 
 const LAT: f32 = 0.; // 48.1408;
 const LON: f32 = 0.; // 11.5577;
-const ELEVATION: f32 = 0.3;
+const ELEVATION: f32 = 0.7;
 
 const DIRECTION: f32 = 0.0;
-const UP_VIEW: f32 = 0.0;
-const DISTANCE: f32 = 0.4;
+const UP_VIEW: f32 = -90.0;
+const DISTANCE: f32 = 0.7;
+
+const SECTORS: usize = 32;
 
 #[derive(Component)]
-pub struct Cam;
+pub struct CamControl;
 
 #[derive(Resource, Default)]
 pub struct CamData {
@@ -29,6 +31,10 @@ pub struct CamData {
     pub lon: f32,
     pub direction: f32,
 }
+
+// Trolley Angle Marker
+#[derive(Component)]
+pub struct Join;
 
 #[bevy_main]
 fn main() {
@@ -42,6 +48,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(PanOrbitCameraPlugin)
         .add_systems(Startup, setup)
+        .add_systems(Update, move_join)
         .add_systems(Update, move_camera)
         .run();
 }
@@ -66,7 +73,7 @@ fn setup(
                 }),
                 ..default()
             },
-            Cam,
+            CamControl,
         ))
         .id();
 
@@ -81,12 +88,13 @@ fn setup(
 
     commands.entity(camera_box).push_children(&[lense]);
 
-    // Earth with equator and greewich meridian
+    ////////////////////////////////////////////////////////
+    // Earth with equator and greewich meridian and markers
     let sphere = meshes.add(
         shape::UVSphere {
             radius: EARTH_RADIUS,
-            sectors: 16,
-            stacks: 8,
+            sectors: SECTORS,
+            stacks: SECTORS / 2,
         }
         .try_into()
         .unwrap(),
@@ -161,6 +169,52 @@ fn setup(
         ..default()
     },));
 
+    // Munich, Germany
+    commands.spawn((PbrBundle {
+        mesh: cube.clone(),
+        material: materials.add(StandardMaterial {
+            base_color: Color::ALICE_BLUE,
+            ..default()
+        }),
+        transform: Transform::from_translation(calc_geographic_translation(
+            48.1408, 11.5577, 0., 0., 0.,
+        ))
+        .with_scale(Vec3::new(0.1, 0.1, 0.1)),
+        ..default()
+    },));
+
+    // Join
+    commands.spawn((
+        PbrBundle {
+            mesh: cube.clone(),
+            material: materials.add(StandardMaterial {
+                base_color: Color::YELLOW,
+                ..default()
+            }),
+            transform: Transform::from_translation(calc_geographic_translation(0., 0., 0., 0., 0.))
+                .with_scale(Vec3::new(0.1, 0.1, 0.1)),
+            ..default()
+        },
+        Join,
+    ));
+
+    ///// Camera & Light /////////////////////////////////////////////////////
+
+    // bevy-camera
+    commands.spawn((
+        Camera3dBundle {
+            //transform: Transform::from_xyz(0., 10., 0.),
+            ..default()
+        },
+        //CamControl,
+        PanOrbitCamera {
+            //alpha: Some((-90.0_f32).to_radians()),
+            //beta: Some((0.0_f32).to_radians()),
+            radius: Some(6.0_f32),
+            ..default()
+        },
+    ));
+
     // light
     commands.spawn(PointLightBundle {
         point_light: PointLight {
@@ -171,36 +225,36 @@ fn setup(
         transform: Transform::from_xyz(4.0, 8.0, 4.0),
         ..default()
     });
-
-    // bevy-camera
-    commands.spawn((
-        Camera3dBundle {
-            //transform: Transform::from_xyz(0., 10., 0.),
-            ..default()
-        },
-        //Cam,
-        PanOrbitCamera {
-            //alpha: Some((-90.0_f32).to_radians()),
-            //beta: Some((0.0_f32).to_radians()),
-            radius: Some(6.0_f32),
-            ..default()
-        },
-    ));
 }
 
+fn move_join(
+    mut transform_query: Query<&mut Transform, With<Join>>, //
+    cam_data: Res<CamData>,
+) {
+    for mut transform in transform_query.iter_mut() {
+        let translation =
+            calc_geographic_translation(cam_data.lat, cam_data.lon, ELEVATION, 0., 0.);
+
+        transform.translation = translation;
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// Learning rotation, quaternion, transformation /////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 fn move_camera(
-    mut cam_transform_query: Query<&mut Transform, With<Cam>>, //
-    mut cam_data: ResMut<CamData>,
-    time: Res<Time>,
+    mut cam_transform_query: Query<&mut Transform, With<CamControl>>, //
+    cam_data: ResMut<CamData>,
+    _time: Res<Time>,
 ) {
     for mut transform in cam_transform_query.iter_mut() {
         // todo: how to do it with single() ?
 
-        //cam_data.lon += 0.5 * time.delta_seconds();
+        //cam_data.lon += 2.0 * time.delta_seconds();
         //cam_data.lat += 5.0 * time.delta_seconds();
-        cam_data.direction += 20.0 * time.delta_seconds();
+        //cam_data.direction += 45.0 * time.delta_seconds(); // degrees per second   45 = 8s for one full rotation
 
+        //info!("cam_data.lon: {:?}",cam_data.lon);
         let translation = calc_geographic_translation(
             cam_data.lat,
             cam_data.lon,
@@ -235,11 +289,11 @@ fn move_camera(
         transform.translation = translation;
 
         // There are differnt ways to rotate to point the camera to the Earth, independend of the lat/lon coordinates:
-        if false {
+        if true {
             // Rotate form Bevy default to OSMeta default: Null-Island with Greenwich abowe
             // // transform.rotation = Quat::from_axis_angle(Vec3{x:0.,y:1.,z:0.},(-90.0_f32).to_radians());
             // // transform.rotate_axis(Vec3{x:1.,y:0.,z:0.},(90.0_f32).to_radians());
-            // This can be done by one function: (But why not YXZ? If Y is rotated, do Xand Z rotate to?!)
+            // This can be done by one function: (But why not YXZ? If Y is rotated, do X and Z rotate to?!)
             transform.rotation = Quat::from_euler(
                 EulerRot::YZX,
                 (-90.0_f32).to_radians(),
@@ -247,15 +301,8 @@ fn move_camera(
                 0.0,
             );
 
-            // Compensate Lat/Lon
-            transform.rotate_axis(
-                Vec3 {
-                    x: 0.,
-                    y: 0.,
-                    z: 1.,
-                },
-                cam_data.lon.to_radians(),
-            );
+            // Compensate first Lon and then Lat
+            transform.rotate_local_z(-cam_data.lon.to_radians()); // Also ok: rotate_axis(Vec3::Z,
             transform.rotate_local_x(-cam_data.lat.to_radians());
         } else {
             // Looking down to earth center is quite more simple
@@ -270,7 +317,7 @@ fn move_camera(
     }
 }
 
-fn calc_geographic_translation(lat: f32, lon: f32, ele: f32, dir: f32, dist: f32) -> Vec3 {
+fn calc_geographic_translation(lat: f32, lon: f32, ele: f32, _dir: f32, dist: f32) -> Vec3 {
     let geo = GeographicPoint::new(
         (lon as f64).to_radians(),
         (lat as f64).to_radians(),
@@ -284,11 +331,27 @@ fn calc_geographic_translation(lat: f32, lon: f32, ele: f32, dir: f32, dist: f32
 
     let mut pos = ground_pos.as_vec3() + up * ele;
 
-    if true {
-        let alpha: f32 = -dir * 2.0000000000000000;
-        let beta = UP_VIEW - 90.0;
-        let rotation = Quat::from_euler(EulerRot::YZX, alpha.to_radians(), beta.to_radians(), 0.0);
-        let (boom_direction, _) = rotation.to_axis_angle();
+    if !dist.abs().is_zero() {
+        // Rotate form Bevy default to OSMeta default: Null-Island with Greenwich abowe
+        let rotation_osmeta_default = Quat::from_euler(
+            EulerRot::YZX,
+            (-90.0_f32).to_radians(),
+            (-90.0_f32).to_radians(),
+            0.0,
+        );
+        let transform = Transform::from_rotation(rotation_osmeta_default);
+        // Compensate first Lon and then Lat
+        //    transform.rotate_local_z(-lon.to_radians());
+        //    transform.rotate_local_x(-lat.to_radians());
+
+        // Now rotate to the acutal view angles (alpha=directin,beta=up_view)
+        //transform.rotate_local_z(dir.to_radians());
+        //transform.rotate_local_x((UP_VIEW + 90.).to_radians());
+
+        let ro = transform.rotation;
+        let (dir, _) = ro.to_axis_angle();
+        let boom_direction = dir.normalize();
+
         pos += boom_direction * dist;
     }
 

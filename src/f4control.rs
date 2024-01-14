@@ -42,8 +42,7 @@ use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
 
-use crate::GalacticGrid;
-use big_space::{FloatingOrigin, FloatingOriginSettings};
+use big_space::FloatingOriginSettings;
 
 use crate::player::{ControlValues, GalacticTransformSpace, Player};
 
@@ -222,22 +221,9 @@ fn _player_look(
 }
 
 fn setup(
-    mut commands: Commands,
     mut control_values: ResMut<ControlValues>,
     starting_values: Res<crate::StartingValues>,
-    space: Res<FloatingOriginSettings>,
 ) {
-    let (grid, _): (GalacticGrid, _) =
-        space.translation_to_grid(starting_values.planetary_position);
-
-    let mut camera = commands.spawn((
-        Camera3dBundle { ..default() },
-        InheritedVisibility::default(),
-        Control,
-        grid,
-    ));
-    camera.insert(FloatingOrigin);
-
     // set up accroding to lat/lon relative to Earth center
     control_values.up = starting_values.planetary_position.normalize().as_vec3();
     control_values.speed = 100.0;

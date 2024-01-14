@@ -7,14 +7,12 @@
 use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
-use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use bevy::window::{CursorGrabMode, PrimaryWindow};
 
-use big_space::{FloatingOrigin, FloatingOriginSettings};
+use big_space::FloatingOriginSettings;
 
-use crate::geocoord::EARTH_RADIUS;
 use crate::player::{Control, ControlValues};
-use crate::{GalacticGrid, GalacticTransform};
+use crate::GalacticTransform;
 
 pub mod prelude {
     pub use crate::*;
@@ -25,26 +23,6 @@ pub mod prelude {
 struct InputState {
     reader_motion: ManualEventReader<MouseMotion>,
 }
-
-/*
-/// Mouse sensitivity and movement speed
-#[derive(Resource)]
-pub struct MovementSettings {
-    pub sensitivity: f32,
-    pub speed: f32,
-    pub up: Vec3,
-}
-
-impl Default for MovementSettings {
-    fn default() -> Self {
-        Self {
-            sensitivity: 0.00012,
-            speed: 12.,
-            up: Vec3::Y,
-        }
-    }
-}
- */
 
 /// Key configuration
 #[derive(Resource)]
@@ -73,8 +51,6 @@ impl Default for KeyBindings {
     }
 }
 
-/// A marker component used in queries when you want flycams and not other cameras
-
 /// Grabs/ungrabs mouse cursor
 fn toggle_grab_cursor(window: &mut Window) {
     match window.cursor.grab_mode {
@@ -97,19 +73,6 @@ fn initial_grab_cursor(mut primary_window: Query<&mut Window, With<PrimaryWindow
         warn!("Primary window not found for `initial_grab_cursor`!");
     }
 }
-
-/*
-/// Spawns the `Camera3dBundle` to be controlled  Todo: delete
-fn _setup_player(mut commands: Commands, settings: Res<ControlValues>) {
-    commands.spawn((
-        Camera3dBundle {
-            transform: Transform::from_xyz(-2.0, 5.0, 5.0).looking_at(Vec3::ZERO, settings.up),
-            ..Default::default()
-        },
-        Control,
-    ));
-}
-*/
 
 /// Handles keyboard input and movement
 fn player_move(
@@ -217,7 +180,7 @@ fn cursor_grab(
 }
 
 // Grab cursor when an entity with Fly-Cam is added
-fn initial_grab_on_flycam_spawn(
+fn initial_grab_on_fly_control_spawn(
     mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
     query_added: Query<Entity, Added<Control>>,
 ) {
@@ -249,101 +212,21 @@ impl bevy::prelude::Plugin for Plugin {
             .init_resource::<ControlValues>()
             .init_resource::<KeyBindings>()
             .add_systems(Startup, initial_grab_cursor)
-            .add_systems(Startup, initial_grab_on_flycam_spawn)
+            .add_systems(Startup, initial_grab_on_fly_control_spawn)
             .add_systems(Update, player_move)
             .add_systems(Update, player_look)
             .add_systems(Update, cursor_grab);
     }
 }
 
-/// Creates a colorful test pattern
-fn uv_debug_texture() -> Image {
-    const TEXTURE_SIZE: usize = 8;
-
-    let mut palette: [u8; 32] = [
-        255, 102, 159, 255, 255, 159, 102, 255, 236, 255, 102, 255, 121, 255, 102, 255, 102, 255,
-        198, 255, 102, 198, 255, 255, 121, 102, 255, 255, 236, 102, 255, 255,
-    ];
-
-    let mut texture_data = [0; TEXTURE_SIZE * TEXTURE_SIZE * 4];
-    for y in 0..TEXTURE_SIZE {
-        let offset = TEXTURE_SIZE * y * 4;
-        texture_data[offset..(offset + TEXTURE_SIZE * 4)].copy_from_slice(&palette);
-        palette.rotate_right(4);
-    }
-
-    Image::new_fill(
-        Extent3d {
-            width: TEXTURE_SIZE as u32,
-            height: TEXTURE_SIZE as u32,
-            depth_or_array_layers: 1,
-        },
-        TextureDimension::D2,
-        &texture_data,
-        TextureFormat::Rgba8UnormSrgb,
-    )
-}
-
 fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut images: ResMut<Assets<Image>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     mut control_values: ResMut<ControlValues>,
     mut keys: ResMut<KeyBindings>,
     starting_values: Res<crate::StartingValues>,
-    space: Res<FloatingOriginSettings>,
 ) {
     // set up accroding to lat/lon relative to Earth center
     control_values.up = starting_values.planetary_position.normalize().as_vec3();
-    let (grid, _): (GalacticGrid, _) =
-        space.translation_to_grid(starting_values.planetary_position);
 
-    let material = materials.add(StandardMaterial {
-        base_color_texture: Some(images.add(uv_debug_texture())),
-        ..default()
-    });
-    let mesh = meshes.add(
-        shape::Icosphere {
-            radius: 1.0,
-            subdivisions: 10,
-        }
-        .try_into()
-        .unwrap(),
-    );
-    let sphere = commands
-        .spawn(PbrBundle {
-            mesh,
-            material,
-            ..default()
-        })
-        .id();
-
-    let mut camera = commands.spawn((
-        Camera3dBundle { ..default() },
-        InheritedVisibility::default(),
-        Control,
-        grid,
-        FogSettings {
-            color: Color::rgba(0.35, 0.48, 0.66, 1.0),
-            directional_light_color: Color::rgba(1.0, 0.95, 0.85, 0.5),
-            directional_light_exponent: 30.0,
-            falloff: FogFalloff::from_visibility_colors(
-                EARTH_RADIUS * 2.0, // distance in world units up to which objects retain visibility (>= 5% contrast)
-                Color::rgb(0.35, 0.5, 0.66), // atmospheric extinction color (after light is lost due to absorption by atmospheric particles)
-                Color::rgb(0.8, 0.844, 1.0), // atmospheric inscattering color (light gained due to scattering from the sun)
-            ),
-        },
-    ));
-    camera.add_child(sphere);
-    if !starting_values.xr {
-        camera.insert(FloatingOrigin);
-    }
-    // FIXME: attach the camera bundle to the world, so when we move the world, the player is automatically moved with it.
-    // We'll need this when the player moves very far or teleports to another place, as we need to ensure we don't go into
-    // regions where the floating point numbers become imprecise.
-
-    control_values.speed = 100.0;
     // Don't use ESC for grabbing/releasing the cursor. That's what browsers use, too, so it gets grabbed by bevy and released by the browser at the same time.
     keys.toggle_grab_cursor = KeyCode::G;
 }

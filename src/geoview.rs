@@ -133,7 +133,8 @@ impl GeoView {
         if self.distance > 0.0 {
             //let beam_directon = starting_transform.transform.rotation; // quat
             //let (angle,_) = beam_directon.to_axis_angle();
-            starting_transform.transform.translation += directions.west * self.distance;
+            let beam_directon = -starting_transform.transform.forward();
+            starting_transform.transform.translation += beam_directon * self.distance;
             //starting_transform.transform.look_at(_camera_spot);
         }
 

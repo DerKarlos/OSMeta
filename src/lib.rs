@@ -12,7 +12,7 @@ use big_space::{
     },
     FloatingOriginPlugin, GridCell,
 };
-use flycam::update_camera_orientations;
+use flycontrol::update_camera_orientations;
 use geocoord::GeoCoord;
 use geoview::GeoView;
 use http_assets::HttpAssetReaderPlugin;
@@ -23,7 +23,7 @@ use xr::pull_to_ground;
 
 mod compass;
 mod f4control;
-mod flycam;
+mod flycontrol;
 mod geocoord;
 mod geoview;
 mod http_assets;
@@ -90,17 +90,18 @@ pub fn main() {
         lat: 48.1408, // Germany, Munic, Main railway station
         lon: 11.5577,
     };
-    let mut elevation: f32 = 300.0; // todo: default 1.4 for f4control
+    let mut elevation: f32 = 50.0; // todo: default 1.4 for f4control
 
     // GeoView to city center, Marienplatz
     let mut direction: f32 = -105.0; // Compass view-direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
     let mut up_view: f32 = -30.0; // Up-view slightly down. -90 = down, 0 = horizontal 90 = Up
-    let mut distance: f32 = 100.; // radius of the sphere, the arc rotate camera rotates on
+    let mut distance: f32 = 500.; // radius of the sphere, the arc rotate camera rotates on
     let mut camera_fov: f32 = 30.; // todo: default?  field of view, the angle widht of the world, the camera is showing
 
     let mut xr = false;
 
     for arg in &args {
+        if arg.is_empty() {continue;}; // to skipp unneeded & in the browser URL
         let (k, v) = arg
             .split_once('=')
             .expect("arguments must be `key=value` pairs");
@@ -174,6 +175,7 @@ pub fn main() {
         .add_plugins(ScreenFrameDiagnosticsPlugin)
         .add_plugins(ScreenEntityDiagnosticsPlugin)
         .add_plugins(space::Plugin)
+        .add_plugins(player::Plugin)
         //.add_systems(Update, init_controls);
         .init_resource::<ControlValues>();
 
@@ -182,7 +184,7 @@ pub fn main() {
             app.add_plugins(f4control::Plugin);
         }
         CamControlMode::Fly => {
-            app.add_plugins(flycam::Plugin)
+            app.add_plugins(flycontrol::Plugin)
                 .add_systems(Update, update_camera_orientations)
                 .add_systems(PostUpdate, compass::reposition_compass);
         }
