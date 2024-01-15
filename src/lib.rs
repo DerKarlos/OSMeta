@@ -28,7 +28,7 @@ mod geocoord;
 mod geoview;
 mod http_assets;
 mod player;
-mod space;
+mod sky;
 mod tilemap;
 
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
@@ -170,7 +170,7 @@ pub fn main() {
         })
         .add_plugins(ScreenFrameDiagnosticsPlugin)
         .add_plugins(ScreenEntityDiagnosticsPlugin)
-        .add_plugins(space::Plugin)
+        .add_plugins(sky::Plugin)
         .add_plugins(player::Plugin)
         //.add_systems(Update, init_controls);
         .init_resource::<ControlValues>();
