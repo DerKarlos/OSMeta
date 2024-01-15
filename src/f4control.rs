@@ -35,10 +35,20 @@ What about the Player? Is it for Fly-Cam or for all controls
 
 See also: https://bevy-cheatbook.github.io/cookbook/pan-orbit-camera.html
 
+TODO: "like F4" !
+The UI of www.F4map.com is very simple:
+Arrows left/right: rotate counter-/clockwise
+Arrows up/down: tile/shift forward/backward
+1st mouse: tile/shilft
+2nd mouse: rotate
+Mouse wheel: zoom
+
+SAFARI does NOT show buildings propperly! FireFox does.
+
  */
 
 use bevy::ecs::event::{Events, ManualEventReader};
-use bevy::input::mouse::MouseMotion;
+use bevy::input::mouse::{MouseMotion,MouseWheel};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
@@ -60,36 +70,50 @@ struct InputState {
 #[derive(Resource)]
 pub struct KeyBindings {
     pub move_forward: KeyCode,
+    pub move_forward2: KeyCode,
     pub move_backward: KeyCode,
+    pub move_backward2: KeyCode,
     pub move_left: KeyCode,
     pub move_right: KeyCode,
     pub move_ascend: KeyCode,
+    pub move_ascend2: KeyCode,
     pub move_descend: KeyCode,
+    pub move_descend2: KeyCode,
     //
     pub rotate_up: KeyCode,
     pub rotate_down: KeyCode,
     pub rotate_left: KeyCode,
+    pub rotate_left2: KeyCode,
     pub rotate_right: KeyCode,
+    pub rotate_right2: KeyCode,
     pub zoom_in: KeyCode,
     pub zoom_out: KeyCode,
+    pub zoom_out2: KeyCode,
 }
 
 impl Default for KeyBindings {
     fn default() -> Self {
         Self {
             move_forward: KeyCode::W,
+            move_forward2: KeyCode::Up, // F4
             move_backward: KeyCode::S,
+            move_backward2: KeyCode::Down, // F4
             move_left: KeyCode::A,
             move_right: KeyCode::D,
-            move_ascend: KeyCode::T,  // TODO use + and PgUp also
-            move_descend: KeyCode::G, // TODO use # and PgDown also
+            move_ascend: KeyCode::T,
+            move_ascend2: KeyCode::Backslash, // + on German Mac
+            move_descend: KeyCode::G,
+            move_descend2: KeyCode::BracketRight, // # on German Mac
             //
-            rotate_up: KeyCode::R,
-            rotate_down: KeyCode::F,
+            rotate_up: KeyCode::F,
+            rotate_down: KeyCode::R,
             rotate_left: KeyCode::Q,
+            rotate_left2: KeyCode::Left, // F4
             rotate_right: KeyCode::E,
-            zoom_in: KeyCode::Z, // todo: Y or Z for English/German keyboards
-            zoom_out: KeyCode::H,
+            rotate_right2: KeyCode::Right, // F4
+            zoom_in: KeyCode::H,
+            zoom_out: KeyCode::Z,
+            zoom_out2: KeyCode::Y, // Z on german Keyboards
         }
     }
 }
@@ -109,7 +133,7 @@ fn player_move(
     mut player: Player,
 ) {
     if let Ok(_window) = primary_window.get_single() {
-        let speed = (1. * (control_values.view.elevation - 300.0)).max(100.0);
+        let speed = (1. * (control_values.view.elevation - 300.0)).max(100.0); // TODO !!!!!!!! real camera height, including distance
         control_values.speed = speed;
 
         let view = &mut control_values.view;
@@ -117,7 +141,7 @@ fn player_move(
         let groundmove_fact_lat = speed * time.delta_seconds() / 100000.0;
         let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
         const OSM_LAT_LIMIT: f32 = 85.0511; // degrees
-        const ELEVATION_LIMIT: f32 = 20_000_000.0; // meter
+        const ELEVATION_LIMIT: f32 = 20_000_000_000.0; // meter
         let rotation_fact = time.delta_seconds() * 20.0; // delta time * degrees per second = delta degrees
 
         let dir = view.direction.to_radians();
@@ -129,10 +153,10 @@ fn player_move(
             // match key does not work with struct key_bindings
             let key = *key;
             // ahead/backward
-            if key == key_bindings.move_forward {
+            if key == key_bindings.move_forward || key == key_bindings.move_forward2 {
                 view.geo_coord.lat += north * groundmove_fact_lat;
                 view.geo_coord.lon += east * groundmove_fact_lon;
-            } else if key == key_bindings.move_backward {
+            } else if key == key_bindings.move_backward || key == key_bindings.move_backward2 {
                 view.geo_coord.lat -= north * groundmove_fact_lat;
                 view.geo_coord.lon -= east * groundmove_fact_lon;
             //
@@ -145,17 +169,17 @@ fn player_move(
                 view.geo_coord.lon -= north * groundmove_fact_lon;
             //
             // elevate
-            } else if key == key_bindings.move_ascend {
+            } else if key == key_bindings.move_ascend || key == key_bindings.move_ascend2 {
                 view.elevation *= elevation_fakt;
                 view.elevation = view.elevation.min(ELEVATION_LIMIT);
-            } else if key == key_bindings.move_descend {
+            } else if key == key_bindings.move_descend || key == key_bindings.move_descend2 {
                 view.elevation /= elevation_fakt;
                 view.elevation = view.elevation.max(0.4);
             //
             // rotate
-            } else if key == key_bindings.rotate_right {
+            } else if key == key_bindings.rotate_right || key == key_bindings.rotate_right2 {
                 view.direction -= rotation_fact;
-            } else if key == key_bindings.rotate_left {
+            } else if key == key_bindings.rotate_left || key == key_bindings.rotate_left2 {
                 view.direction += rotation_fact;
             } else if key == key_bindings.rotate_up {
                 view.up_view += rotation_fact;
@@ -165,7 +189,7 @@ fn player_move(
                 view.up_view = view.up_view.max(-OSM_LAT_LIMIT);
             //
             // zoom
-            } else if key == key_bindings.zoom_out {
+            } else if key == key_bindings.zoom_out ||  key == key_bindings.zoom_out2 {
                 view.distance *= elevation_fakt;
                 view.distance = view.distance.min(ELEVATION_LIMIT);
             } else if key == key_bindings.zoom_in {
@@ -191,17 +215,29 @@ fn player_look(
     primary_window: Query<&Window, With<PrimaryWindow>>,
     motion: Res<Events<MouseMotion>>,
     mouse_input: Res<Input<MouseButton>>,
+    mut scroll_events: EventReader<MouseWheel>,
     mut state: ResMut<InputState>,
     mut control_values: ResMut<ControlValues>, // settings
     mut query: Query<&mut Transform, With<Control>>,
 ) {
     if let Ok(window) = primary_window.get_single() {
         for mut _transform in query.iter_mut() {
+
+            for ev in scroll_events.read() {
+                let factor = 1. + ev.x / 1000.0;
+                control_values.view.distance /= factor;
+            }
+
+
             for ev in state.reader_motion.read(&motion) {
                 let mut yaw = 0.0;
                 let mut pitch = 0.0;
 
-                if mouse_input.pressed(MouseButton::Left) {
+                let dir = control_values.view.direction.to_radians();
+                let north = dir.cos();
+                let east = -dir.sin();
+
+                if mouse_input.pressed(MouseButton::Right) {
                     // Using smallest of height or width ensures equal vertical and horizontal sensitivity
                     let window_scale = window.height().min(window.width());
                     pitch -= (control_values.sensitivity * ev.delta.y * window_scale).to_radians();
@@ -211,15 +247,20 @@ fn player_look(
                     view.direction += yaw * 50.;
                 }
 
-                if mouse_input.pressed(MouseButton::Right) {
+                if mouse_input.pressed(MouseButton::Left) {
                     // Using smallest of height or width ensures equal vertical and horizontal sensitivity
                     let window_scale = window.height().min(window.width());
                     pitch -= (control_values.sensitivity * ev.delta.y * window_scale).to_radians();
                     yaw -= (control_values.sensitivity * ev.delta.x * window_scale).to_radians();
+                    //let speed = control_values.speed;
                     let view = &mut control_values.view;
-                    let groundmove_fact_lat = 100000.0;
-                    view.geo_coord.lat += yaw / groundmove_fact_lat * 200.;
-                    view.geo_coord.lon += pitch / groundmove_fact_lat * 200.;
+                    let groundmove_fact_lat = 1./100.0;  // speed / 1...
+                    //let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
+                    view.geo_coord.lon += north * yaw * groundmove_fact_lat;
+                    view.geo_coord.lat -= north * pitch * groundmove_fact_lat;
+
+                    view.geo_coord.lat -= east * yaw * groundmove_fact_lat;
+                    view.geo_coord.lon -= east * pitch * groundmove_fact_lat;
                 }
             }
         }
