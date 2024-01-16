@@ -192,7 +192,7 @@ impl Default for ControlValues {
             sensitivity: 0.00012,
             speed: 12.,
             up: Vec3::Y,
-            view: GeoView::new(),
+            view: GeoView::default(),
             cam_control_mode: CamControlMode::F4,
         }
     }
@@ -226,6 +226,18 @@ fn uv_debug_texture() -> Image {
     )
 }
 
+fn update_camera_speed(
+    mut control_values: ResMut<ControlValues>,
+    fly_cam: Query<GalacticTransform, With<Control>>,
+    space: Res<FloatingOriginSettings>,
+) {
+    let elevation = fly_cam.single().position_double(&space).length() as f32;
+    let mut distance_to_focus = elevation - crate::geocoord::EARTH_RADIUS;
+    if control_values.cam_control_mode == CamControlMode::F4 {distance_to_focus += control_values.view.distance};
+    let speed = (distance_to_focus*2. - 300.0).max(100.0);
+    control_values.speed = speed;
+}
+
 pub fn setup_player_controls(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -236,6 +248,9 @@ pub fn setup_player_controls(
     mut control_values: ResMut<ControlValues>,
 ) {
     control_values.cam_control_mode = starting_values.cam_control_mode;
+
+    // set up accroding to lat/lon relative to Earth center
+    control_values.up = starting_values.planetary_position.normalize().as_vec3();
 
     let (grid, _): (GalacticGrid, _) =
         space.translation_to_grid(starting_values.planetary_position);
@@ -290,6 +305,10 @@ pub struct Plugin;
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ControlValues>()
-            .add_systems(Startup, setup_player_controls);
+            .add_systems(Startup, setup_player_controls)
+            .add_systems(Update, update_camera_speed);
     }
 }
+
+
+pub const OSM_LAT_LIMIT: f32 = 85.0511; // degrees

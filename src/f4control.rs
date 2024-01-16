@@ -48,13 +48,13 @@ SAFARI does NOT show buildings propperly! FireFox does.
  */
 
 use bevy::ecs::event::{Events, ManualEventReader};
-use bevy::input::mouse::{MouseMotion,MouseWheel};
+use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use big_space::FloatingOriginSettings;
 
-use crate::player::{ControlValues, GalacticTransformSpace, Player};
+use crate::player::{ControlValues, GalacticTransformSpace, Player, OSM_LAT_LIMIT};
 
 pub mod prelude {
     pub use crate::*;
@@ -133,48 +133,47 @@ fn player_move(
     mut player: Player,
 ) {
     if let Ok(_window) = primary_window.get_single() {
-        let speed = (1. * (control_values.view.elevation - 300.0)).max(100.0); // TODO !!!!!!!! real camera height, including distance
-        control_values.speed = speed;
+        //let speed = (1. * (control_values.view.elevation - 300.0)).max(100.0); // TODO !!!!!!!! real camera height, including distance
+        //control_values.speed = speed;
 
+        const SPEED_DEGREE_PER_M: f32 = 1.0/200000.0;
+        let speed = control_values.speed;
         let view = &mut control_values.view;
         let elevation_fakt = 1. + time.delta_seconds() / 1.0;
-        let groundmove_fact_lat = speed * time.delta_seconds() / 100000.0;
+        let groundmove_fact_lat = speed * time.delta_seconds() * SPEED_DEGREE_PER_M;
         let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
-        const OSM_LAT_LIMIT: f32 = 85.0511; // degrees
         const ELEVATION_LIMIT: f32 = 20_000_000_000.0; // meter
         let rotation_fact = time.delta_seconds() * 20.0; // delta time * degrees per second = delta degrees
 
         let dir = view.direction.to_radians();
-        // Todo?:  make a geo_forward/east? Put lat/lon in a vec3 or 2?
-        let north = dir.cos();
-        let east = -dir.sin();
+        // Todo?:  make a geo_forward/right? Put lat/lon in a vec3 or 2?
+        let forward = dir.cos();
+        let right = -dir.sin();
 
         for key in keys.get_pressed() {
             // match key does not work with struct key_bindings
             let key = *key;
-            // ahead/backward
+            // forward/backward
             if key == key_bindings.move_forward || key == key_bindings.move_forward2 {
-                view.geo_coord.lat += north * groundmove_fact_lat;
-                view.geo_coord.lon += east * groundmove_fact_lon;
+                view.geo_coord.lat += forward * groundmove_fact_lat;
+                view.geo_coord.lon += right * groundmove_fact_lon;
             } else if key == key_bindings.move_backward || key == key_bindings.move_backward2 {
-                view.geo_coord.lat -= north * groundmove_fact_lat;
-                view.geo_coord.lon -= east * groundmove_fact_lon;
+                view.geo_coord.lat -= forward * groundmove_fact_lat;
+                view.geo_coord.lon -= right * groundmove_fact_lon;
             //
             // sidewise
             } else if key == key_bindings.move_right {
-                view.geo_coord.lat -= east * groundmove_fact_lat;
-                view.geo_coord.lon += north * groundmove_fact_lon;
+                view.geo_coord.lat -= right * groundmove_fact_lat;
+                view.geo_coord.lon += forward * groundmove_fact_lon;
             } else if key == key_bindings.move_left {
-                view.geo_coord.lat += east * groundmove_fact_lat;
-                view.geo_coord.lon -= north * groundmove_fact_lon;
+                view.geo_coord.lat += right * groundmove_fact_lat;
+                view.geo_coord.lon -= forward * groundmove_fact_lon;
             //
             // elevate
             } else if key == key_bindings.move_ascend || key == key_bindings.move_ascend2 {
                 view.elevation *= elevation_fakt;
-                view.elevation = view.elevation.min(ELEVATION_LIMIT);
             } else if key == key_bindings.move_descend || key == key_bindings.move_descend2 {
                 view.elevation /= elevation_fakt;
-                view.elevation = view.elevation.max(0.4);
             //
             // rotate
             } else if key == key_bindings.rotate_right || key == key_bindings.rotate_right2 {
@@ -183,22 +182,23 @@ fn player_move(
                 view.direction += rotation_fact;
             } else if key == key_bindings.rotate_up {
                 view.up_view += rotation_fact;
-                view.up_view = view.up_view.min(OSM_LAT_LIMIT);
             } else if key == key_bindings.rotate_down {
                 view.up_view -= rotation_fact;
-                view.up_view = view.up_view.max(-OSM_LAT_LIMIT);
             //
             // zoom
-            } else if key == key_bindings.zoom_out ||  key == key_bindings.zoom_out2 {
+            } else if key == key_bindings.zoom_out || key == key_bindings.zoom_out2 {
                 view.distance *= elevation_fakt;
-                view.distance = view.distance.min(ELEVATION_LIMIT);
             } else if key == key_bindings.zoom_in {
                 view.distance /= elevation_fakt;
-                view.distance = view.distance.max(0.4);
             }
         }
 
         view.geo_coord.lat = view.geo_coord.lat.clamp(-OSM_LAT_LIMIT, OSM_LAT_LIMIT);
+        view.up_view       = view.up_view      .clamp(-OSM_LAT_LIMIT, OSM_LAT_LIMIT);
+        view.elevation     = view.elevation    .clamp(           0.4, ELEVATION_LIMIT);
+        view.distance      = view.distance     .clamp(           0.4, ELEVATION_LIMIT);
+        // Todo: Crossing a pole by up_view makes the rotation very low and stucking.
+
         let galactic_transform = view.to_galactic_transform(&space, true);
         let new_pos = GalacticTransformSpace {
             galactic_transform,
@@ -222,45 +222,39 @@ fn player_look(
 ) {
     if let Ok(window) = primary_window.get_single() {
         for mut _transform in query.iter_mut() {
-
             for ev in scroll_events.read() {
                 let factor = 1. + ev.x / 1000.0;
                 control_values.view.distance /= factor;
             }
-
 
             for ev in state.reader_motion.read(&motion) {
                 let mut yaw = 0.0;
                 let mut pitch = 0.0;
 
                 let dir = control_values.view.direction.to_radians();
-                let north = dir.cos();
-                let east = -dir.sin();
+                let forward =  dir.cos();
+                let right   = -dir.sin();
+                // Using smallest of height or width ensures equal vertical and horizontal sensitivity
+                let window_scale = window.height().min(window.width());
+                pitch -= (control_values.sensitivity * ev.delta.y * window_scale).to_radians();
+                yaw   -= (control_values.sensitivity * ev.delta.x * window_scale).to_radians();
 
                 if mouse_input.pressed(MouseButton::Right) {
-                    // Using smallest of height or width ensures equal vertical and horizontal sensitivity
-                    let window_scale = window.height().min(window.width());
-                    pitch -= (control_values.sensitivity * ev.delta.y * window_scale).to_radians();
-                    yaw -= (control_values.sensitivity * ev.delta.x * window_scale).to_radians();
-                    let view = &mut control_values.view;
-                    view.up_view += pitch * 50.; // todo: F4 needs more senivity ???
-                    view.direction += yaw * 50.;
+                    control_values.view.up_view += pitch * 50.; // todo: F4 needs more senivity ???
+                    control_values.view.direction += yaw * 50.;
                 }
 
                 if mouse_input.pressed(MouseButton::Left) {
-                    // Using smallest of height or width ensures equal vertical and horizontal sensitivity
-                    let window_scale = window.height().min(window.width());
-                    pitch -= (control_values.sensitivity * ev.delta.y * window_scale).to_radians();
-                    yaw -= (control_values.sensitivity * ev.delta.x * window_scale).to_radians();
-                    //let speed = control_values.speed;
+                    let speed = control_values.speed;
                     let view = &mut control_values.view;
-                    let groundmove_fact_lat = 1./100.0;  // speed / 1...
-                    //let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
-                    view.geo_coord.lon += north * yaw * groundmove_fact_lat;
-                    view.geo_coord.lat -= north * pitch * groundmove_fact_lat;
+                    let groundmove_fact_lat = speed / 500000.0;
+                    let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
 
-                    view.geo_coord.lat -= east * yaw * groundmove_fact_lat;
-                    view.geo_coord.lon -= east * pitch * groundmove_fact_lat;
+                    view.geo_coord.lon += forward * yaw * groundmove_fact_lon;
+                    view.geo_coord.lat -= forward * pitch * groundmove_fact_lat;
+
+                    view.geo_coord.lat -= right * yaw * groundmove_fact_lat;
+                    view.geo_coord.lon -= right * pitch * groundmove_fact_lon;
                 }
             }
         }
@@ -271,9 +265,8 @@ fn player_look(
 
 fn setup(mut control_values: ResMut<ControlValues>, starting_values: Res<crate::StartingValues>) {
     // set up accroding to lat/lon relative to Earth center
-    control_values.up = starting_values.planetary_position.normalize().as_vec3();
     control_values.speed = 100.0;
-    control_values.view = starting_values.start_view;
+    control_values.view = starting_values.view;
 }
 
 pub struct Plugin;

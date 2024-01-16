@@ -48,7 +48,7 @@ struct StartingValues {
     // was Args
     _args: Vec<String>, // Todo: You never know where you may need it
     planetary_position: PlanetaryPosition,
-    start_view: GeoView,
+    view: GeoView,
     cam_control_mode: CamControlMode,
     xr: bool,
 }
@@ -84,7 +84,7 @@ pub fn main() {
         lat: 48.1408, // Germany, Munic, Main railway station
         lon: 11.5577,
     };
-    let mut elevation: f32 = 50.0; // todo: default 1.4 for f4control
+    let mut elevation: f32 = 1.4; // default 1.4 for f4control
 
     // GeoView to city center, Marienplatz
     let mut direction: f32 = -105.0; // Compass view-direction to Oeast-Southeast. 0 = Nord, -90 = East Todo: Why minus?
@@ -189,7 +189,7 @@ pub fn main() {
     app.insert_resource(StartingValues {
         _args: args,
         planetary_position: geo_coord.to_cartesian(),
-        start_view,
+        view: start_view,
         cam_control_mode,
         xr,
     });

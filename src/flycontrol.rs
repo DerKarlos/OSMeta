@@ -204,7 +204,6 @@ pub struct Plugin;
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, setup)
-            .add_systems(Update, update_camera_speed)
             .add_systems(Update, grab_cursor)
             // This was the "no_camera_player_plugin"
             // Contains everything needed to add first-person fly camera behavior to your game, but does not spawn a camera
@@ -220,28 +219,11 @@ impl bevy::prelude::Plugin for Plugin {
 }
 
 fn setup(
-    mut control_values: ResMut<ControlValues>,
     mut keys: ResMut<KeyBindings>,
-    starting_values: Res<crate::StartingValues>,
 ) {
-    // set up accroding to lat/lon relative to Earth center
-    control_values.up = starting_values.planetary_position.normalize().as_vec3();
-
     // Don't use ESC for grabbing/releasing the cursor. That's what browsers use, too, so it gets grabbed by bevy and released by the browser at the same time.
     keys.toggle_grab_cursor = KeyCode::G;
 }
-
-fn update_camera_speed(
-    mut control_values: ResMut<ControlValues>,
-    fly_cam: Query<GalacticTransform, With<Control>>,
-    space: Res<FloatingOriginSettings>,
-) {
-    let elevation = fly_cam.single().position_double(&space).length() as f32;
-    let speed = (1. * (elevation - crate::geocoord::EARTH_RADIUS - 300.0)).max(100.0);
-    control_values.speed = speed;
-}
-
-// Todo ? Merge both to fn update? To many different parameters?
 
 fn grab_cursor(
     mut windows: Query<&mut Window>,

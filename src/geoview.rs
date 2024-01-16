@@ -1,7 +1,6 @@
 use super::geocoord::*;
 use super::GalacticTransformOwned;
-use crate::player::CamControlMode;
-use crate::player::{ControlValues, GalacticTransformSpace, Player};
+use crate::player::{CamControlMode, ControlValues, GalacticTransformSpace, Player, OSM_LAT_LIMIT};
 use bevy::{
     prelude::*,
     utils::tracing::{self, instrument},
@@ -26,7 +25,7 @@ pub struct Views {
  *
  * The GPU scene uses it internal to read and set the browser url.
  */
-#[derive(Default, Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy)]
 pub struct GeoView {
     pub geo_coord: GeoCoord, // lat/lon
     pub elevation: f32,
@@ -36,17 +35,21 @@ pub struct GeoView {
     pub camera_fov: f32,
 }
 
-impl GeoView {
-    pub fn new() -> GeoView {
-        GeoView {
-            geo_coord: GeoCoord { lat: 0., lon: 0. },
-            elevation: 0.,
-            direction: 0.,
-            up_view: 0.,
-            distance: 0.,
-            camera_fov: 0.,
+impl Default for GeoView {
+    fn default() -> Self {
+        Self {
+            geo_coord: GeoCoord { lat: 0., lon: 0. }, // todo: London?
+            elevation: 1.4,
+            direction: 0.0,
+            up_view: 0.0,
+            distance: 500.0,
+            camera_fov: 42.0,
         }
     }
+}
+
+impl GeoView {
+
     /**
      * Store self GeoView in a browser cookie
      * To restore it into your viewer, use [[GeoView]].[[restore]]
@@ -264,11 +267,20 @@ fn keys_ui_setup(
     // The start view is placed for Key0 and
     // all controls are set here (also the camera)
     starting_values
-        .start_view
+        .view
         .store("Key0".to_string(), &mut views.map);
     starting_values
-        .start_view
+        .view
         .set_camera_view(&space, &mut player, &mut control_values);
+
+    // Gamification: View next to the Moom  lat 3.040637 lon 11.723366 ele 0.5724045 dir 7.455829 up -85.0511 dist 10848132
+    GeoView {
+        geo_coord: GeoCoord { lat: 1.0, lon: 180.0 },
+        up_view: -OSM_LAT_LIMIT,
+        distance: 60_000_000.0,
+        ..Default::default()
+    }
+    .store("Key9".to_string(), &mut views.map);
 }
 
 pub struct Plugin;
