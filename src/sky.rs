@@ -296,7 +296,7 @@ fn setup(
         let cell = galactic_transform.cell;
 
         // Loaded from: https://sketchfab.com/3d-models/crucero-medio-valkyrie-m-1-b394296dc39a493e92a441c14208a3cc#download
-        let galactica = server.load("embedded://crucero_medio_valkyrie_m_1.glb#Scene0"); // xwing Galactica  1701A2 crucero_medio_valkyrie_m_1
+        let galactica = server.load("embedded://bs_galactica1.glb#Scene0"); // xwing Galactica  1701A2 crucero_medio_valkyrie_m_1
         commands.spawn((
             SceneBundle {
                 scene: galactica,

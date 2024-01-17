@@ -1,32 +1,27 @@
-//! This module contains everything about the controls and rendering related
+//! This module contains everything about the fly-controls and rendering related
 //! to the non-VR "player". Todo: update
+//!
+//! A Copy of "https://github.com/oli-obk/bevy_flycam", branch = "arbitrary_up", a
+//! branch of "https://github.com/sburris0/bevy_flycam"
 
-// A Copy of "https://github.com/oli-obk/bevy_flycam", branch = "arbitrary_up", a
-// branch of "https://github.com/sburris0/bevy_flycam"
-
-use bevy::ecs::event::{Events, ManualEventReader};
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
 
 use big_space::FloatingOriginSettings;
 
-use crate::player::{Control, ControlValues};
+use crate::player::{Control, ControlValues, InputState};
 use crate::GalacticTransform;
 
 pub mod prelude {
     pub use crate::*;
 }
 
-/// Keeps track of mouse motion events, pitch, and yaw
-#[derive(Resource, Default)]
-struct InputState {
-    reader_motion: ManualEventReader<MouseMotion>, // todo? add to ControlData ???
-}
-
+// Todo? enum intead of struct???
+pub const _KEY_MOVE_FORWARD: KeyCode = KeyCode::W;
+// Todo: KeyBindings ALL at once, also for Save/store F4Camm???
 /// Key configuration
 #[derive(Resource)]
-//todo: KeyBindings ALL at once, also for Save/store F4Camm???
 struct KeyBindings {
     pub move_forward: KeyCode,
     pub move_backward: KeyCode,
@@ -94,6 +89,12 @@ fn player_move(
                     CursorGrabMode::None => (),
                     _ => {
                         let key = *key;
+
+                        //  match key {
+                        //      KEY_MOVE_FORWARD => {velocity += forward;},
+                        //      _ => (),
+                        //  };
+
                         if key == key_bindings.move_forward {
                             velocity += forward;
                         } else if key == key_bindings.move_backward {

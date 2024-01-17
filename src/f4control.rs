@@ -47,7 +47,7 @@ SAFARI does NOT show buildings propperly! FireFox does.
 
  */
 
-use bevy::ecs::event::{Events, ManualEventReader};
+use bevy::ecs::event::Events;
 use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
@@ -58,17 +58,11 @@ pub mod prelude {
     pub use crate::*;
 }
 
-use crate::player::{ControlValues, GalacticTransformSpace, Player};
+use crate::player::{ControlValues, GalacticTransformSpace, InputState, Player};
 
 /// Used in queries when you want f4controls and not other cameras
 /// A marker component used in queries when you want f4controls and not other cameras
 //use crate::player::Control; // not F4Control  Todo: name it CamControl for the just running control  --
-
-/// Keeps track of mouse motion events, pitch, and yaw
-#[derive(Resource, Default)]
-struct InputState {
-    reader_motion: ManualEventReader<MouseMotion>,
-}
 
 /// Key configuration
 #[derive(Resource)]

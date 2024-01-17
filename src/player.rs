@@ -1,4 +1,6 @@
+use bevy::ecs::event::ManualEventReader;
 use bevy::ecs::system::SystemParam;
+use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
 use big_space::{FloatingOrigin, FloatingOriginSettings};
@@ -15,6 +17,12 @@ use crate::geoview::GeoView;
 use crate::GalacticGrid;
 use crate::GalacticTransform;
 use crate::GalacticTransformOwned;
+
+/// Keeps track of mouse motion events
+#[derive(Resource, Default)]
+pub struct InputState {
+    pub reader_motion: ManualEventReader<MouseMotion>, // todo? add to ControlData ???
+}
 
 #[derive(SystemParam)]
 /// A helper argument for bevy systems that obtains the main player's position.

@@ -58,7 +58,6 @@ struct StartingValues {
 pub fn main() {
     // todo: info! warn! error! NOT VISIBLE! WHY?
     // FOR TEST, USE: panic!("The last ouptut of the app");  OR assert_eq!( up_view, -30. );
-    std::env::set_var("RUST_BACKTRACE", "1");
 
     let mut args: Vec<String> = vec![];
 
@@ -74,7 +73,7 @@ pub fn main() {
         }
     }
 
-    //   #[cfg(not(target_arch = "wasm32"))]
+    #[cfg(not(target_arch = "wasm32"))]
     {
         std::env::set_var("RUST_BACKTRACE", "1");
         args.extend(std::env::args().skip(1));
@@ -95,7 +94,7 @@ pub fn main() {
     let mut camera_fov: f32 = 30.; // todo: default?  field of view, the angle widht of the world, the camera is showing
 
     let mut xr = false;
-    let mut gamification = 0; // 0: off  1: Galactica
+    let mut gamification = 1; // 0: off  1: Galactica
 
     for arg in &args {
         if arg.is_empty() {
