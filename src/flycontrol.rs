@@ -218,9 +218,7 @@ impl bevy::prelude::Plugin for Plugin {
     }
 }
 
-fn setup(
-    mut keys: ResMut<KeyBindings>,
-) {
+fn setup(mut keys: ResMut<KeyBindings>) {
     // Don't use ESC for grabbing/releasing the cursor. That's what browsers use, too, so it gets grabbed by bevy and released by the browser at the same time.
     keys.toggle_grab_cursor = KeyCode::G;
 }

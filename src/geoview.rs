@@ -10,7 +10,7 @@ use std::{collections::HashMap, f32::consts::FRAC_PI_2};
 
 #[derive(Resource)]
 pub struct Views {
-    map: HashMap<String, String>,
+    pub map: HashMap<String, String>,
 }
 
 /**
@@ -49,6 +49,13 @@ impl Default for GeoView {
 }
 
 impl GeoView {
+    pub fn limit(&mut self) {
+        const ELEVATION_LIMIT: f32 = 20_000_000_000.0; // meter
+        self.geo_coord.lat = self.geo_coord.lat.clamp(-OSM_LAT_LIMIT, OSM_LAT_LIMIT);
+        self.up_view = self.up_view.clamp(-OSM_LAT_LIMIT, OSM_LAT_LIMIT);
+        self.elevation = self.elevation.clamp(0.4, ELEVATION_LIMIT);
+        self.distance = self.distance.clamp(0.4, ELEVATION_LIMIT);
+    }
 
     /**
      * Store self GeoView in a browser cookie
@@ -56,7 +63,7 @@ impl GeoView {
      * internal, util [[restore]] is called.
      * @param id  "name" of the cookie
      */
-    pub fn store(&self, id: String, views: &mut HashMap<String, String>) {
+    pub fn store(&self, id: String, views_map: &mut HashMap<String, String>) {
         //                                      id la lo he di vi ra fo
         //t cookie = format!("OSM2World_GeoView_{}={} {} {} {} {} {} {};samesite=strict",  //  todo? {:.2}
         let cookie = format!(
@@ -72,7 +79,7 @@ impl GeoView {
         println!(">>> id: {} cookie: {}", id, cookie);
 
         // html/wasm: document.cookie = cookie;
-        views.insert(id, cookie);
+        views_map.insert(id, cookie);
     }
 
     /**
@@ -272,15 +279,6 @@ fn keys_ui_setup(
     starting_values
         .view
         .set_camera_view(&space, &mut player, &mut control_values);
-
-    // Gamification: View next to the Moom  lat 3.040637 lon 11.723366 ele 0.5724045 dir 7.455829 up -85.0511 dist 10848132
-    GeoView {
-        geo_coord: GeoCoord { lat: 1.0, lon: 180.0 },
-        up_view: -OSM_LAT_LIMIT,
-        distance: 60_000_000.0,
-        ..Default::default()
-    }
-    .store("Key9".to_string(), &mut views.map);
 }
 
 pub struct Plugin;

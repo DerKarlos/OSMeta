@@ -54,11 +54,15 @@ use bevy::window::PrimaryWindow;
 
 use big_space::FloatingOriginSettings;
 
-use crate::player::{ControlValues, GalacticTransformSpace, Player, OSM_LAT_LIMIT};
-
 pub mod prelude {
     pub use crate::*;
 }
+
+use crate::player::{ControlValues, GalacticTransformSpace, Player};
+
+/// Used in queries when you want f4controls and not other cameras
+/// A marker component used in queries when you want f4controls and not other cameras
+//use crate::player::Control; // not F4Control  Todo: name it CamControl for the just running control  --
 
 /// Keeps track of mouse motion events, pitch, and yaw
 #[derive(Resource, Default)]
@@ -118,16 +122,12 @@ impl Default for KeyBindings {
     }
 }
 
-/// Used in queries when you want f4controls and not other cameras
-/// A marker component used in queries when you want f4controls and not other cameras
-use crate::player::Control; // not F4Control  Todo: name it CamControl for the just running control  --
-
 /// Handles keyboard input and movement
 fn player_move(
+    primary_window: Query<&Window, With<PrimaryWindow>>,
     keys: Res<Input<KeyCode>>,
     key_bindings: Res<KeyBindings>,
     time: Res<Time>,
-    primary_window: Query<&Window, With<PrimaryWindow>>,
     space: Res<FloatingOriginSettings>,
     mut control_values: ResMut<ControlValues>,
     mut player: Player,
@@ -136,13 +136,12 @@ fn player_move(
         //let speed = (1. * (control_values.view.elevation - 300.0)).max(100.0); // TODO !!!!!!!! real camera height, including distance
         //control_values.speed = speed;
 
-        const SPEED_DEGREE_PER_M: f32 = 1.0/200000.0;
+        const SPEED_DEGREE_PER_M: f32 = 1.0 / 200000.0;
         let speed = control_values.speed;
         let view = &mut control_values.view;
         let elevation_fakt = 1. + time.delta_seconds() / 1.0;
         let groundmove_fact_lat = speed * time.delta_seconds() * SPEED_DEGREE_PER_M;
         let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
-        const ELEVATION_LIMIT: f32 = 20_000_000_000.0; // meter
         let rotation_fact = time.delta_seconds() * 20.0; // delta time * degrees per second = delta degrees
 
         let dir = view.direction.to_radians();
@@ -150,6 +149,7 @@ fn player_move(
         let forward = dir.cos();
         let right = -dir.sin();
 
+        let moved = keys.get_pressed().len() > 0;
         for key in keys.get_pressed() {
             // match key does not work with struct key_bindings
             let key = *key;
@@ -193,62 +193,66 @@ fn player_move(
             }
         }
 
-        view.geo_coord.lat = view.geo_coord.lat.clamp(-OSM_LAT_LIMIT, OSM_LAT_LIMIT);
-        view.up_view       = view.up_view      .clamp(-OSM_LAT_LIMIT, OSM_LAT_LIMIT);
-        view.elevation     = view.elevation    .clamp(           0.4, ELEVATION_LIMIT);
-        view.distance      = view.distance     .clamp(           0.4, ELEVATION_LIMIT);
-        // Todo: Crossing a pole by up_view makes the rotation very low and stucking.
-
-        let galactic_transform = view.to_galactic_transform(&space, true);
-        let new_pos = GalacticTransformSpace {
-            galactic_transform,
-            space: &space,
-        };
-        player.set_pos(new_pos);
+        if moved {
+            view.limit();
+            let galactic_transform = view.to_galactic_transform(&space, true);
+            let new_pos = GalacticTransformSpace {
+                galactic_transform,
+                space: &space,
+            };
+            player.set_pos(new_pos);
+        }
     } else {
         warn!("Primary window not found for `player_move`!");
     }
 }
 
-/// Handles looking around if cursor is locked
+/// Handles moving around if 1st key is pressed, looking around if 2nd key is pressed
 fn player_look(
     primary_window: Query<&Window, With<PrimaryWindow>>,
-    motion: Res<Events<MouseMotion>>,
+    mouse_motion: Res<Events<MouseMotion>>,
     mouse_input: Res<Input<MouseButton>>,
     mut scroll_events: EventReader<MouseWheel>,
-    mut state: ResMut<InputState>,
-    mut control_values: ResMut<ControlValues>, // settings
-    mut query: Query<&mut Transform, With<Control>>,
+    mut input_state: ResMut<InputState>,
+    mut control_values: ResMut<ControlValues>,
+    mut player: Player, // The Player includes the query
 ) {
     if let Ok(window) = primary_window.get_single() {
-        for mut _transform in query.iter_mut() {
+        let speed = control_values.speed;
+        let sensitivity = control_values.sensitivity;
+        let view = &mut control_values.view;
+        let mut moved = false;
+        //for mut _transform in query.iter_mut()
+        {
             for ev in scroll_events.read() {
+                moved = true;
                 let factor = 1. + ev.x / 1000.0;
-                control_values.view.distance /= factor;
+                view.distance /= factor;
             }
 
-            for ev in state.reader_motion.read(&motion) {
+            for ev in input_state.reader_motion.read(&mouse_motion) {
                 let mut yaw = 0.0;
                 let mut pitch = 0.0;
 
-                let dir = control_values.view.direction.to_radians();
-                let forward =  dir.cos();
-                let right   = -dir.sin();
+                let dir = view.direction.to_radians();
+                let forward = dir.cos();
+                let right = -dir.sin();
                 // Using smallest of height or width ensures equal vertical and horizontal sensitivity
                 let window_scale = window.height().min(window.width());
-                pitch -= (control_values.sensitivity * ev.delta.y * window_scale).to_radians();
-                yaw   -= (control_values.sensitivity * ev.delta.x * window_scale).to_radians();
+                pitch -= (sensitivity * ev.delta.y * window_scale).to_radians();
+                yaw -= (sensitivity * ev.delta.x * window_scale).to_radians();
 
                 if mouse_input.pressed(MouseButton::Right) {
-                    control_values.view.up_view += pitch * 50.; // todo: F4 needs more senivity ???
-                    control_values.view.direction += yaw * 50.;
+                    moved = true;
+                    view.up_view += pitch * 50.; // todo: F4 needs more senivity ???
+                    view.direction += yaw * 50.;
                 }
 
                 if mouse_input.pressed(MouseButton::Left) {
-                    let speed = control_values.speed;
-                    let view = &mut control_values.view;
+                    moved = true;
                     let groundmove_fact_lat = speed / 500000.0;
-                    let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
+                    let groundmove_fact_lon =
+                        groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
 
                     view.geo_coord.lon += forward * yaw * groundmove_fact_lon;
                     view.geo_coord.lat -= forward * pitch * groundmove_fact_lat;
@@ -257,6 +261,18 @@ fn player_look(
                     view.geo_coord.lon -= right * pitch * groundmove_fact_lon;
                 }
             }
+        }
+
+        if moved {
+            view.limit();
+            // Todo: Crossing a pole by up_view makes the rotation very low and stucking.
+            let space = player.space.clone(); // don't Res<  it extra!
+            let galactic_transform = view.to_galactic_transform(&space, true);
+            let new_pos = GalacticTransformSpace {
+                galactic_transform,
+                space: &space,
+            };
+            player.set_pos(new_pos);
         }
     } else {
         warn!("Primary window not found for `player_look`!");

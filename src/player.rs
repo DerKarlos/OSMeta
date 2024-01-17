@@ -166,16 +166,7 @@ pub enum CamControlMode {
     Fly,
     // todo: more to come
 }
-/*
-impl Clone for CamControlMode {
-    fn clone(&self) -> CamControlMode {
-        match self {
-            F4 => CamControlMode::F4,
-            Fly => CamControlMode::Fly,
-        }
-    }
-}
-*/
+
 /// Used by all controlers: Mouse sensitivity and movement speed, up vector and set view
 #[derive(Resource)]
 pub struct ControlValues {
@@ -233,8 +224,10 @@ fn update_camera_speed(
 ) {
     let elevation = fly_cam.single().position_double(&space).length() as f32;
     let mut distance_to_focus = elevation - crate::geocoord::EARTH_RADIUS;
-    if control_values.cam_control_mode == CamControlMode::F4 {distance_to_focus += control_values.view.distance};
-    let speed = (distance_to_focus*2. - 300.0).max(100.0);
+    if control_values.cam_control_mode == CamControlMode::F4 {
+        distance_to_focus += control_values.view.distance
+    };
+    let speed = (distance_to_focus * 2. - 300.0).max(100.0);
     control_values.speed = speed;
 }
 
@@ -309,6 +302,5 @@ impl bevy::prelude::Plugin for Plugin {
             .add_systems(Update, update_camera_speed);
     }
 }
-
 
 pub const OSM_LAT_LIMIT: f32 = 85.0511; // degrees

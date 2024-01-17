@@ -8,11 +8,14 @@ use bevy::{
         texture::{ImageAddressMode, ImageFilterMode, ImageSampler, ImageSamplerDescriptor},
     },
 };
+use big_space::FloatingOriginSettings;
 use std::f32::consts::*;
 
 use crate::{
-    geocoord::{EARTH_RADIUS, MOON_ORBIT, MOON_RADIUS},
-    GalacticGrid,
+    geocoord::{GeoCoord, EARTH_RADIUS, MOON_ORBIT, MOON_RADIUS},
+    geoview::{GeoView, Views},
+    player::OSM_LAT_LIMIT,
+    GalacticGrid, StartingValues,
 };
 
 pub struct Plugin;
@@ -57,6 +60,9 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     server: Res<AssetServer>,
+    space: Res<FloatingOriginSettings>,
+    mut views: ResMut<Views>,
+    starting_values: Res<StartingValues>,
 ) {
     // Sun
     commands.spawn(DirectionalLightBundle {
@@ -228,7 +234,7 @@ fn setup(
     // moon
     commands.spawn((
         PbrBundle {
-            mesh: sphere,
+            mesh: sphere.clone(),
             material: materials.add(StandardMaterial {
                 base_color: Color::WHITE,
                 unlit: true,
@@ -244,8 +250,63 @@ fn setup(
         },
         NotShadowCaster,
         GalacticGrid::ZERO,
-        NeedsTextureSetToRepeat(image),
+        //        NeedsTextureSetToRepeat(image),
     ));
+
+    // Gamification?: View next to the Moon
+    GeoView {
+        geo_coord: GeoCoord {
+            lat: -0.4,
+            lon: 179.6,
+        },
+        up_view: -OSM_LAT_LIMIT,
+        elevation: MOON_ORBIT * 1.2,
+        //distance: MOON_RADIUS * 3.0,
+        ..Default::default()
+    }
+    .store("Key9".to_string(), &mut views.map);
+
+    GeoView {
+        geo_coord: GeoCoord {
+            lat: 48.1408,
+            lon: 11.5577,
+        },
+        up_view: -OSM_LAT_LIMIT,
+        elevation: 1.4,
+        distance: 4000.0,
+        ..Default::default()
+    }
+    .store("Key8".to_string(), &mut views.map);
+
+    // Gamification: Galactica ////////////////////
+
+    if starting_values.gamification == 1 {
+        let view = GeoView {
+            geo_coord: GeoCoord {
+                lat: -OSM_LAT_LIMIT,
+                lon: 180.0,
+            },
+            elevation: MOON_ORBIT / 2.0,
+            // up_view: -OSM_LAT_LIMIT,
+            ..Default::default()
+        };
+        view.store("Key7".to_string(), &mut views.map);
+        let galactic_transform = view.to_galactic_transform(&space, false);
+        let transform = galactic_transform.transform;
+        let cell = galactic_transform.cell;
+
+        // Loaded from: https://sketchfab.com/3d-models/crucero-medio-valkyrie-m-1-b394296dc39a493e92a441c14208a3cc#download
+        let galactica = server.load("embedded://crucero_medio_valkyrie_m_1.glb#Scene0"); // xwing Galactica  1701A2 crucero_medio_valkyrie_m_1
+        commands.spawn((
+            SceneBundle {
+                scene: galactica,
+                transform,
+                ..Default::default()
+            },
+            NotShadowCaster,
+            cell,
+        ));
+    }
 }
 
 fn set_texture_transparent(
