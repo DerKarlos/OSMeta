@@ -112,15 +112,10 @@ impl GeoView {
         }
     }
 
-    pub fn to_galactic_transform(
-        self,
-        use_distance: bool,
-    ) -> GalacticTransformOwned {
+    pub fn to_galactic_transform(self, use_distance: bool) -> GalacticTransformOwned {
         // Position on Earth ground
-        let mut starting_transform: GalacticTransformSpace = self
-            .geo_coord
-            .to_cartesian()
-            .to_galactic_transform_space();
+        let mut starting_transform: GalacticTransformSpace =
+            self.geo_coord.to_cartesian().to_galactic_transform_space();
         let directions = starting_transform.directions();
 
         // Add camera / player height above ground
@@ -154,18 +149,12 @@ impl GeoView {
         starting_transform.galactic_transform
     }
 
-    pub fn set_camera_view(
-        &self,
-        player: &mut Player,
-        control_values: &mut ControlValues,
-    ) {
+    pub fn set_camera_view(&self, player: &mut Player, control_values: &mut ControlValues) {
         control_values.view = *self; //
         let use_distance = control_values.cam_control_mode == CamControlMode::F4;
         let galactic_transform = self.to_galactic_transform(use_distance);
 
-        let new_pos = GalacticTransformSpace {
-            galactic_transform,
-        };
+        let new_pos = GalacticTransformSpace { galactic_transform };
 
         player.set_pos(new_pos);
     }
@@ -175,8 +164,7 @@ impl GeoView {
         let position = player.pos();
 
         let geo_coord = position.to_planetary_position().to_geocoord();
-        let elevation =
-            position.position_double().length() as f32 - crate::geocoord::EARTH_RADIUS;
+        let elevation = position.position_double().length() as f32 - crate::geocoord::EARTH_RADIUS;
 
         let forward = position.galactic_transform.transform.forward();
         let directions = position.directions();

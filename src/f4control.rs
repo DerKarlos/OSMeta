@@ -187,9 +187,7 @@ fn player_move(
         if moved {
             view.limit();
             let galactic_transform = view.to_galactic_transform(true);
-            let new_pos = GalacticTransformSpace {
-                galactic_transform,
-            };
+            let new_pos = GalacticTransformSpace { galactic_transform };
             player.set_pos(new_pos);
         }
     } else {
@@ -257,9 +255,7 @@ fn player_look(
             view.limit();
             // Todo: Crossing a pole by up_view makes the rotation very low and stucking.
             let galactic_transform = view.to_galactic_transform(true);
-            let new_pos = GalacticTransformSpace {
-                galactic_transform,
-            };
+            let new_pos = GalacticTransformSpace { galactic_transform };
             player.set_pos(new_pos);
         }
     } else {

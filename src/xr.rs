@@ -21,7 +21,6 @@ use bevy_oxr::xr_input::{
     xr_camera::XRProjection,
 };
 use bevy_oxr::DefaultXrPlugins;
-use big_space::{FloatingOrigin, FloatingOriginSettings};
 
 use crate::geocoord::EARTH_RADIUS;
 use crate::{GalacticGrid, GalacticTransform};

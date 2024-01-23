@@ -10,7 +10,7 @@ use crate::compass::OpenXRTrackingRoot;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 
-use crate::big_space::{Space, FloatingOrigin};
+use crate::big_space::{FloatingOrigin, Space};
 use crate::compass::Compass;
 use crate::geocoord::{GeoCoord, EARTH_RADIUS};
 use crate::geoview::GeoView;
@@ -64,15 +64,11 @@ impl std::ops::Deref for PlanetaryPosition {
 }
 
 impl PlanetaryPosition {
-    pub fn to_galactic_transform_space(
-        self,
-    ) -> GalacticTransformSpace {
+    pub fn to_galactic_transform_space(self) -> GalacticTransformSpace {
         let (cell, pos) = Space::translation_to_grid(self.pos);
         let transform = Transform::from_translation(pos);
         let galactic_transform = GalacticTransformOwned { transform, cell };
-        GalacticTransformSpace {
-            galactic_transform,
-        }
+        GalacticTransformSpace { galactic_transform }
     }
 
     pub fn directions(self) -> Directions {
@@ -93,13 +89,13 @@ pub struct GalacticTransformSpace {
     pub galactic_transform: GalacticTransformOwned,
 }
 
-impl<'a> std::ops::DerefMut for GalacticTransformSpace {
+impl std::ops::DerefMut for GalacticTransformSpace {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.galactic_transform
     }
 }
 
-impl<'a> std::ops::Deref for GalacticTransformSpace {
+impl std::ops::Deref for GalacticTransformSpace {
     type Target = GalacticTransformOwned;
 
     fn deref(&self) -> &Self::Target {
@@ -144,9 +140,7 @@ impl<'w, 's> Player<'w, 's> {
             self.comtrol_pos.single()
         }
         .to_owned();
-        GalacticTransformSpace {
-            galactic_transform,
-        }
+        GalacticTransformSpace { galactic_transform }
     }
 
     pub fn set_pos(&mut self, new_pos: GalacticTransformSpace) {

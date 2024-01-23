@@ -6,7 +6,7 @@ use bevy::math::DVec3;
 use bevy::prelude::*;
 
 use super::precision::GridPrecision;
-use super::{Space, GridCell};
+use super::{GridCell, Space};
 
 #[derive(WorldQuery)]
 #[world_query(mutable)]
@@ -20,7 +20,6 @@ pub struct GridTransform<P: GridPrecision> {
     /// The grid to which `transform` is relative to.
     pub cell: &'static mut GridCell<P>,
 }
-
 
 impl<'w, P: GridPrecision> GridTransformItem<'w, P> {
     /// Compute the global position with double precision.

@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 use bevy::prelude::*;
 
-use crate::{precision::GridPrecision, FloatingOrigin, FloatingOriginSettings, GridCell};
+use crate::{precision::GridPrecision, FloatingOrigin, GridCell};
 
 /// This plugin will render the bounds of occupied grid cells.
 #[derive(Default)]
@@ -23,7 +23,6 @@ impl<P: GridPrecision> Plugin for FloatingOriginDebugPlugin<P> {
 /// Update the rendered debug bounds to only highlight occupied [`GridCell`]s.
 pub fn update_debug_bounds<P: GridPrecision>(
     mut gizmos: Gizmos,
-    settings: Res<FloatingOriginSettings>,
     occupied_cells: Query<&GridCell<P>, Without<FloatingOrigin>>,
     origin_cells: Query<&GridCell<P>, With<FloatingOrigin>>,
 ) {
