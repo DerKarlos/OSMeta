@@ -10,7 +10,7 @@ use bevy::{
 use crate::geocoord::{GeoCoord, EARTH_RADIUS};
 use crate::ViewDistance;
 
-use crate::big_space::FloatingOriginSettings;
+use crate::big_space::{space_translation_to_grid, FloatingOriginSettings};
 use crate::player::Control;
 
 use crate::{GalacticGrid, GalacticTransform, GalacticTransformOwned};
@@ -114,7 +114,6 @@ impl TileMap {
         server: Res<AssetServer>,
         mut tilemap: ResMut<TileMap>,
         mut meshes: ResMut<Assets<Mesh>>,
-        space: Res<FloatingOriginSettings>,
     ) {
         let Some(pos) = pos else { return };
         // https://gltiles.osm2world.org/glb/lod1/15/17388/11332.glb#Scene0"
@@ -126,7 +125,7 @@ impl TileMap {
         }
 
         // Insert dummy tile while loading.
-        let (grid, _coord, mesh) = flat_tile(pos, &space);
+        let (grid, _coord, mesh) = flat_tile(pos);
         let mesh = meshes.add(mesh);
 
         commands.spawn((PbrBundle { mesh, ..default() }, pos, grid, Loading, gltf));
@@ -190,10 +189,7 @@ impl TileMap {
 }
 
 // Compute a square mesh at the position for the given tile.
-fn flat_tile(
-    pos: TileIndex,
-    space: &FloatingOriginSettings,
-) -> (GalacticGrid, coord::TileCoord, Mesh) {
+fn flat_tile(pos: TileIndex) -> (GalacticGrid, coord::TileCoord, Mesh) {
     let coord = pos.as_coord();
 
     // Four corners of the tile in cartesian coordinates relative to the
@@ -216,7 +212,7 @@ fn flat_tile(
     let c = *c - *a;
     let d = *d - *a;
 
-    let (grid, a) = space.translation_to_grid(a);
+    let (grid, a) = space_translation_to_grid(a);
     let b = a + b.as_vec3();
     let c = a + c.as_vec3();
     let d = a + d.as_vec3();

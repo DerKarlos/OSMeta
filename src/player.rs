@@ -10,7 +10,7 @@ use crate::compass::OpenXRTrackingRoot;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 
-use crate::big_space::{FloatingOrigin, FloatingOriginSettings};
+use crate::big_space::{space_translation_to_grid, FloatingOrigin, FloatingOriginSettings};
 use crate::compass::Compass;
 use crate::geocoord::{GeoCoord, EARTH_RADIUS};
 use crate::geoview::GeoView;
@@ -68,7 +68,7 @@ impl PlanetaryPosition {
         self,
         space: &FloatingOriginSettings,
     ) -> GalacticTransformSpace<'_> {
-        let (cell, pos) = space.translation_to_grid(self.pos);
+        let (cell, pos) = space_translation_to_grid(self.pos);
         let transform = Transform::from_translation(pos);
         let galactic_transform = GalacticTransformOwned { transform, cell };
         GalacticTransformSpace {
@@ -244,7 +244,6 @@ pub fn setup_player_controls(
     mut meshes: ResMut<Assets<Mesh>>,
     mut images: ResMut<Assets<Image>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    space: Res<FloatingOriginSettings>,
     starting_values: Res<crate::StartingValues>,
     mut control_values: ResMut<ControlValues>,
 ) {
@@ -254,7 +253,7 @@ pub fn setup_player_controls(
     control_values.up = starting_values.planetary_position.normalize().as_vec3();
 
     let (grid, _): (GalacticGrid, _) =
-        space.translation_to_grid(starting_values.planetary_position);
+        space_translation_to_grid(starting_values.planetary_position);
 
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),
