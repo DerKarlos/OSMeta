@@ -2,7 +2,6 @@ use bevy::prelude::*;
 use std::fmt::Display;
 
 use super::coord::TileCoord;
-use crate::big_space::FloatingOriginSettings;
 use crate::{player::Directions, GalacticTransformOwned};
 
 /// An x/y index of an OWM tile.
@@ -64,11 +63,11 @@ impl TileIndex {
         }
     }
 
-    pub fn to_cartesian(self, space: &FloatingOriginSettings) -> GalacticTransformOwned {
+    pub fn to_cartesian(self) -> GalacticTransformOwned {
         let coord = self.as_coord().center();
         let pos = coord.to_geo_coord().to_cartesian();
         let Directions { up, north, west: _ } = pos.directions();
-        let mut galactic_transform = pos.to_galactic_transform_space(space).galactic_transform;
+        let mut galactic_transform = pos.to_galactic_transform_space().galactic_transform;
         galactic_transform.transform.look_to(north, up);
         galactic_transform
     }

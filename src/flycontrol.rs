@@ -8,8 +8,6 @@ use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
 
-use crate::big_space::FloatingOriginSettings;
-
 use crate::player::{Control, ControlValues, InputState};
 use crate::GalacticTransform;
 
@@ -253,13 +251,12 @@ fn grab_cursor(
 pub fn update_camera_orientations(
     mut control_values: ResMut<ControlValues>,
     mut fly_cam: Query<GalacticTransform, With<Control>>,
-    space: Res<FloatingOriginSettings>,
 ) {
     // the only controled camera's GalacticTransform <grid,f32>
     let mut fly_cam = fly_cam.single_mut();
 
     let up = fly_cam
-        .position_double(&space)
+        .position_double()
         .normalize() // direction from galactic NULL = from the Earth center
         .as_vec3();
     control_values.up = up;

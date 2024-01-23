@@ -10,7 +10,7 @@ use bevy::{
 use crate::geocoord::{GeoCoord, EARTH_RADIUS};
 use crate::ViewDistance;
 
-use crate::big_space::{space_translation_to_grid, FloatingOriginSettings};
+use crate::big_space::Space;
 use crate::player::Control;
 
 use crate::{GalacticGrid, GalacticTransform, GalacticTransformOwned};
@@ -41,9 +41,8 @@ impl TileMap {
         In((origin, radius)): In<(TileIndex, f32)>,
         mut tiles: Query<(&TileIndex, &mut Visibility)>,
         fly_cam: Query<GalacticTransform, With<Control>>, // todo: make camera elevation a global resource?
-        space: Res<FloatingOriginSettings>,
     ) {
-        let elevation = fly_cam.single().position_double(&space).length() as f32 - EARTH_RADIUS;
+        let elevation = fly_cam.single().position_double().length() as f32 - EARTH_RADIUS;
         for (tile, mut vis) in tiles.iter_mut() {
             // FIXME: use tile zoom level to increase view-distance for lower zoom tiles.
             let tile_size = tile.as_coord().to_geo_coord().tile_size(TILE_ZOOM);
@@ -62,7 +61,6 @@ impl TileMap {
         tilemap: Res<TileMap>,
         loading: Query<&Loading>,
         fly_cam: Query<GalacticTransform, With<Control>>,
-        space: Res<FloatingOriginSettings>,
     ) -> Option<TileIndex> {
         if !loading.is_empty() {
             return None;
@@ -70,7 +68,7 @@ impl TileMap {
         let tile_size = origin.as_coord().to_geo_coord().tile_size(TILE_ZOOM);
         let mut best_score = f32::INFINITY;
         let mut best_pos = None;
-        let elevation = fly_cam.single().position_double(&space).length() as f32 - EARTH_RADIUS;
+        let elevation = fly_cam.single().position_double().length() as f32 - EARTH_RADIUS;
         let dist_max = (radius / tile_size).ceil() as i32;
         for x_i in -dist_max..=dist_max {
             for y_i in -dist_max..=dist_max {
@@ -136,7 +134,6 @@ impl TileMap {
         server: Res<AssetServer>,
         scenes: ResMut<Assets<Gltf>>,
         mut materials: ResMut<Assets<StandardMaterial>>,
-        space: Res<FloatingOriginSettings>,
         next: Query<(Entity, &TileIndex, &Handle<Gltf>), With<Loading>>,
     ) {
         let Ok((entity, pos, scene)) = next.get_single() else {
@@ -157,7 +154,7 @@ impl TileMap {
             LoadState::NotLoaded | LoadState::Loading => unreachable!(),
             LoadState::Loaded => {
                 entity.remove::<PbrBundle>();
-                let GalacticTransformOwned { transform, cell } = pos.to_cartesian(&space);
+                let GalacticTransformOwned { transform, cell } = pos.to_cartesian();
                 let scene = scenes.get(scene).unwrap().scenes[0].clone();
                 entity.insert(cell);
                 entity.insert(SceneBundle {
@@ -212,7 +209,7 @@ fn flat_tile(pos: TileIndex) -> (GalacticGrid, coord::TileCoord, Mesh) {
     let c = *c - *a;
     let d = *d - *a;
 
-    let (grid, a) = space_translation_to_grid(a);
+    let (grid, a) = Space::translation_to_grid(a);
     let b = a + b.as_vec3();
     let c = a + c.as_vec3();
     let d = a + d.as_vec3();

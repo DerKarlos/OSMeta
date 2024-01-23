@@ -52,8 +52,6 @@ use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
-use crate::big_space::FloatingOriginSettings;
-
 pub mod prelude {
     pub use crate::*;
 }
@@ -122,7 +120,6 @@ fn player_move(
     keys: Res<Input<KeyCode>>,
     key_bindings: Res<KeyBindings>,
     time: Res<Time>,
-    space: Res<FloatingOriginSettings>,
     mut control_values: ResMut<ControlValues>,
     mut player: Player,
 ) {
@@ -189,10 +186,9 @@ fn player_move(
 
         if moved {
             view.limit();
-            let galactic_transform = view.to_galactic_transform(&space, true);
+            let galactic_transform = view.to_galactic_transform(true);
             let new_pos = GalacticTransformSpace {
                 galactic_transform,
-                space: &space,
             };
             player.set_pos(new_pos);
         }
@@ -260,11 +256,9 @@ fn player_look(
         if moved {
             view.limit();
             // Todo: Crossing a pole by up_view makes the rotation very low and stucking.
-            let space = player.space.clone(); // don't Res<  it extra!
-            let galactic_transform = view.to_galactic_transform(&space, true);
+            let galactic_transform = view.to_galactic_transform(true);
             let new_pos = GalacticTransformSpace {
                 galactic_transform,
-                space: &space,
             };
             player.set_pos(new_pos);
         }

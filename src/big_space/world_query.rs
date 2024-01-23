@@ -6,7 +6,7 @@ use bevy::math::DVec3;
 use bevy::prelude::*;
 
 use super::precision::GridPrecision;
-use super::{FloatingOriginSettings, GridCell};
+use super::{Space, GridCell};
 
 #[derive(WorldQuery)]
 #[world_query(mutable)]
@@ -21,15 +21,16 @@ pub struct GridTransform<P: GridPrecision> {
     pub cell: &'static mut GridCell<P>,
 }
 
+
 impl<'w, P: GridPrecision> GridTransformItem<'w, P> {
     /// Compute the global position with double precision.
-    pub fn position_double(&self, space: &FloatingOriginSettings) -> DVec3 {
-        space.grid_position_double(&self.cell, &self.transform)
+    pub fn position_double(&self) -> DVec3 {
+        Space::grid_position_double(&self.cell, &self.transform)
     }
 
     /// Compute the global position.
-    pub fn _position(&self, space: &FloatingOriginSettings) -> Vec3 {
-        space.grid_position(&self.cell, &self.transform)
+    pub fn _position(&self) -> Vec3 {
+        Space::grid_position(&self.cell, &self.transform)
     }
 
     /// Get a copy of the fields to work with.
@@ -43,13 +44,13 @@ impl<'w, P: GridPrecision> GridTransformItem<'w, P> {
 
 impl<'w, P: GridPrecision> GridTransformReadOnlyItem<'w, P> {
     /// Compute the global position with double precision.
-    pub fn position_double(&self, space: &FloatingOriginSettings) -> DVec3 {
-        space.grid_position_double(self.cell, self.transform)
+    pub fn position_double(&self) -> DVec3 {
+        Space::grid_position_double(self.cell, self.transform)
     }
 
     /// Compute the global position.
-    pub fn _position(&self, space: &FloatingOriginSettings) -> Vec3 {
-        space.grid_position(self.cell, self.transform)
+    pub fn _position(&self) -> Vec3 {
+        Space::grid_position(self.cell, self.transform)
     }
 
     /// Get a copy of the fields to work with.
@@ -98,12 +99,12 @@ impl<P: GridPrecision> std::ops::Add for GridTransformOwned<P> {
 
 impl<P: GridPrecision> GridTransformOwned<P> {
     /// Compute the global position with double precision.
-    pub fn position_double(&self, space: &FloatingOriginSettings) -> DVec3 {
-        space.grid_position_double(&self.cell, &self.transform)
+    pub fn position_double(&self) -> DVec3 {
+        Space::grid_position_double(&self.cell, &self.transform)
     }
 
     /// Compute the global position.
-    pub fn position(&self, space: &FloatingOriginSettings) -> Vec3 {
-        space.grid_position(&self.cell, &self.transform)
+    pub fn position(&self) -> Vec3 {
+        Space::grid_position(&self.cell, &self.transform)
     }
 }

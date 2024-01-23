@@ -173,7 +173,6 @@ fn update_grabbables(
 pub fn pull_to_ground(
     time: Res<Time>,
     mut tracking_root_query: Query<GalacticTransform, With<OpenXRTrackingRoot>>,
-    space: Res<FloatingOriginSettings>,
 ) {
     let Ok(mut root) = tracking_root_query.get_single_mut() else {
         return;
@@ -182,7 +181,7 @@ pub fn pull_to_ground(
     let adjustment_rate = (time.delta_seconds() * 10.0).min(1.0);
 
     // Lower player onto sphere
-    let real_pos = root.position_double(&space);
+    let real_pos = root.position_double();
     let up = real_pos.normalize();
     let diff = up * EARTH_RADIUS as f64 - real_pos;
     root.transform.translation += diff.as_vec3() * adjustment_rate;

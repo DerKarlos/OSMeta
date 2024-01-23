@@ -1,6 +1,5 @@
 use super::geocoord::*;
 use super::GalacticTransformOwned;
-use crate::big_space::FloatingOriginSettings;
 use crate::player::{CamControlMode, ControlValues, GalacticTransformSpace, Player, OSM_LAT_LIMIT};
 use bevy::{
     prelude::*,
@@ -115,14 +114,13 @@ impl GeoView {
 
     pub fn to_galactic_transform(
         self,
-        space: &FloatingOriginSettings,
         use_distance: bool,
     ) -> GalacticTransformOwned {
         // Position on Earth ground
-        let mut starting_transform: GalacticTransformSpace<'_> = self
+        let mut starting_transform: GalacticTransformSpace = self
             .geo_coord
             .to_cartesian()
-            .to_galactic_transform_space(space);
+            .to_galactic_transform_space();
         let directions = starting_transform.directions();
 
         // Add camera / player height above ground
@@ -158,29 +156,27 @@ impl GeoView {
 
     pub fn set_camera_view(
         &self,
-        space: &FloatingOriginSettings,
         player: &mut Player,
         control_values: &mut ControlValues,
     ) {
         control_values.view = *self; //
         let use_distance = control_values.cam_control_mode == CamControlMode::F4;
-        let galactic_transform = self.to_galactic_transform(space, use_distance);
+        let galactic_transform = self.to_galactic_transform(use_distance);
 
         let new_pos = GalacticTransformSpace {
             galactic_transform,
-            space,
         };
 
         player.set_pos(new_pos);
     }
 
-    #[instrument(level = "debug", skip(space, player), ret)]
-    pub fn from_player(space: &FloatingOriginSettings, player: &Player) -> Self {
+    #[instrument(level = "debug", skip(player), ret)]
+    pub fn from_player(player: &Player) -> Self {
         let position = player.pos();
 
         let geo_coord = position.to_planetary_position().to_geocoord();
         let elevation =
-            position.position_double(space).length() as f32 - crate::geocoord::EARTH_RADIUS;
+            position.position_double().length() as f32 - crate::geocoord::EARTH_RADIUS;
 
         let forward = position.galactic_transform.transform.forward();
         let directions = position.directions();
@@ -218,7 +214,6 @@ fn keys_ui(
     mut player: Player,
     mut control_values: ResMut<ControlValues>,
     mut views: ResMut<Views>,
-    space: Res<FloatingOriginSettings>,
 ) {
     {
         for key in keys.get_just_pressed() {
@@ -245,7 +240,7 @@ fn keys_ui(
                             let mut geo_view = if is_orbit_control {
                                 control_values.view
                             } else {
-                                GeoView::from_player(&space, &player)
+                                GeoView::from_player(&player)
                             };
                             geo_view.distance = control_values.view.distance; // keep distance of orbid control
                             geo_view.store(key_string, &mut views.map);
@@ -254,7 +249,7 @@ fn keys_ui(
                         info!("*** key: {:?}", key_string);
                         let view3 = GeoView::restore(key_string, &mut views.map);
                         if let Some(view3) = view3 {
-                            view3.set_camera_view(&space, &mut player, &mut control_values);
+                            view3.set_camera_view(&mut player, &mut control_values);
                         }
                     }
                 }
@@ -269,7 +264,6 @@ fn keys_ui_setup(
     mut player: Player,
     mut views: ResMut<Views>,
     mut control_values: ResMut<ControlValues>,
-    space: Res<FloatingOriginSettings>,
 ) {
     // The start view is placed for Key0 and
     // all controls are set here (also the camera)
@@ -278,7 +272,7 @@ fn keys_ui_setup(
         .store("Key0".to_string(), &mut views.map);
     starting_values
         .view
-        .set_camera_view(&space, &mut player, &mut control_values);
+        .set_camera_view(&mut player, &mut control_values);
 }
 
 pub struct Plugin;

@@ -10,7 +10,7 @@ use crate::compass::OpenXRTrackingRoot;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 
-use crate::big_space::{space_translation_to_grid, FloatingOrigin, FloatingOriginSettings};
+use crate::big_space::{Space, FloatingOrigin};
 use crate::compass::Compass;
 use crate::geocoord::{GeoCoord, EARTH_RADIUS};
 use crate::geoview::GeoView;
@@ -39,7 +39,7 @@ pub struct Player<'w, 's> {
         GalacticTransform,
         (With<Control>, Without<OpenXRTrackingRoot>, Without<Compass>),
     >,
-    pub(crate) space: Res<'w, FloatingOriginSettings>,
+    //removed: pub(crate) space: Res<'w, FloatingOriginSettings>,
 }
 
 /// A helper for working with positions relative to the planet center.
@@ -66,14 +66,12 @@ impl std::ops::Deref for PlanetaryPosition {
 impl PlanetaryPosition {
     pub fn to_galactic_transform_space(
         self,
-        space: &FloatingOriginSettings,
-    ) -> GalacticTransformSpace<'_> {
-        let (cell, pos) = space_translation_to_grid(self.pos);
+    ) -> GalacticTransformSpace {
+        let (cell, pos) = Space::translation_to_grid(self.pos);
         let transform = Transform::from_translation(pos);
         let galactic_transform = GalacticTransformOwned { transform, cell };
         GalacticTransformSpace {
             galactic_transform,
-            space,
         }
     }
 
@@ -91,18 +89,17 @@ impl PlanetaryPosition {
 
 /// A helper for working with galactic positions.
 #[derive(Copy, Clone)]
-pub struct GalacticTransformSpace<'a> {
+pub struct GalacticTransformSpace {
     pub galactic_transform: GalacticTransformOwned,
-    pub space: &'a FloatingOriginSettings,
 }
 
-impl<'a> std::ops::DerefMut for GalacticTransformSpace<'a> {
+impl<'a> std::ops::DerefMut for GalacticTransformSpace {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.galactic_transform
     }
 }
 
-impl<'a> std::ops::Deref for GalacticTransformSpace<'a> {
+impl<'a> std::ops::Deref for GalacticTransformSpace {
     type Target = GalacticTransformOwned;
 
     fn deref(&self) -> &Self::Target {
@@ -110,11 +107,11 @@ impl<'a> std::ops::Deref for GalacticTransformSpace<'a> {
     }
 }
 
-impl GalacticTransformSpace<'_> {
+impl GalacticTransformSpace {
     /// Compute the cartesian coordinates by combining the grid cell and the position from within
     /// the grid.
     pub fn pos(&self) -> DVec3 {
-        self.galactic_transform.position_double(self.space)
+        self.galactic_transform.position_double()
     }
 
     /// Calculates cardinal directions at any cartesian position.
@@ -140,7 +137,7 @@ pub struct Directions {
 
 impl<'w, 's> Player<'w, 's> {
     /// Computes the galactic position of the main player (prefers XR player).
-    pub fn pos(&self) -> GalacticTransformSpace<'_> {
+    pub fn pos(&self) -> GalacticTransformSpace {
         let galactic_transform = if let Ok(xr_pos) = self.xr_pos.get_single() {
             xr_pos
         } else {
@@ -149,11 +146,10 @@ impl<'w, 's> Player<'w, 's> {
         .to_owned();
         GalacticTransformSpace {
             galactic_transform,
-            space: &self.space,
         }
     }
 
-    pub fn set_pos(&mut self, new_pos: GalacticTransformSpace<'_>) {
+    pub fn set_pos(&mut self, new_pos: GalacticTransformSpace) {
         let mut pos = if let Ok(xr_pos) = self.xr_pos.get_single_mut() {
             xr_pos
         } else {
@@ -228,9 +224,8 @@ fn uv_debug_texture() -> Image {
 fn update_camera_speed(
     mut control_values: ResMut<ControlValues>,
     fly_cam: Query<GalacticTransform, With<Control>>,
-    space: Res<FloatingOriginSettings>,
 ) {
-    let elevation = fly_cam.single().position_double(&space).length() as f32;
+    let elevation = fly_cam.single().position_double().length() as f32;
     let mut distance_to_focus = elevation - crate::geocoord::EARTH_RADIUS;
     if control_values.cam_control_mode == CamControlMode::F4 {
         distance_to_focus += control_values.view.distance
@@ -253,7 +248,7 @@ pub fn setup_player_controls(
     control_values.up = starting_values.planetary_position.normalize().as_vec3();
 
     let (grid, _): (GalacticGrid, _) =
-        space_translation_to_grid(starting_values.planetary_position);
+        Space::translation_to_grid(starting_values.planetary_position);
 
     let material = materials.add(StandardMaterial {
         base_color_texture: Some(images.add(uv_debug_texture())),

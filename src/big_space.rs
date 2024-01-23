@@ -117,6 +117,68 @@ pub struct FloatingOriginPlugin<P: GridPrecision> {
     phantom: PhantomData<P>,
 }
 
+pub struct Space; // or BigSpace ?
+
+impl Space {
+
+    /// Compute the single precision position of an entity's [`Transform`] with respect to the given
+    /// [`GridCell`].
+    pub fn grid_position<P: GridPrecision>(
+        pos: &GridCell<P>,
+        transform: &Transform,
+    ) -> Vec3 {
+        Vec3 {
+            x: pos.x.as_f64() as f32 * GRID_EDGE_LENGTH + transform.translation.x,
+            y: pos.y.as_f64() as f32 * GRID_EDGE_LENGTH + transform.translation.y,
+            z: pos.z.as_f64() as f32 * GRID_EDGE_LENGTH + transform.translation.z,
+        }
+    }
+
+/// Convert a large translation into a small translation relative to a grid cell.
+pub fn translation_to_grid<P: GridPrecision>(input: impl Into<DVec3>) -> (GridCell<P>, Vec3) {
+    let l = GRID_EDGE_LENGTH as f64;
+    let input = input.into();
+    let DVec3 { x, y, z } = input;
+
+    if input.abs().max_element() < MAXIMUM_DISTANCE_FROM_ORIGIN as f64 {
+        return (GridCell::default(), input.as_vec3());
+    }
+
+    let x_r = (x / l).round();
+    let y_r = (y / l).round();
+    let z_r = (z / l).round();
+    let t_x = x - x_r * l;
+    let t_y = y - y_r * l;
+    let t_z = z - z_r * l;
+
+    (
+        GridCell {
+            x: P::from_f32(x_r as f32),
+            y: P::from_f32(y_r as f32),
+            z: P::from_f32(z_r as f32),
+        },
+        Vec3::new(t_x as f32, t_y as f32, t_z as f32),
+    )
+}
+
+
+    /// Compute the double precision position of an entity's [`Transform`] with respect to the given
+    /// [`GridCell`].
+    pub fn grid_position_double<P: GridPrecision>(
+        pos: &GridCell<P>,
+        transform: &Transform,
+    ) -> DVec3 {
+        DVec3 {
+            x: pos.x.as_f64() * GRID_EDGE_LENGTH as f64 + transform.translation.x as f64,
+            y: pos.y.as_f64() * GRID_EDGE_LENGTH as f64 + transform.translation.y as f64,
+            z: pos.z.as_f64() * GRID_EDGE_LENGTH as f64 + transform.translation.z as f64,
+        }
+    }
+
+    
+
+}
+
 pub const GRID_EDGE_LENGTH: f32 = 2_000f32;
 pub const MAXIMUM_DISTANCE_FROM_ORIGIN: f32 = 100f32;
 
@@ -180,33 +242,6 @@ pub struct FloatingOriginSettings {
     maximum_distance_from_origin: f32,
 }
 
-/// Convert a large translation into a small translation relative to a grid cell.
-pub fn space_translation_to_grid<P: GridPrecision>(input: impl Into<DVec3>) -> (GridCell<P>, Vec3) {
-    let l = GRID_EDGE_LENGTH as f64;
-    let input = input.into();
-    let DVec3 { x, y, z } = input;
-
-    if input.abs().max_element() < MAXIMUM_DISTANCE_FROM_ORIGIN as f64 {
-        return (GridCell::default(), input.as_vec3());
-    }
-
-    let x_r = (x / l).round();
-    let y_r = (y / l).round();
-    let z_r = (z / l).round();
-    let t_x = x - x_r * l;
-    let t_y = y - y_r * l;
-    let t_z = z - z_r * l;
-
-    (
-        GridCell {
-            x: P::from_f32(x_r as f32),
-            y: P::from_f32(y_r as f32),
-            z: P::from_f32(z_r as f32),
-        },
-        Vec3::new(t_x as f32, t_y as f32, t_z as f32),
-    )
-}
-
 impl FloatingOriginSettings {
     /// Construct a new [`FloatingOriginSettings`] struct. This cannot be updated after the plugin
     /// is built.
@@ -218,18 +253,18 @@ impl FloatingOriginSettings {
     }
 
     /// Get the plugin's `grid_edge_length`.
-    pub fn grid_edge_length(&self) -> f32 {
+    pub fn _grid_edge_length(&self) -> f32 {
         self.grid_edge_length
     }
 
     /// Get the plugin's `maximum_distance_from_origin`.
-    pub fn maximum_distance_from_origin(&self) -> f32 {
+    pub fn _maximum_distance_from_origin(&self) -> f32 {
         self.maximum_distance_from_origin
     }
 
     /// Compute the double precision position of an entity's [`Transform`] with respect to the given
     /// [`GridCell`].
-    pub fn grid_position_double<P: GridPrecision>(
+    pub fn _grid_position_double<P: GridPrecision>(
         &self,
         pos: &GridCell<P>,
         transform: &Transform,

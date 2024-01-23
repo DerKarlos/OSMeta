@@ -1,6 +1,5 @@
 //! Everything related to the global light and shadow logic
 
-use crate::big_space::FloatingOriginSettings;
 use bevy::{
     pbr::{CascadeShadowConfigBuilder, DirectionalLightShadowMap, NotShadowCaster},
     prelude::*,
@@ -60,7 +59,6 @@ fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     server: Res<AssetServer>,
-    space: Res<FloatingOriginSettings>,
     mut views: ResMut<Views>,
     starting_values: Res<StartingValues>,
 ) {
@@ -291,7 +289,7 @@ fn setup(
             ..Default::default()
         };
         view.store("Key7".to_string(), &mut views.map);
-        let galactic_transform = view.to_galactic_transform(&space, false);
+        let galactic_transform = view.to_galactic_transform(false);
         let transform = galactic_transform.transform;
         let cell = galactic_transform.cell;
 
