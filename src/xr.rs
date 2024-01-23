@@ -22,6 +22,7 @@ use bevy_oxr::xr_input::{
 };
 use bevy_oxr::DefaultXrPlugins;
 
+use crate::big_space::FloatingOrigin;
 use crate::geocoord::EARTH_RADIUS;
 use crate::{GalacticGrid, GalacticTransform};
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
