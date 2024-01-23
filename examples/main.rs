@@ -57,6 +57,7 @@ fn setup(
     mut commands: Commands,
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
+    asset_server: Res<AssetServer>,
 ) {
     // Camera-Meshes (body and lense)
     let cube = meshes.add(shape::Cube { size: 1.0 }.try_into().unwrap());
@@ -198,6 +199,11 @@ fn setup(
         Join,
     ));
 
+    commands.spawn(SceneBundle {
+        scene: asset_server.load("crucero_medio_valkyrie_m_1.glb#Scene0"), // xwing Galactica  1701A2 crucero_medio_valkyrie_m_1
+        ..default()
+    });
+
     ///// Camera & Light /////////////////////////////////////////////////////
 
     // bevy-camera
@@ -222,7 +228,7 @@ fn setup(
             shadows_enabled: true,
             ..default()
         },
-        transform: Transform::from_xyz(4.0, 8.0, 4.0),
+        transform: Transform::from_xyz(4000.0, 8000.0, 4000.0),
         ..default()
     });
 }

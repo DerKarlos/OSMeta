@@ -52,7 +52,7 @@ use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
-use big_space::FloatingOriginSettings;
+use crate::big_space::FloatingOriginSettings;
 
 pub mod prelude {
     pub use crate::*;

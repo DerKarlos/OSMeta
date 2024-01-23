@@ -1,0 +1,151 @@
+Texts for “convert functions”:
+A concrete example is the orientation/Rotation of the camera/player. By lat/lon/ele the Translation can be calculated. Subtracting the Earth radius, we get the surface-relative Translation. How to Geht the surface-relative Rotation? In lib.rs pull_to_ground seems to be a similar calculation.
+
+At app start the camera rotation is not handled and still to GPU-y.
+Rotating according to lat/lon should point the camera focus to the Earth center.
+Or the camera “feet” to Earth; that would result an a view parallele to the Earth surface.
+But the .looking_at Earth-center solves it for now.
+Both together would make a good service function: geopos.get_surface_transation(rotatoin). With rotatoin individual view angles could be set.
+
+The opposite service is also needed:  geoview::from_camera(camera-transform);
+ - i.E. to show the actual lat/lon/ele in the browser URL.
+
+Because of the big_space, Transform has to be handled with grid because the Earth IS big.
+* We get the entities space_pos by the queried Transform (grid_position_double)
+* We get the (up?) orientation down to Earth by real_pos.normalize.
+* Because Earth center is also GPU ZERO, the real_pos is also the distance to the Earth center.
+  So real_pos minus EARTH_RADIUS * up is the distance in the GPU/Earth space
+
+* That up orientation is also the rotation, the camera needs, to look sky up.
+* Instead of up we prefer down or ahead. Down is easy: up rotated 180 degrees.
+  But what “spin” would the camera have?
+
+### The pull_to_ground seems to be a similar service function. The interesting lines:
+
+    let real_pos = space.grid_position_double(grid, &root);
+    let up = real_pos.normalize();
+    let diff = up * EARTH_RADIUS as f64 - real_pos;
+
+### Or update_camera_orientations ?
+
+    let (transform, grid) = fly_cam.single();   // Get Local-Transform and Grid
+    movement_settings.up = // Set camera world rotation. Calculated by the position on Earth:
+	space.                                                      // Use a grid-worlds ...
+        .grid_position_double(grid, transform)     // … function to calculate the grid-local Translation by the space-Transformation and ...
+        .normalize()                                              // … by normalising it, get the world/space rotation doulbe ...
+        .as_vec3();                                               // … as f32-Vec3 ...
+                                                                         // … to set the camera world rotation above
+
+What is different to the App-Init? Nothing bad:
+
+lat/lon  to_cartesian/from_geographic = starting_position (DVec3). // space ? grid-local - egal
+        .normalize()                                              // … by normalising it, get the space rotation doulbe ...
+        .as_vec3();                                               // … as f32-Vec3 ...
+
+How is the camera set???
+movement_settings.up is set. But is it used by the camera?
+NoCameraPlayerPlugin is used!    PlayerPlugin and setup_player are not used.
+Not at all ...
+Ohne looking_at schaut die Kamera quer.   Das movement_settings.up nicht zu setzen ändert nichts.
+Wie setzen wir die Camera? Wie setzt bevy_cam sie? So:
+    mut query: Query<(&FlyCam, &mut Transform)>, //    mut query: Query<&mut Transform, With<FlyCam>>,
+    for (_camera, mut transform) in query.iter_mut() {
+    transform.translation += velocity * time.delta_seconds() * settings.speed
+Geht das in flycam.rs setup? Den Query gibt es nicht.
+Aber das Camera3dBundle wird da ja instanziert. Und das brav mit transform :) Da kann die Rotation rein.
+Wo ist eigentlich die Position? Kennen wir!:
+    let transform = Transform::from_translation(subgrid_pos + rotation * dist)
+So einfach:    transform.up = rotation;
+Äh, das Vec3 aus noch zur Matrix werden.
+    transform = transform * Transform::from_translation(rotation);
+Das tut genau NIX :-/
+
+
+####
+
+Ich will das tile-nord  looking_to nachbauen, nur ohne grid:
+Lat/lon/ele  looking_to. Lat+x/lon/ele
+
+** Earth relative **	Three names!:    Geo- / Geographic- / Planetary-
+GeoPos(Coord):		lat: f32, lon: f32. 	(Rename to GeoCoord'inates?)
+GeoView:		GeoPos,                                     ele: f32, dir:degr view:degr  (dist, LoD)
+GeographicPoint:	longitude: f64, latitude: f64, altitude: f64 (why not GeographicPosition?)
+PlanetaryPosition:	pos: DVec3 (relative to Earth center)
+
+** Big-Space **
+GalacticTransform                                                                                                       
+=   GridTransform:	transform: (bevy/GPU?)Transform, cell: GridCell                       
+
+(Camera)Player:	xr_pos+flycam_pos: GalacticTransform                                      
+                                                                                                                                    
+(Player)Position:	pos: GalacticTransform, fn Directions, space: FloatingOriginSettings(needed for conversions)
+                                                                                                                                    
+Directions:		up: Vec3, north: Vec3, west: Vec3
+GridCell:			x/y/z i64=GridPrecision
+FloatingOriginSettings: grid_edge_length: f32, maximum_distance_from_origin: f32. (Wie groß???)
+                                                                                                                                    
+                                                                                                                                    
+M A T R I X  Point/Position  Transform = Translation + Rotation
+GeoView      lat/lon/el/d/v  
+GeoPos        lat/lon
+Geographic  lon/lat/alt        ?
+Planetary     DVec3            ?                                         Directions
+Galactic       ?                     ok
+
+
+GeoPos + ele = GeographicPoint + dir/view = GeoView
+
+GalacticTransform	<=> GeographicTransform
+GalacticTranslaton	<=> GeographicTranslaton
+GalacticRotation	<=> GeographicRotatoin		  
+
+We use the big-space crate. So we or the user of our crate should never use the translation of the bevy entities,
+but always the big-space “classes” and functions. Naming: “Galactic..”. May be we need to add some more functions.
+We use a real size big Earth, so “up” will mostly not be big-space up.
+We should offer functions to calculate in Earth-space and form to big-space. Naming: “Geographic…"
+
+About heights: The center of our Earth is at Galactic-ZERRO. The Earth radius as height goes to the see-level.
+An object above will have an height about ground and add to the Earth radius. If we use terrain,
+the ground height is also added.
+
+About Rotations. They are not related to the big-space. But to the geographic position on Earth. “up” is “down” in down-under! So if you want your entity or the camera to “look” i.e. to the Nord, you have to use Earth relative rotations. There are functions to help.
+
+Classes:
+
+* Our “GeoPos” or “GeoCoord” is just Lat and Lon in degrees.
+* The "???::GeographicPoint" has longitude, latitude and altitude.
+The altitude has to be the Earth radius, may be an additional height about ground and may be even a terrain height.
+* Our “GeoView" has lat and lon. And the “height” is meant “about Ground”, either about see level or about the terrain height and NOT the Earth radius.
+Each of the three “class” may have fn .to the others.
+
+* You may get a “PlanetaryPosition” from a "GeographicPoint" or a “GeoView”.
+It uses f64 and as the Earth center is placed at Galactic-ZERRO,
+the PlanetaryPosition can be seen and calculated with as a Galactic-Translation/-Position.
+For the camera/Player you can get the “Position” and Earth relative local “directions” for up, north and west.
+
+A drawing may help with all this.
+
+Todo: What functions for conversion and calculation do we really have?
+
+
+I would like to have GeoView.to_galactic_transform(). What Steps?
+GeoPos => GeographicPoint+height => PlanetaryPosition => GalacticTransform
+
+
+
+ööööö
+
+
+
+
+
+Das Orion-Museum von Josef Hilger macht ein RAUMPATROUILLE-Gewinnspiel!
+Ja, nach dem EuroVideo vielen Webseiten zum Thema Bluray Boxen zum Verlosen spendiert hat
+haben auch wir im Fediversum was zu verteilen.
+Verlost werden 3 Schuber von EuroVideo mit den remasterten Folgen nach der Neuabtastung der original 35mm Filme.
+Die Details dazu folgen. Als PDF-Anlage hier erst mal die Besprechung der neuen. Boxen
+
+
+
+Radiosendung und "Orion-TNG"
+https://federation.network/notes/9ncz6c6wbt66d7g7

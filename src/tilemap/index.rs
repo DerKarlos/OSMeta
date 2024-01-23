@@ -1,9 +1,9 @@
+use bevy::prelude::*;
 use std::fmt::Display;
 
 use super::coord::TileCoord;
+use crate::big_space::FloatingOriginSettings;
 use crate::{player::Directions, GalacticTransformOwned};
-use bevy::prelude::*;
-use big_space::FloatingOriginSettings;
 
 /// An x/y index of an OWM tile.
 #[derive(Debug, Copy, Clone, Component, Hash, PartialEq, Eq)]

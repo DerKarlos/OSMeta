@@ -1,16 +1,16 @@
 //! Loads and renders a glTF file as a scene.
 
+use crate::big_space::{
+    world_query::{
+        GridTransform, GridTransformItem, GridTransformOwned, GridTransformReadOnlyItem,
+    },
+    FloatingOriginPlugin, GridCell,
+};
 use bevy::prelude::*;
 use bevy_embedded_assets::EmbeddedAssetPlugin;
 use bevy_screen_diagnostics::{
     Aggregate, ScreenDiagnostics, ScreenDiagnosticsPlugin, ScreenEntityDiagnosticsPlugin,
     ScreenFrameDiagnosticsPlugin,
-};
-use big_space::{
-    world_query::{
-        GridTransform, GridTransformItem, GridTransformOwned, GridTransformReadOnlyItem,
-    },
-    FloatingOriginPlugin, GridCell,
 };
 use flycontrol::update_camera_orientations;
 use geocoord::GeoCoord;
@@ -21,6 +21,7 @@ use tilemap::TileMap;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use xr::pull_to_ground;
 
+mod big_space;
 mod compass;
 mod f4control;
 mod flycontrol;

@@ -1360,14 +1360,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "big_space"
-version = "0.4.0"
-source = "git+https://github.com/oli-obk/big_space.git?branch=world_query#2d08b10c02a7b0b2cf50166dccb23bc22acb419b"
-dependencies = [
- "bevy",
-]
-
-[[package]]
 name = "bindgen"
 version = "0.69.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3491,7 +3483,6 @@ dependencies = [
  "bevy_panorbit_camera",
  "bevy_screen_diagnostics",
  "bevy_web_asset",
- "big_space",
  "directories",
  "flate2",
  "futures-core",

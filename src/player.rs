@@ -3,7 +3,6 @@ use bevy::ecs::system::SystemParam;
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
-use big_space::{FloatingOrigin, FloatingOriginSettings};
 use glam::DVec3;
 
 #[cfg(not(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32")))))]
@@ -11,6 +10,7 @@ use crate::compass::OpenXRTrackingRoot;
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 
+use crate::big_space::{FloatingOrigin, FloatingOriginSettings};
 use crate::compass::Compass;
 use crate::geocoord::{GeoCoord, EARTH_RADIUS};
 use crate::geoview::GeoView;

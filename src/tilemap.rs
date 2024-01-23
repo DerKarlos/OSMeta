@@ -10,8 +10,8 @@ use bevy::{
 use crate::geocoord::{GeoCoord, EARTH_RADIUS};
 use crate::ViewDistance;
 
+use crate::big_space::FloatingOriginSettings;
 use crate::player::Control;
-use big_space::FloatingOriginSettings;
 
 use crate::{GalacticGrid, GalacticTransform, GalacticTransformOwned};
 

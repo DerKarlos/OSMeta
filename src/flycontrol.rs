@@ -8,7 +8,7 @@ use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::window::{CursorGrabMode, PrimaryWindow};
 
-use big_space::FloatingOriginSettings;
+use crate::big_space::FloatingOriginSettings;
 
 use crate::player::{Control, ControlValues, InputState};
 use crate::GalacticTransform;

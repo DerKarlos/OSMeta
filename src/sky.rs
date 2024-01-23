@@ -1,5 +1,6 @@
 //! Everything related to the global light and shadow logic
 
+use crate::big_space::FloatingOriginSettings;
 use bevy::{
     pbr::{CascadeShadowConfigBuilder, DirectionalLightShadowMap, NotShadowCaster},
     prelude::*,
@@ -8,7 +9,6 @@ use bevy::{
         texture::{ImageAddressMode, ImageFilterMode, ImageSampler, ImageSamplerDescriptor},
     },
 };
-use big_space::FloatingOriginSettings;
 use std::f32::consts::*;
 
 use crate::{

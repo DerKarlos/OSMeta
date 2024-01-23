@@ -1,11 +1,11 @@
 use super::geocoord::*;
 use super::GalacticTransformOwned;
+use crate::big_space::FloatingOriginSettings;
 use crate::player::{CamControlMode, ControlValues, GalacticTransformSpace, Player, OSM_LAT_LIMIT};
 use bevy::{
     prelude::*,
     utils::tracing::{self, instrument},
 };
-use big_space::FloatingOriginSettings;
 use std::{collections::HashMap, f32::consts::FRAC_PI_2};
 
 #[derive(Resource)]
