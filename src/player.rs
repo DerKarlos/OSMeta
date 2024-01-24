@@ -26,7 +26,7 @@ pub struct InputState {
 
 #[derive(SystemParam)]
 /// A helper argument for bevy systems that obtains the main player's position.
-pub struct Player<'w, 's> {
+pub struct PlayerQuery<'w, 's> {
     pub(crate) xr_pos: Query<
         'w,
         's,
@@ -64,11 +64,17 @@ impl std::ops::Deref for PlanetaryPosition {
 }
 
 impl PlanetaryPosition {
-    pub fn to_galactic_transform_space(self) -> GalacticTransformSpace {
+    pub fn to_galactic_transform_space(self) -> PlayerGalacticTransform {
         let (cell, pos) = Space::translation_to_grid(self.pos);
         let transform = Transform::from_translation(pos);
         let galactic_transform = GalacticTransformOwned { transform, cell };
-        GalacticTransformSpace { galactic_transform }
+        PlayerGalacticTransform { galactic_transform }
+    }
+
+    pub fn to_galactic_transform(self) -> GalacticTransformOwned {
+        let (cell, pos) = Space::translation_to_grid(self.pos);
+        let transform = Transform::from_translation(pos);
+        GalacticTransformOwned { transform, cell }
     }
 
     pub fn directions(self) -> Directions {
@@ -85,17 +91,17 @@ impl PlanetaryPosition {
 
 /// A helper for working with galactic positions.
 #[derive(Copy, Clone)]
-pub struct GalacticTransformSpace {
+pub struct PlayerGalacticTransform {
     pub galactic_transform: GalacticTransformOwned,
 }
 
-impl std::ops::DerefMut for GalacticTransformSpace {
+impl std::ops::DerefMut for PlayerGalacticTransform {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.galactic_transform
     }
 }
 
-impl std::ops::Deref for GalacticTransformSpace {
+impl std::ops::Deref for PlayerGalacticTransform {
     type Target = GalacticTransformOwned;
 
     fn deref(&self) -> &Self::Target {
@@ -103,7 +109,7 @@ impl std::ops::Deref for GalacticTransformSpace {
     }
 }
 
-impl GalacticTransformSpace {
+impl PlayerGalacticTransform {
     /// Compute the cartesian coordinates by combining the grid cell and the position from within
     /// the grid.
     pub fn pos(&self) -> DVec3 {
@@ -131,19 +137,19 @@ pub struct Directions {
     pub west: Vec3,
 }
 
-impl<'w, 's> Player<'w, 's> {
+impl<'w, 's> PlayerQuery<'w, 's> {
     /// Computes the galactic position of the main player (prefers XR player).
-    pub fn pos(&self) -> GalacticTransformSpace {
+    pub fn pos(&self) -> PlayerGalacticTransform {
         let galactic_transform = if let Ok(xr_pos) = self.xr_pos.get_single() {
             xr_pos
         } else {
             self.comtrol_pos.single()
         }
         .to_owned();
-        GalacticTransformSpace { galactic_transform }
+        PlayerGalacticTransform { galactic_transform }
     }
 
-    pub fn set_pos(&mut self, new_pos: GalacticTransformSpace) {
+    pub fn set_pos(&mut self, new_pos: GalacticTransformOwned) {
         let mut pos = if let Ok(xr_pos) = self.xr_pos.get_single_mut() {
             xr_pos
         } else {
@@ -152,6 +158,7 @@ impl<'w, 's> Player<'w, 's> {
         *pos.cell = new_pos.cell;
         *pos.transform = new_pos.transform;
     }
+
 }
 
 /// A marker component used in queries when you want camera-controls
@@ -300,3 +307,5 @@ impl bevy::prelude::Plugin for Plugin {
 }
 
 pub const OSM_LAT_LIMIT: f32 = 85.0511; // degrees
+
+

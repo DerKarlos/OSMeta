@@ -4,7 +4,7 @@ use std::marker::PhantomData;
 
 use bevy::prelude::*;
 
-use crate::{precision::GridPrecision, FloatingOrigin, GridCell};
+use crate::{precision::GridPrecision, FloatingOrigin, GridCell, Space};
 
 /// This plugin will render the bounds of occupied grid cells.
 #[derive(Default)]
@@ -30,7 +30,7 @@ pub fn update_debug_bounds<P: GridPrecision>(
     for cell in occupied_cells.iter() {
         let cell = cell - origin_cell;
         let scale = Vec3::splat(settings.grid_edge_length * 0.999);
-        let translation = settings.grid_position(&cell, &Transform::IDENTITY);
+        let translation = Space::grid_position(&cell, &Transform::IDENTITY);
         gizmos.cuboid(
             Transform::from_translation(translation).with_scale(scale),
             Color::GREEN,

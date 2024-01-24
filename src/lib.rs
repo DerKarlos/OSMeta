@@ -36,6 +36,7 @@ mod tilemap;
 mod xr;
 
 type GridPrecision = i64;
+// "Galctic.." = "Grid.." with GridPrecision included
 type GalacticGrid = GridCell<GridPrecision>;
 type GalacticTransform = GridTransform<GridPrecision>;
 type GalacticTransformOwned = GridTransformOwned<GridPrecision>;

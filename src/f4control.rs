@@ -30,7 +30,7 @@ We start with an argumente to select one control and lager switch dynamically.
 All controls will have the resource type control later (now Control)
 Maximal one control/plurgin/systems should run (may be none)
 
-What about the Player? Is it for Fly-Cam or for all controls
+What about the PlayerQuery? Is it for Fly-Cam or for all controls
 
 
 See also: https://bevy-cheatbook.github.io/cookbook/pan-orbit-camera.html
@@ -56,7 +56,7 @@ pub mod prelude {
     pub use crate::*;
 }
 
-use crate::player::{ControlValues, GalacticTransformSpace, InputState, Player};
+use crate::player::{ControlValues, InputState, PlayerQuery};
 
 /// Used in queries when you want f4controls and not other cameras
 /// A marker component used in queries when you want f4controls and not other cameras
@@ -121,7 +121,7 @@ fn player_move(
     key_bindings: Res<KeyBindings>,
     time: Res<Time>,
     mut control_values: ResMut<ControlValues>,
-    mut player: Player,
+    mut player: PlayerQuery,
 ) {
     if let Ok(_window) = primary_window.get_single() {
         //let speed = (1. * (control_values.view.elevation - 300.0)).max(100.0); // TODO !!!!!!!! real camera height, including distance
@@ -187,8 +187,7 @@ fn player_move(
         if moved {
             view.limit();
             let galactic_transform = view.to_galactic_transform(true);
-            let new_pos = GalacticTransformSpace { galactic_transform };
-            player.set_pos(new_pos);
+            player.set_pos(galactic_transform);
         }
     } else {
         warn!("Primary window not found for `player_move`!");
@@ -203,7 +202,7 @@ fn player_look(
     mut scroll_events: EventReader<MouseWheel>,
     mut input_state: ResMut<InputState>,
     mut control_values: ResMut<ControlValues>,
-    mut player: Player, // The Player includes the query
+    mut player: PlayerQuery, // The PlayerQuery includes the query
 ) {
     if let Ok(window) = primary_window.get_single() {
         let speed = control_values.speed;
@@ -255,8 +254,7 @@ fn player_look(
             view.limit();
             // Todo: Crossing a pole by up_view makes the rotation very low and stucking.
             let galactic_transform = view.to_galactic_transform(true);
-            let new_pos = GalacticTransformSpace { galactic_transform };
-            player.set_pos(new_pos);
+            player.set_pos(galactic_transform);
         }
     } else {
         warn!("Primary window not found for `player_look`!");

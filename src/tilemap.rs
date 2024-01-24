@@ -270,7 +270,7 @@ fn recompute_view_distance(
 }
 
 fn get_main_camera_position(
-    player: crate::player::Player,
+    player: crate::player::PlayerQuery,
     view_distance: Res<ViewDistance>,
 ) -> (TileIndex, f32) {
     let player = player.pos();

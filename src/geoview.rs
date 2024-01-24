@@ -1,6 +1,6 @@
 use super::geocoord::*;
 use super::GalacticTransformOwned;
-use crate::player::{CamControlMode, ControlValues, GalacticTransformSpace, Player, OSM_LAT_LIMIT};
+use crate::player::{CamControlMode, ControlValues, PlayerGalacticTransform, PlayerQuery, OSM_LAT_LIMIT};
 use bevy::{
     prelude::*,
     utils::tracing::{self, instrument},
@@ -114,9 +114,14 @@ impl GeoView {
 
     pub fn to_galactic_transform(self, use_distance: bool) -> GalacticTransformOwned {
         // Position on Earth ground
-        let mut starting_transform: GalacticTransformSpace =
+        let p_starting_transform: PlayerGalacticTransform =
             self.geo_coord.to_cartesian().to_galactic_transform_space();
-        let directions = starting_transform.directions();
+
+        let directions = p_starting_transform.directions();
+
+        let mut starting_transform: GalacticTransformOwned = p_starting_transform.galactic_transform;
+
+    //  let directions = starting_transform.directions();
 
         // Add camera / player height above ground
         starting_transform.transform.translation += directions.up * self.elevation;
@@ -146,21 +151,19 @@ impl GeoView {
             //starting_transform.transform.look_at(_camera_spot);
         }
 
-        starting_transform.galactic_transform
+        starting_transform
     }
 
-    pub fn set_camera_view(&self, player: &mut Player, control_values: &mut ControlValues) {
+    pub fn set_camera_view(&self, player: &mut PlayerQuery, control_values: &mut ControlValues) {
         control_values.view = *self; //
         let use_distance = control_values.cam_control_mode == CamControlMode::F4;
         let galactic_transform = self.to_galactic_transform(use_distance);
 
-        let new_pos = GalacticTransformSpace { galactic_transform };
-
-        player.set_pos(new_pos);
+        player.set_pos(galactic_transform);
     }
 
     #[instrument(level = "debug", skip(player), ret)]
-    pub fn from_player(player: &Player) -> Self {
+    pub fn from_player(player: &PlayerQuery) -> Self {
         let position = player.pos();
 
         let geo_coord = position.to_planetary_position().to_geocoord();
@@ -199,7 +202,7 @@ impl GeoView {
 // System: If keys pressed, store and restore camera views
 fn keys_ui(
     keys: Res<Input<KeyCode>>,
-    mut player: Player,
+    mut player: PlayerQuery,
     mut control_values: ResMut<ControlValues>,
     mut views: ResMut<Views>,
 ) {
@@ -249,7 +252,7 @@ fn keys_ui(
 
 fn keys_ui_setup(
     starting_values: Res<crate::StartingValues>,
-    mut player: Player,
+    mut player: PlayerQuery,
     mut views: ResMut<Views>,
     mut control_values: ResMut<ControlValues>,
 ) {

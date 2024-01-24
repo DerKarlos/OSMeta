@@ -22,7 +22,7 @@ pub fn reposition_compass(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
     server: Res<AssetServer>,
-    player: player::Player,
+    player: player::PlayerQuery,
 ) {
     if let Ok(mut compass) = compass.get_single_mut() {
         let player = player.pos();

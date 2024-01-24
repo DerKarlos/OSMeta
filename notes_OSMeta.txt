@@ -174,7 +174,7 @@ AoMRTextures Combined: ao/m/r_texture:  Texture with Ambient Occlusion in R, Met
 ***********************************************
 
 EARTH_RADIUS + Above-Earth-elevation (+ Terrain-elevaton) = Earth-elevation
-GeoCoord=Earth-rotation * (dir&view)Player-rotatoin = Galactic-rotation
+GeoCoord=Earth-rotation * (dir&view)PlayerQuery-rotatoin = Galactic-rotation
 
 With EARTH_RADIUS we get to see level.
 Later we may add terrain height to get ground level.
@@ -199,7 +199,7 @@ Rotatons are allways relative. Bevy starts with a defined default rotation. geo-
 What "classes" and to/from-functions do we have or need for our project and our futur users?
 * GeoCoords {lat,lon}: to_cartesian -> PlanetaryPosition,     -> GeoView::new
 * PlanetaryPosition {pos: DVec3/3*f64}: to_galactic_transform_space -> GalacticTransform
-* GalacticTransformSpace {GalacticTransform,space/FloatingOriginSettings}:
+* PlayerGalacticTransform {GalacticTransform,space/FloatingOriginSettings}:
 * GalacticTransform/GridTransform){Transform,GridCell}:
 * GridCell {x,y,z}:
 

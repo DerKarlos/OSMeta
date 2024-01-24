@@ -70,6 +70,26 @@ pub struct GridTransformOwned<P: GridPrecision> {
     pub cell: GridCell<P>,
 }
 
+/**/
+/// A coordinate system where "forward" is north, "right" is west and "up" is away from the planet.
+pub struct Directions {
+    pub up: Vec3,
+    pub north: Vec3,
+    pub west: Vec3,
+}
+
+impl<P: GridPrecision> GridTransformOwned<P> {
+
+    /// Calculates cardinal directions at any cartesian position.
+    pub fn directions(&self) -> Directions {
+        let up = self.transform.translation.normalize();
+        let west = Vec3::Z.cross(up);
+        let north = up.cross(west);
+        Directions { up, north, west }
+    }
+}
+/**/
+
 impl<P: GridPrecision> std::ops::Sub for GridTransformOwned<P> {
     type Output = Self;
 

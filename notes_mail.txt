@@ -76,9 +76,9 @@ PlanetaryPosition:	pos: DVec3 (relative to Earth center)
 GalacticTransform                                                                                                       
 =   GridTransform:	transform: (bevy/GPU?)Transform, cell: GridCell                       
 
-(Camera)Player:	xr_pos+flycam_pos: GalacticTransform                                      
+(Camera)PlayerQuery:	xr_pos+flycam_pos: GalacticTransform                                      
                                                                                                                                     
-(Player)Position:	pos: GalacticTransform, fn Directions, space: FloatingOriginSettings(needed for conversions)
+(PlayerQuery)Position:	pos: GalacticTransform, fn Directions, space: FloatingOriginSettings(needed for conversions)
                                                                                                                                     
 Directions:		up: Vec3, north: Vec3, west: Vec3
 GridCell:			x/y/z i64=GridPrecision
@@ -121,7 +121,7 @@ Each of the three “class” may have fn .to the others.
 * You may get a “PlanetaryPosition” from a "GeographicPoint" or a “GeoView”.
 It uses f64 and as the Earth center is placed at Galactic-ZERRO,
 the PlanetaryPosition can be seen and calculated with as a Galactic-Translation/-Position.
-For the camera/Player you can get the “Position” and Earth relative local “directions” for up, north and west.
+For the camera/PlayerQuery you can get the “Position” and Earth relative local “directions” for up, north and west.
 
 A drawing may help with all this.
 
@@ -130,22 +130,3 @@ Todo: What functions for conversion and calculation do we really have?
 
 I would like to have GeoView.to_galactic_transform(). What Steps?
 GeoPos => GeographicPoint+height => PlanetaryPosition => GalacticTransform
-
-
-
-ööööö
-
-
-
-
-
-Das Orion-Museum von Josef Hilger macht ein RAUMPATROUILLE-Gewinnspiel!
-Ja, nach dem EuroVideo vielen Webseiten zum Thema Bluray Boxen zum Verlosen spendiert hat
-haben auch wir im Fediversum was zu verteilen.
-Verlost werden 3 Schuber von EuroVideo mit den remasterten Folgen nach der Neuabtastung der original 35mm Filme.
-Die Details dazu folgen. Als PDF-Anlage hier erst mal die Besprechung der neuen. Boxen
-
-
-
-Radiosendung und "Orion-TNG"
-https://federation.network/notes/9ncz6c6wbt66d7g7
