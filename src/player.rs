@@ -21,7 +21,7 @@ use crate::GalacticTransformOwned;
 /// Keeps track of mouse motion events
 #[derive(Resource, Default)]
 pub struct InputState {
-    pub reader_motion: ManualEventReader<MouseMotion>, // todo? add to ControlData ???
+    pub reader_motion: ManualEventReader<MouseMotion>, // todo? add to ControlValues ???
 }
 
 #[derive(SystemParam)]
@@ -301,8 +301,10 @@ pub struct Plugin;
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<ControlValues>()
+            .init_resource::<InputState>()
             .add_systems(Startup, setup_player_controls)
             .add_systems(Update, update_camera_speed);
+        
     }
 }
 

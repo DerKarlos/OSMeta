@@ -74,10 +74,10 @@ fn player_move(
     primary_window: Query<&Window, With<PrimaryWindow>>,
     control_values: Res<ControlValues>,
     key_bindings: Res<KeyBindings>,
-    mut query: Query<(&Control, &mut Transform)>, //    mut query: Query<&mut Transform, With<Control>>,
+    mut query: Query<&mut Transform, With<Control>>,
 ) {
     if let Ok(window) = primary_window.get_single() {
-        for (_camera, mut transform) in query.iter_mut() {
+        for mut transform in query.iter_mut() {
             let mut velocity = Vec3::ZERO;
             let forward = transform.forward();
             let right = transform.right();
@@ -111,7 +111,7 @@ fn player_move(
 
                 velocity = velocity.normalize_or_zero();
 
-                transform.translation += velocity * time.delta_seconds() * control_values.speed
+                transform.translation += velocity * time.delta_seconds() * control_values.speed;
             }
         }
     } else {
@@ -123,13 +123,13 @@ fn player_move(
 fn player_look(
     settings: Res<ControlValues>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
-    mut state: ResMut<InputState>,
+    mut input_state: ResMut<InputState>,
     motion: Res<Events<MouseMotion>>,
     mut query: Query<&mut Transform, With<Control>>,
 ) {
     if let Ok(window) = primary_window.get_single() {
         for mut transform in query.iter_mut() {
-            for ev in state.reader_motion.read(&motion) {
+            for ev in input_state.reader_motion.read(&motion) {
                 let mut yaw = 0.0;
                 let mut pitch = 0.0;
                 match window.cursor.grab_mode {
@@ -206,7 +206,6 @@ impl bevy::prelude::Plugin for Plugin {
             .add_systems(Update, grab_cursor)
             // This was the "no_camera_player_plugin"
             // Contains everything needed to add first-person fly camera behavior to your game, but does not spawn a camera
-            .init_resource::<InputState>()
             .init_resource::<ControlValues>()
             .init_resource::<KeyBindings>()
             .add_systems(Startup, initial_grab_cursor)

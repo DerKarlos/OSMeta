@@ -5,7 +5,7 @@ use bevy::{pbr::NotShadowCaster, prelude::*};
 #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
 use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 
-// Compass   Todo: move out of lib.rs
+// Compass
 #[derive(Component)]
 pub struct Compass;
 

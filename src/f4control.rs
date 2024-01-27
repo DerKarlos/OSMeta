@@ -35,7 +35,7 @@ What about the PlayerQuery? Is it for Fly-Cam or for all controls
 
 See also: https://bevy-cheatbook.github.io/cookbook/pan-orbit-camera.html
 
-TODO: "like F4" !
+TODO: "like F4" reaction while elevate/distance+/-!
 The UI of www.F4map.com is very simple:
 Arrows left/right: rotate counter-/clockwise
 Arrows up/down: tile/shift forward/backward
@@ -57,10 +57,6 @@ pub mod prelude {
 }
 
 use crate::player::{ControlValues, InputState, PlayerQuery};
-
-/// Used in queries when you want f4controls and not other cameras
-/// A marker component used in queries when you want f4controls and not other cameras
-//use crate::player::Control; // not F4Control  Todo: name it CamControl for the just running control  --
 
 /// Key configuration
 #[derive(Resource)]
@@ -124,21 +120,25 @@ fn player_move(
     mut player: PlayerQuery,
 ) {
     if let Ok(_window) = primary_window.get_single() {
-        //let speed = (1. * (control_values.view.elevation - 300.0)).max(100.0); // TODO !!!!!!!! real camera height, including distance
-        //control_values.speed = speed;
-
         const SPEED_DEGREE_PER_M: f32 = 1.0 / 200000.0;
         let speed = control_values.speed;
         let view = &mut control_values.view;
         let elevation_fakt = 1. + time.delta_seconds() / 1.0;
         let groundmove_fact_lat = speed * time.delta_seconds() * SPEED_DEGREE_PER_M;
         let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
+        let groundmove_fact = Vec3::new(groundmove_fact_lon, 0., groundmove_fact_lat);
         let rotation_fact = time.delta_seconds() * 20.0; // delta time * degrees per second = delta degrees
 
         let dir = view.direction.to_radians();
         // Todo?:  make a geo_forward/right? Put lat/lon in a vec3 or 2?
-        let forward = dir.cos();
-        let right = -dir.sin();
+        //let (left, forward) = dir.sin_cos();
+
+        let rotation = Quat::from_rotation_y(dir); // from_axis_angle(Vec3::Y, dir);
+        let transform = Transform::from_rotation(rotation);
+        let forward = transform.forward(); // self.rotation * Vec3::Z   -- forward is (local) minus z
+        let _right = transform.right();
+        let _left = transform.left();
+        let mut velocity = Vec3::ZERO;
 
         let moved = keys.get_pressed().len() > 0;
         for key in keys.get_pressed() {
@@ -146,19 +146,15 @@ fn player_move(
             let key = *key;
             // forward/backward
             if key == key_bindings.move_forward || key == key_bindings.move_forward2 {
-                view.geo_coord.lat += forward * groundmove_fact_lat;
-                view.geo_coord.lon += right * groundmove_fact_lon;
+                velocity += forward;
             } else if key == key_bindings.move_backward || key == key_bindings.move_backward2 {
-                view.geo_coord.lat -= forward * groundmove_fact_lat;
-                view.geo_coord.lon -= right * groundmove_fact_lon;
+                velocity -= forward;
             //
             // sidewise
             } else if key == key_bindings.move_right {
-                view.geo_coord.lat -= right * groundmove_fact_lat;
-                view.geo_coord.lon += forward * groundmove_fact_lon;
+                velocity -= _left;
             } else if key == key_bindings.move_left {
-                view.geo_coord.lat += right * groundmove_fact_lat;
-                view.geo_coord.lon -= forward * groundmove_fact_lon;
+                velocity += _left;
             //
             // elevate
             } else if key == key_bindings.move_ascend || key == key_bindings.move_ascend2 {
@@ -185,6 +181,9 @@ fn player_move(
         }
 
         if moved {
+            velocity = velocity.normalize_or_zero();
+            view.geo_coord.add_move(velocity * groundmove_fact); // fact as vec3 x=lat z=lon
+
             view.limit();
             let galactic_transform = view.to_galactic_transform(true);
             player.set_pos(galactic_transform);
@@ -222,8 +221,7 @@ fn player_look(
                 let mut pitch = 0.0;
 
                 let dir = view.direction.to_radians();
-                let forward = dir.cos();
-                let right = -dir.sin();
+                let (left, forward) = dir.sin_cos();
                 // Using smallest of height or width ensures equal vertical and horizontal sensitivity
                 let window_scale = window.height().min(window.width());
                 pitch -= (sensitivity * ev.delta.y * window_scale).to_radians();
@@ -244,8 +242,8 @@ fn player_look(
                     view.geo_coord.lon += forward * yaw * groundmove_fact_lon;
                     view.geo_coord.lat -= forward * pitch * groundmove_fact_lat;
 
-                    view.geo_coord.lat -= right * yaw * groundmove_fact_lat;
-                    view.geo_coord.lon -= right * pitch * groundmove_fact_lon;
+                    view.geo_coord.lat += left * yaw * groundmove_fact_lat;
+                    view.geo_coord.lon += left * pitch * groundmove_fact_lon;
                 }
             }
         }
@@ -274,7 +272,6 @@ impl bevy::prelude::Plugin for Plugin {
         app
 //            .init_resource::<MovementValues>()
             .add_systems(Startup, setup)
-            .init_resource::<InputState>()
             .init_resource::<KeyBindings>()
             .add_systems(Update, player_look)
             .add_systems(Update, player_move) // Toto: ok? move also sets the changes of look

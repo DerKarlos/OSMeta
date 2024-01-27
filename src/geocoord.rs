@@ -82,6 +82,13 @@ impl GeoCoord {
         let pos = self.to_cartesian();
         coord.right().to_geo_coord().to_cartesian().distance(*pos) as f32
     }
+
+    /// Add a displacement
+    pub fn add_move(&mut self, moved: Vec3) {
+        self.lat -= moved.z; // quad.forward is -z and becomes nord here
+        self.lon += moved.x;
+
+    }
 }
 
 pub const EARTH_RADIUS: f32 = 6_378_000.;
