@@ -1,8 +1,8 @@
 //! This module contains everything about the fly-controls and rendering related
 //! to the non-VR "player". Todo: update
 //!
-//! A Copy of "https://github.com/oli-obk/bevy_flycam", branch = "arbitrary_up", a
-//! branch of "https://github.com/sburris0/bevy_flycam"
+//! A Copy of `<https://github.com/oli-obk/bevy_flycam>`, branch = "arbitrary_up", a
+//! branch of `<https://github.com/sburris0/bevy_flycam>`
 
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;

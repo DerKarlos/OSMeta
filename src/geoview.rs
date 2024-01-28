@@ -1,6 +1,8 @@
 use super::geocoord::*;
 use super::GalacticTransformOwned;
-use crate::player::{CamControlMode, ControlValues, PlayerGalacticTransform, PlayerQuery, OSM_LAT_LIMIT};
+use crate::player::{
+    CamControlMode, ControlValues, PlayerGalacticTransform, PlayerQuery, OSM_LAT_LIMIT,
+};
 use bevy::{
     prelude::*,
     utils::tracing::{self, instrument},
@@ -54,7 +56,7 @@ impl GeoView {
         self.up_view = self.up_view.clamp(-OSM_LAT_LIMIT, OSM_LAT_LIMIT);
         self.elevation = self.elevation.clamp(0.4, ELEVATION_LIMIT);
         self.distance = self.distance.clamp(0.4, ELEVATION_LIMIT);
-        self.direction = self.direction % 360.0;
+        self.direction %= 360.0;
     }
 
     /**
@@ -120,9 +122,10 @@ impl GeoView {
 
         let directions = p_starting_transform.directions();
 
-        let mut starting_transform: GalacticTransformOwned = p_starting_transform.galactic_transform;
+        let mut starting_transform: GalacticTransformOwned =
+            p_starting_transform.galactic_transform;
 
-    //  let directions = starting_transform.directions();
+        //  let directions = starting_transform.directions();
 
         // Add camera / player height above ground
         starting_transform.transform.translation += directions.up * self.elevation;

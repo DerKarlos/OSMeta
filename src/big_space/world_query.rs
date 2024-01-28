@@ -79,7 +79,6 @@ pub struct Directions {
 }
 
 impl<P: GridPrecision> GridTransformOwned<P> {
-
     /// Calculates cardinal directions at any cartesian position.
     pub fn directions(&self) -> Directions {
         let up = self.transform.translation.normalize();

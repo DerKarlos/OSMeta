@@ -87,11 +87,8 @@ impl GeoCoord {
     pub fn add_move(&mut self, moved: GeoDir) {
         self.lat += moved.y;
         self.lon += moved.x;
-
     }
 }
-
-
 
 pub type GeoDir = Vec2;
 
@@ -100,22 +97,17 @@ pub trait GeoDirTrait {
     fn right(dir: f32) -> Vec2;
 }
 
-
 impl GeoDirTrait for GeoDir {
-
     fn forward(dir: f32) -> Vec2 {
         let (sin, cos) = dir.sin_cos();
-        Vec2{x: -sin, y: cos}
+        Vec2 { x: -sin, y: cos }
     }
 
     fn right(dir: f32) -> Vec2 {
         let (sin, cos) = dir.sin_cos();
-        Vec2{x: cos, y: sin}
+        Vec2 { x: cos, y: sin }
     }
 }
-
-
-
 
 pub const EARTH_RADIUS: f32 = 6_378_000.;
 pub const MOON_RADIUS: f32 = 01_737_400.;

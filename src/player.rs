@@ -158,7 +158,6 @@ impl<'w, 's> PlayerQuery<'w, 's> {
         *pos.cell = new_pos.cell;
         *pos.transform = new_pos.transform;
     }
-
 }
 
 /// A marker component used in queries when you want camera-controls
@@ -304,10 +303,7 @@ impl bevy::prelude::Plugin for Plugin {
             .init_resource::<InputState>()
             .add_systems(Startup, setup_player_controls)
             .add_systems(Update, update_camera_speed);
-        
     }
 }
 
 pub const OSM_LAT_LIMIT: f32 = 85.0511; // degrees
-
-

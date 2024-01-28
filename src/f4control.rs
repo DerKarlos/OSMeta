@@ -56,8 +56,8 @@ pub mod prelude {
     pub use crate::*;
 }
 
+use crate::geocoord::{GeoDir, GeoDirTrait};
 use crate::player::{ControlValues, InputState, PlayerQuery};
-use crate::geocoord::{GeoDir,GeoDirTrait};
 
 /// Key configuration
 #[derive(Resource)]
@@ -234,7 +234,8 @@ fn player_mouse(
                 if mouse_input.pressed(MouseButton::Left) {
                     moved = true;
                     let groundmove_fact_lat = speed / 500000.0;
-                    let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
+                    let groundmove_fact_lon =
+                        groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
                     let groundmove_fact = Vec2::new(groundmove_fact_lon, groundmove_fact_lat);
 
                     let velocity = forward * -pitch + right * yaw;
@@ -264,12 +265,9 @@ pub struct Plugin;
 
 impl bevy::prelude::Plugin for Plugin {
     fn build(&self, app: &mut App) {
-        app
-//            .init_resource::<MovementValues>()
-            .add_systems(Startup, setup)
+        app.add_systems(Startup, setup)
             .init_resource::<KeyBindings>()
             .add_systems(Update, player_keys)
-            .add_systems(Update, player_mouse)
-            ;
+            .add_systems(Update, player_mouse);
     }
 }

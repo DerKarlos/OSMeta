@@ -1,5 +1,5 @@
-//! Copied form: https://github.com/oli-obk/big_space/tree/world_query
-//!  a clone of: https://github.com/aevyrie/big_space/tree/main
+//! Copied form: `<https://github.com/oli-obk/big_space/tree/world_query>`
+//!  a clone of: `<https://github.com/aevyrie/big_space/tree/main>`
 //!
 //! This [`bevy`] plugin makes it easy to build high-precision worlds that exceed the size of the
 //! observable universe, with no added dependencies, while remaining largely compatible with the
