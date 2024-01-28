@@ -54,6 +54,7 @@ impl GeoView {
         self.up_view = self.up_view.clamp(-OSM_LAT_LIMIT, OSM_LAT_LIMIT);
         self.elevation = self.elevation.clamp(0.4, ELEVATION_LIMIT);
         self.distance = self.distance.clamp(0.4, ELEVATION_LIMIT);
+        self.direction = self.direction % 360.0;
     }
 
     /**

@@ -57,6 +57,7 @@ pub mod prelude {
 }
 
 use crate::player::{ControlValues, InputState, PlayerQuery};
+use crate::geocoord::{GeoDir,GeoDirTrait};
 
 /// Key configuration
 #[derive(Resource)]
@@ -111,7 +112,7 @@ impl Default for KeyBindings {
 }
 
 /// Handles keyboard input and movement
-fn player_move(
+fn player_keys(
     primary_window: Query<&Window, With<PrimaryWindow>>,
     keys: Res<Input<KeyCode>>,
     key_bindings: Res<KeyBindings>,
@@ -126,24 +127,19 @@ fn player_move(
         let elevation_fakt = 1. + time.delta_seconds() / 1.0;
         let groundmove_fact_lat = speed * time.delta_seconds() * SPEED_DEGREE_PER_M;
         let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
-        let groundmove_fact = Vec3::new(groundmove_fact_lon, 0., groundmove_fact_lat);
+        let groundmove_fact = Vec2::new(groundmove_fact_lon, groundmove_fact_lat);
         let rotation_fact = time.delta_seconds() * 20.0; // delta time * degrees per second = delta degrees
 
         let dir = view.direction.to_radians();
-        // Todo?:  make a geo_forward/right? Put lat/lon in a vec3 or 2?
-        //let (left, forward) = dir.sin_cos();
-
-        let rotation = Quat::from_rotation_y(dir); // from_axis_angle(Vec3::Y, dir);
-        let transform = Transform::from_rotation(rotation);
-        let forward = transform.forward(); // self.rotation * Vec3::Z   -- forward is (local) minus z
-        let _right = transform.right();
-        let _left = transform.left();
-        let mut velocity = Vec3::ZERO;
+        let forward = GeoDir::forward(dir);
+        let right = GeoDir::right(dir);
+        let mut velocity = GeoDir::ZERO;
 
         let moved = keys.get_pressed().len() > 0;
         for key in keys.get_pressed() {
             // match key does not work with struct key_bindings
             let key = *key;
+            //
             // forward/backward
             if key == key_bindings.move_forward || key == key_bindings.move_forward2 {
                 velocity += forward;
@@ -152,9 +148,9 @@ fn player_move(
             //
             // sidewise
             } else if key == key_bindings.move_right {
-                velocity -= _left;
+                velocity += right;
             } else if key == key_bindings.move_left {
-                velocity += _left;
+                velocity -= right;
             //
             // elevate
             } else if key == key_bindings.move_ascend || key == key_bindings.move_ascend2 {
@@ -181,20 +177,19 @@ fn player_move(
         }
 
         if moved {
-            velocity = velocity.normalize_or_zero();
-            view.geo_coord.add_move(velocity * groundmove_fact); // fact as vec3 x=lat z=lon
+            view.geo_coord.add_move(velocity * groundmove_fact);
 
             view.limit();
             let galactic_transform = view.to_galactic_transform(true);
             player.set_pos(galactic_transform);
         }
     } else {
-        warn!("Primary window not found for `player_move`!");
+        warn!("Primary window not found for `player_keys`!");
     }
 }
 
 /// Handles moving around if 1st key is pressed, looking around if 2nd key is pressed
-fn player_look(
+fn player_mouse(
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mouse_motion: Res<Events<MouseMotion>>,
     mouse_input: Res<Input<MouseButton>>,
@@ -221,7 +216,10 @@ fn player_look(
                 let mut pitch = 0.0;
 
                 let dir = view.direction.to_radians();
-                let (left, forward) = dir.sin_cos();
+                let forward = GeoDir::forward(dir);
+                let right = GeoDir::right(dir);
+
+                //t (left, forward) = dir.sin_cos();
                 // Using smallest of height or width ensures equal vertical and horizontal sensitivity
                 let window_scale = window.height().min(window.width());
                 pitch -= (sensitivity * ev.delta.y * window_scale).to_radians();
@@ -236,14 +234,11 @@ fn player_look(
                 if mouse_input.pressed(MouseButton::Left) {
                     moved = true;
                     let groundmove_fact_lat = speed / 500000.0;
-                    let groundmove_fact_lon =
-                        groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
+                    let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
+                    let groundmove_fact = Vec2::new(groundmove_fact_lon, groundmove_fact_lat);
 
-                    view.geo_coord.lon += forward * yaw * groundmove_fact_lon;
-                    view.geo_coord.lat -= forward * pitch * groundmove_fact_lat;
-
-                    view.geo_coord.lat += left * yaw * groundmove_fact_lat;
-                    view.geo_coord.lon += left * pitch * groundmove_fact_lon;
+                    let velocity = forward * -pitch + right * yaw;
+                    view.geo_coord.add_move(velocity * groundmove_fact);
                 }
             }
         }
@@ -255,7 +250,7 @@ fn player_look(
             player.set_pos(galactic_transform);
         }
     } else {
-        warn!("Primary window not found for `player_look`!");
+        warn!("Primary window not found for `player_mouse`!");
     }
 }
 
@@ -273,8 +268,8 @@ impl bevy::prelude::Plugin for Plugin {
 //            .init_resource::<MovementValues>()
             .add_systems(Startup, setup)
             .init_resource::<KeyBindings>()
-            .add_systems(Update, player_look)
-            .add_systems(Update, player_move) // Toto: ok? move also sets the changes of look
+            .add_systems(Update, player_keys)
+            .add_systems(Update, player_mouse)
             ;
     }
 }
