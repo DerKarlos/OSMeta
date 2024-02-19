@@ -12,6 +12,7 @@ use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 
 use crate::big_space::{FloatingOrigin, Space};
 use crate::compass::Compass;
+use crate::sky::Galactica;
 use crate::geocoord::{GeoCoord, EARTH_RADIUS};
 use crate::geoview::GeoView;
 use crate::GalacticGrid;
@@ -223,13 +224,24 @@ fn uv_debug_texture() -> Image {
 
 fn update_camera_speed(
     mut control_values: ResMut<ControlValues>,
-    fly_cam: Query<GalacticTransform, With<Control>>,
+    fly_cam:    Query<GalacticTransform, (With<Control  >, Without<Galactica>)>,
+    galacticas: Query<GalacticTransform, (With<Galactica>, Without<Control  >)>,
 ) {
-    let elevation = fly_cam.single().position_double().length() as f32;
+    // Distance to Earth surface
+    let pos_cam = fly_cam.single().position_double();
+    let elevation = pos_cam.length() as f32;
     let mut distance_to_focus = elevation - crate::geocoord::EARTH_RADIUS;
     if control_values.cam_control_mode == CamControlMode::F4 {
         distance_to_focus += control_values.view.distance
     };
+
+    // Use Calactica if more close
+    if let Ok(galactica) = galacticas.get_single() {
+        let pos_galactica = galactica.position_double();
+        let dis_galactica = (pos_cam - pos_galactica).length() as f32;
+        distance_to_focus = dis_galactica.min(distance_to_focus);
+    }
+
     let speed = (distance_to_focus * 2. - 300.0).max(100.0);
     control_values.speed = speed;
 }

@@ -103,8 +103,6 @@ pub use grid_cell::GridCell;
 
 #[cfg(feature = "debug")]
 pub mod debug;
-//#[cfg(feature = "camera")]
-//pub mod camera;
 use precision::*;
 
 /// Add this plugin to your [`App`] for floating origin functionality.

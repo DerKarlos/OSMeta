@@ -279,7 +279,9 @@ fn get_main_camera_position(
     let origin = GeoCoord::from_cartesian(pos);
     let tile_size = origin.tile_size(TILE_ZOOM);
     let radius = view_distance.0 + tile_size + 0.5;
+    //info!(?origin); //ü0
     let origin = origin.to_tile_coordinates(TILE_ZOOM);
+    //info!(?origin); //ü0
 
     (origin.as_tile_index(), radius)
 }
