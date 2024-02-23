@@ -86,15 +86,7 @@ fn setup(
         ..default()
     });
 
-    let sphere = meshes.add(
-        shape::UVSphere {
-            radius: 1.0,
-            sectors: 128,
-            stacks: 64,
-        }
-        .try_into()
-        .unwrap(),
-    );
+    let sphere = meshes.add(Sphere::new(1.0).mesh()); // .ico(128).unwrap()); todo: subdivisions?
 
     // Stars
     let image = server.load("embedded://8k_stars.jpg");
@@ -130,15 +122,8 @@ fn setup(
     });
 
     // Rotational axis
-    let mesh = meshes.add(
-        shape::Cylinder {
-            radius: 1000.0,
-            height: EARTH_RADIUS * 6.0,
-            resolution: 16,
-            segments: 1,
-        }
-        .into(),
-    );
+    let mesh = meshes.add(Cylinder::new(1.0, EARTH_RADIUS * 3.0).mesh().resolution(16));
+
     commands.spawn((
         PbrBundle {
             mesh,
@@ -150,15 +135,8 @@ fn setup(
     ));
 
     // Equator
-    let mesh = meshes.add(
-        shape::Cylinder {
-            radius: EARTH_RADIUS + 1000.0,
-            height: 1.0,
-            resolution: 64,
-            segments: 1,
-        }
-        .into(),
-    );
+    let mesh = meshes.add(Cylinder::new(EARTH_RADIUS + 1000.0,  1.0).mesh().resolution(64));
+
     commands.spawn((
         PbrBundle {
             mesh,
@@ -238,7 +216,7 @@ fn setup(
     //let coord = pos.as_coord();
     //let a = coord.to_geo_coord().to_cartesian();
 
-    let (grid, pos): (GalacticGrid, glam::Vec3) = Space::translation_to_grid(Vec3{y:-MOON_ORBIT/20.,x:0.,z:0.}); // x=Atlantic? -y=Greenwich +y=America
+    let (grid, pos): (GalacticGrid, Vec3) = Space::translation_to_grid(Vec3{y:-MOON_ORBIT/20.,x:0.,z:0.}); // x=Atlantic? -y=Greenwich +y=America
 
     commands.spawn((
         PbrBundle {

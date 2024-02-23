@@ -52,10 +52,6 @@ use bevy::input::mouse::{MouseMotion, MouseWheel};
 use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
-pub mod prelude {
-    pub use crate::*;
-}
-
 use crate::geocoord::{GeoDir, GeoDirTrait};
 use crate::player::{ControlValues, InputState, PlayerQuery};
 
@@ -87,26 +83,26 @@ pub struct KeyBindings {
 impl Default for KeyBindings {
     fn default() -> Self {
         Self {
-            move_forward: KeyCode::W,
-            move_forward2: KeyCode::Up, // F4
-            move_backward: KeyCode::S,
-            move_backward2: KeyCode::Down, // F4
-            move_left: KeyCode::A,
-            move_right: KeyCode::D,
-            move_ascend: KeyCode::T,
+            move_forward: KeyCode::KeyW,
+            move_forward2: KeyCode::ArrowUp, // F4
+            move_backward: KeyCode::KeyS,
+            move_backward2: KeyCode::ArrowDown, // F4
+            move_left: KeyCode::KeyA,
+            move_right: KeyCode::KeyD,
+            move_ascend: KeyCode::KeyT,
             move_ascend2: KeyCode::Backslash, // + on German Mac
-            move_descend: KeyCode::G,
+            move_descend: KeyCode::KeyG,
             move_descend2: KeyCode::BracketRight, // # on German Mac
             //
-            rotate_up: KeyCode::F,
-            rotate_down: KeyCode::R,
-            rotate_left: KeyCode::Q,
-            rotate_left2: KeyCode::Left, // F4
-            rotate_right: KeyCode::E,
-            rotate_right2: KeyCode::Right, // F4
-            zoom_in: KeyCode::H,
-            zoom_out: KeyCode::Z,
-            zoom_out2: KeyCode::Y, // Z on german Keyboards
+            rotate_up: KeyCode::KeyF,
+            rotate_down: KeyCode::KeyR,
+            rotate_left: KeyCode::KeyQ,
+            rotate_left2: KeyCode::ArrowLeft, // F4
+            rotate_right: KeyCode::KeyE,
+            rotate_right2: KeyCode::ArrowRight, // F4
+            zoom_in: KeyCode::KeyH,
+            zoom_out: KeyCode::KeyZ,
+            zoom_out2: KeyCode::KeyY, // Z on german Keyboards
         }
     }
 }
@@ -114,7 +110,7 @@ impl Default for KeyBindings {
 /// Handles keyboard input and movement
 fn player_keys(
     primary_window: Query<&Window, With<PrimaryWindow>>,
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     key_bindings: Res<KeyBindings>,
     time: Res<Time>,
     mut control_values: ResMut<ControlValues>,
@@ -192,7 +188,7 @@ fn player_keys(
 fn player_mouse(
     primary_window: Query<&Window, With<PrimaryWindow>>,
     mouse_motion: Res<Events<MouseMotion>>,
-    mouse_input: Res<Input<MouseButton>>,
+    mouse_input: Res<ButtonInput<MouseButton>>,
     mut scroll_events: EventReader<MouseWheel>,
     mut input_state: ResMut<InputState>,
     mut control_values: ResMut<ControlValues>,

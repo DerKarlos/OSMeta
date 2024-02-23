@@ -1,6 +1,6 @@
 use crate::{player::PlanetaryPosition, tilemap::TileCoord};
 use bevy::prelude::*;
-use glam::DVec3;
+use bevy::math::DVec3;
 use globe_rs::{CartesianPoint, GeographicPoint};
 use std::f32::consts::PI;
 

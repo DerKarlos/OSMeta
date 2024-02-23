@@ -3,7 +3,8 @@ use bevy::ecs::system::SystemParam;
 use bevy::input::mouse::MouseMotion;
 use bevy::prelude::*;
 use bevy::render::render_resource::{Extent3d, TextureDimension, TextureFormat};
-use glam::DVec3;
+//use gl am::DVec3;
+use bevy::math::DVec3;
 
 #[cfg(not(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32")))))]
 use crate::compass::OpenXRTrackingRoot;
@@ -219,6 +220,7 @@ fn uv_debug_texture() -> Image {
         TextureDimension::D2,
         &texture_data,
         TextureFormat::Rgba8UnormSrgb,
+        bevy::render::render_asset::RenderAssetUsages::RENDER_WORLD,        
     )
 }
 
@@ -266,14 +268,7 @@ pub fn setup_player_controls(
         base_color_texture: Some(images.add(uv_debug_texture())),
         ..default()
     });
-    let mesh = meshes.add(
-        shape::Icosphere {
-            radius: 1.0,
-            subdivisions: 10,
-        }
-        .try_into()
-        .unwrap(),
-    );
+    let mesh = meshes.add(Sphere::new(1.0).mesh().ico(10).unwrap());
     let sphere = commands
         .spawn(PbrBundle {
             mesh,

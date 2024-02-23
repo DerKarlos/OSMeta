@@ -1,3 +1,8 @@
+Vec3 gl am/bevy::math : (wait for) Update big_space
+A KeyA Rust-Analyser is mad, comiling forever!
+There is a dir with bevy 1.2 versions: deleted - Analyser builds it AGAIN!
+Seems to stop if the Mac sleeps
+
 
 ________________________________________
 SOLVED

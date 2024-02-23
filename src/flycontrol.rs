@@ -11,12 +11,8 @@ use bevy::window::{CursorGrabMode, PrimaryWindow};
 use crate::player::{Control, ControlValues, InputState};
 use crate::GalacticTransform;
 
-pub mod prelude {
-    pub use crate::*;
-}
-
 // Todo? enum intead of struct???
-pub const _KEY_MOVE_FORWARD: KeyCode = KeyCode::W;
+pub const _KEY_MOVE_FORWARD: KeyCode = KeyCode::KeyW;
 // Todo: KeyBindings ALL at once, also for Save/store F4Camm???
 /// Key configuration
 #[derive(Resource)]
@@ -33,10 +29,10 @@ struct KeyBindings {
 impl Default for KeyBindings {
     fn default() -> Self {
         Self {
-            move_forward: KeyCode::W,
-            move_backward: KeyCode::S,
-            move_left: KeyCode::A,
-            move_right: KeyCode::D,
+            move_forward: KeyCode::KeyW,
+            move_backward: KeyCode::KeyS,
+            move_left: KeyCode::KeyA,
+            move_right: KeyCode::KeyD,
             move_ascend: KeyCode::Space,
             move_descend: KeyCode::ShiftLeft,
             toggle_grab_cursor: KeyCode::Escape,
@@ -69,7 +65,7 @@ fn initial_grab_cursor(mut primary_window: Query<&mut Window, With<PrimaryWindow
 
 /// Handles keyboard input and movement
 fn player_move(
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     time: Res<Time>,
     primary_window: Query<&Window, With<PrimaryWindow>>,
     control_values: Res<ControlValues>,
@@ -79,8 +75,8 @@ fn player_move(
     if let Ok(window) = primary_window.get_single() {
         for mut transform in query.iter_mut() {
             let mut velocity = Vec3::ZERO;
-            let forward = transform.forward();
-            let right = transform.right();
+            let forward = *transform.forward();
+            let right = *transform.right();
 
             for key in keys.get_pressed() {
                 match window.cursor.grab_mode {
@@ -147,15 +143,15 @@ fn player_look(
                     * transform.rotation
                     * Quat::from_axis_angle(Vec3::X, pitch);
 
-                let up = transform.up();
-                let right = transform.right();
+                let up = *transform.up();
+                let right = *transform.right();
                 let pitch = settings.up.cross(up).dot(right).atan2(settings.up.dot(up));
                 let restricted_pitch = pitch.clamp(-1.54, 1.54);
                 let diff = restricted_pitch - pitch;
                 transform.rotate_axis(right, diff);
 
                 // Eliminate accumulated roll and ensure we don't flip onto our heads.
-                let forward = transform.forward();
+                let forward = *transform.forward();
                 transform.look_to(forward, settings.up);
             }
         }
@@ -165,7 +161,7 @@ fn player_look(
 }
 
 fn cursor_grab(
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     key_bindings: Res<KeyBindings>,
     mut primary_window: Query<&mut Window, With<PrimaryWindow>>,
 ) {
@@ -218,13 +214,13 @@ impl bevy::prelude::Plugin for Plugin {
 
 fn setup(mut keys: ResMut<KeyBindings>) {
     // Don't use ESC for grabbing/releasing the cursor. That's what browsers use, too, so it gets grabbed by bevy and released by the browser at the same time.
-    keys.toggle_grab_cursor = KeyCode::G;
+    keys.toggle_grab_cursor = KeyCode::KeyG;
 }
 
 fn grab_cursor(
     mut windows: Query<&mut Window>,
-    btn: Res<Input<MouseButton>>,
-    key: Res<Input<KeyCode>>,
+    btn: Res<ButtonInput<MouseButton>>,
+    key: Res<ButtonInput<KeyCode>>,
 ) {
     let mut window = windows.single_mut();
 
@@ -261,6 +257,6 @@ pub fn update_camera_orientations(
     control_values.up = up;
 
     // Reorient "up" axis without introducing other rotations.
-    let forward = fly_cam.transform.forward();
+    let forward = *fly_cam.transform.forward();
     fly_cam.transform.look_to(forward, up);
 }

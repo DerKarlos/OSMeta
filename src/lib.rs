@@ -2,7 +2,7 @@
 
 use crate::big_space::{
     world_query::{
-        GridTransform, GridTransformItem, GridTransformOwned, GridTransformReadOnlyItem,
+        GridTransform, GridTransformOwned,
     },
     FloatingOriginPlugin, GridCell,
 };
@@ -41,9 +41,9 @@ type GalacticGrid = GridCell<GridPrecision>;
 type GalacticTransform = GridTransform<GridPrecision>;
 type GalacticTransformOwned = GridTransformOwned<GridPrecision>;
 #[allow(dead_code)]
-type GalacticTransformReadOnlyItem<'a> = GridTransformReadOnlyItem<'a, GridPrecision>;
+type GalacticTransformReadOnlyItem = GridTransform<GridPrecision>;
 #[allow(dead_code)]
-type GalacticTransformItem<'a> = GridTransformItem<'a, GridPrecision>;
+type GalacticTransformItem = GridTransform<GridPrecision>;
 
 #[derive(Resource)]
 struct StartingValues {
@@ -155,9 +155,9 @@ pub fn main() {
     });
     // Offer assets via `embedded://`
     app.add_plugins(EmbeddedAssetPlugin::default());
-    app.add_plugins(bevy_web_asset::WebAssetPlugin {
-        user_agent: Some("osmeta 0.1.0".into()),
-    });
+    app.add_plugins(bevy_web_asset::WebAssetPlugin::default(
+        //user_agent: Some("osmeta 0.1.0".into())
+    ));
     if xr {
         #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
         {
@@ -167,12 +167,10 @@ pub fn main() {
     } else {
         app.add_plugins(DefaultPlugins.build().disable::<TransformPlugin>());
     }
-    app.add_plugins(FloatingOriginPlugin::<GridPrecision>::default());
-    app.insert_resource(Msaa::Sample4) // Msaa::Sample4  Msaa::default()   -- Todo: tut nichts?
-        .add_plugins(ScreenDiagnosticsPlugin {
-            timestep: 1.0,
-            ..default()
-        })
+    app
+        .add_plugins(FloatingOriginPlugin::<GridPrecision>::default())
+        .insert_resource(Msaa::Sample4) // Msaa::Sample4  Msaa::default()   -- Todo: tut nichts?
+        .add_plugins(ScreenDiagnosticsPlugin {timestep: 1.0,..default()})
         .add_plugins(ScreenFrameDiagnosticsPlugin)
         .add_plugins(ScreenEntityDiagnosticsPlugin)
         .add_plugins(sky::Plugin)
@@ -185,28 +183,30 @@ pub fn main() {
             app.add_plugins(f4control::Plugin);
         }
         CamControlMode::Fly => {
-            app.add_plugins(flycontrol::Plugin)
+            app
+                .add_plugins(flycontrol::Plugin)
                 .add_systems(Update, update_camera_orientations)
                 .add_systems(PostUpdate, compass::reposition_compass);
         }
     }
 
-    app.insert_resource(StartingValues {
-        _args: args,
-        planetary_position: geo_coord.to_cartesian(),
-        view: start_view,
-        cam_control_mode,
-        xr,
-        gamification,
-    });
+    app
+        .insert_resource(StartingValues {
+            _args: args,
+            planetary_position: geo_coord.to_cartesian(),
+            view: start_view,
+            cam_control_mode,
+            xr,
+            gamification,
+        })
 
-    app.add_plugins(geoview::Plugin)
+        .add_plugins(geoview::Plugin)
         .insert_resource(TileMap::default())
         .add_systems(Startup, setup)
         .add_plugins(tilemap::Plugin)
         .run();
 }
-
+// todo: check what is different in  oli-obk/bevy_screen_diagnostics
 fn setup(mut diags: ResMut<ScreenDiagnostics>) {
     diags.modify("fps").aggregate(Aggregate::Average);
 }

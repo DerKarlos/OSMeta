@@ -180,7 +180,7 @@ impl GeoView {
         // we have to "rotate back the up" before calculating delta north
         let flat_forward = directions
             .up // rotate back up ?    https://en.wikipedia.org/wiki/Cross_product   cross product or vector product
-            .cross(position.galactic_transform.transform.right()); // now we have a vector pointing forward, but parallel to the ground.
+            .cross(*position.galactic_transform.transform.right()); // now we have a vector pointing forward, but parallel to the ground.
 
         // Cannot use `angle_between` naively, as that gives us a positive angle between 0 and 180 degrees
         let north_angle = flat_forward.angle_between(directions.north).to_degrees();
@@ -205,7 +205,7 @@ impl GeoView {
 
 // System: If keys pressed, store and restore camera views
 fn keys_ui(
-    keys: Res<Input<KeyCode>>,
+    keys: Res<ButtonInput<KeyCode>>,
     mut player: PlayerQuery,
     mut control_values: ResMut<ControlValues>,
     mut views: ResMut<Views>,
@@ -216,20 +216,20 @@ fn keys_ui(
 
             match key {
                 // (>= KeyCode::Key0 & <=KeyCode::Key9) => {
-                KeyCode::Key0
-                | KeyCode::Key1
-                | KeyCode::Key2 // todo: shift-Key2 does not work. Not in keys 
-                | KeyCode::Key3
-                | KeyCode::Key4
-                | KeyCode::Key5
-                | KeyCode::Key6
-                | KeyCode::Key7
-                | KeyCode::Key8
-                | KeyCode::Key9 => {
+                KeyCode::Digit0
+                | KeyCode::Digit1
+                | KeyCode::Digit2 // todo: shift-Key2 does not work. Not in keys 
+                | KeyCode::Digit3
+                | KeyCode::Digit4
+                | KeyCode::Digit5
+                | KeyCode::Digit6
+                | KeyCode::Digit7
+                | KeyCode::Digit8
+                | KeyCode::Digit9 => {
                     let key_string = format!("{:?}", key).to_string();
                     if keys.pressed(KeyCode::ShiftRight) {
                         info!("*** KEY: {:?}", key_string);
-                        if key != KeyCode::Key0 {
+                        if key != KeyCode::Digit0 {
 
                             let is_orbit_control = control_values.cam_control_mode == CamControlMode::F4;
                             let mut geo_view = if is_orbit_control {

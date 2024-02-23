@@ -1,15 +1,15 @@
 //! A helper query argument that ensures you don't forget to handle
-//! the [´GridCell`] when you work with a [`Transform`].
+//! the [`GridCell`] when you work with a [`Transform`].
 
-use bevy::ecs::query::WorldQuery;
+use bevy::ecs::query::QueryData;
 use bevy::math::DVec3;
 use bevy::prelude::*;
 
 use super::precision::GridPrecision;
 use super::{GridCell, Space};
 
-#[derive(WorldQuery)]
-#[world_query(mutable)]
+#[derive(QueryData)]
+#[query_data(mutable)]
 /// A convenience query argument that groups a [`Transform`] with its [`GridCell`].
 /// If you only want to read from the position, use [`GridTransformReadOnly`] instead,
 /// as this will allow the bevy ECS to run multiple queries using [`GridTransformReadOnly`]

@@ -32,8 +32,7 @@ pub fn reposition_compass(
         *compass.cell = player.cell;
         compass.transform.look_to(directions.north, directions.up)
     } else {
-        let mesh = shape::Plane::default();
-        let mesh = meshes.add(mesh.into());
+        let mesh = meshes.add(Plane3d::default());
         let image = server.load("embedded://compass.png");
         let material = materials.add(StandardMaterial {
             base_color_texture: Some(image),

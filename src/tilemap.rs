@@ -6,6 +6,8 @@ use bevy::{
     render::{mesh::Indices, render_resource::PrimitiveTopology},
     utils::HashSet,
 };
+//use gl am::Vec3;
+//use bevy::prelude::Vec3;
 
 use crate::geocoord::{GeoCoord, EARTH_RADIUS};
 use crate::ViewDistance;
@@ -219,11 +221,11 @@ fn flat_tile(pos: TileIndex) -> (GalacticGrid, coord::TileCoord, Mesh) {
 
     let indices = Indices::U32(vec![0, 3, 2, 2, 1, 0]);
 
-    let mesh = Mesh::new(PrimitiveTopology::TriangleList)
+    let mesh = Mesh::new(PrimitiveTopology::TriangleList,bevy::render::render_asset::RenderAssetUsages::RENDER_WORLD,)
         .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, positions)
-        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
+        .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals) // From<std::vec::Vec<bevy::prelude::Vec3>>>
         .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
-        .with_indices(Some(indices));
+        .with_inserted_indices(indices);
     (grid, coord, mesh)
 }
 
@@ -257,7 +259,7 @@ fn recompute_view_distance(
     diagnostics: Res<DiagnosticsStore>,
     mut view_distance: ResMut<ViewDistance>,
 ) {
-    if let Some(fps) = diagnostics.get(FrameTimeDiagnosticsPlugin::FPS) {
+    if let Some(fps) = diagnostics.get(&FrameTimeDiagnosticsPlugin::FPS) {
         if let Some(fps) = fps.smoothed() {
             if fps < 40.0 {
                 view_distance.0 *= 0.99;

@@ -60,7 +60,7 @@ fn setup(
     asset_server: Res<AssetServer>,
 ) {
     // Camera-Meshes (body and lense)
-    let cube = meshes.add(shape::Cube { size: 1.0 }.try_into().unwrap());
+    let cube = meshes.add(Cuboid::new(1.0, 1.0, 1.0).mesh());
 
     let camera_box = commands
         .spawn((
@@ -91,15 +91,7 @@ fn setup(
 
     ////////////////////////////////////////////////////////
     // Earth with equator and greewich meridian and markers
-    let sphere = meshes.add(
-        shape::UVSphere {
-            radius: EARTH_RADIUS,
-            sectors: SECTORS,
-            stacks: SECTORS / 2,
-        }
-        .try_into()
-        .unwrap(),
-    );
+    let sphere = meshes.add(Sphere::new(EARTH_RADIUS).mesh().ico(SECTORS).unwrap());
 
     commands.spawn((PbrBundle {
         mesh: sphere,
@@ -110,16 +102,7 @@ fn setup(
         ..default()
     },));
 
-    let disk = meshes.add(
-        shape::Cylinder {
-            radius: 1.02,
-            height: 0.05,
-            resolution: 16,
-            segments: 8,
-        }
-        .try_into()
-        .unwrap(),
-    );
+    let disk = meshes.add(Cylinder::new(1.02, 0.05).mesh().resolution(16));
 
     // Equator: 0 latitude
     commands.spawn((PbrBundle {
