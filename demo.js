@@ -119,6 +119,7 @@ function passStringToWasm0(arg, malloc, realloc) {
         const ret = encodeString(arg, view);
 
         offset += ret.written;
+        ptr = realloc(ptr, len, offset, 1) >>> 0;
     }
 
     WASM_VECTOR_LEN = offset;
@@ -190,6 +191,12 @@ function debugString(val) {
     return className;
 }
 
+const CLOSURE_DTORS = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(state => {
+    wasm.__wbindgen_export_2.get(state.dtor)(state.a, state.b)
+});
+
 function makeMutClosure(arg0, arg1, dtor, f) {
     const state = { a: arg0, b: arg1, cnt: 1, dtor };
     const real = (...args) => {
@@ -204,14 +211,14 @@ function makeMutClosure(arg0, arg1, dtor, f) {
         } finally {
             if (--state.cnt === 0) {
                 wasm.__wbindgen_export_2.get(state.dtor)(a, state.b);
-
+                CLOSURE_DTORS.unregister(state);
             } else {
                 state.a = a;
             }
         }
     };
     real.original = state;
-
+    CLOSURE_DTORS.register(real, state, state);
     return real;
 }
 function __wbg_adapter_34(arg0, arg1, arg2) {
@@ -281,6 +288,10 @@ function getArrayU32FromWasm0(ptr, len) {
     ptr = ptr >>> 0;
     return getUint32Memory0().subarray(ptr / 4, ptr / 4 + len);
 }
+
+const CartesianPointFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_cartesianpoint_free(ptr >>> 0));
 /**
 * Represents a point using the Cartesian system of coordinates.
 */
@@ -290,14 +301,14 @@ export class CartesianPoint {
         ptr = ptr >>> 0;
         const obj = Object.create(CartesianPoint.prototype);
         obj.__wbg_ptr = ptr;
-
+        CartesianPointFinalization.register(obj, obj.__wbg_ptr, obj);
         return obj;
     }
 
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
-
+        CartesianPointFinalization.unregister(this);
         return ptr;
     }
 
@@ -395,6 +406,10 @@ export class CartesianPoint {
         wasm.cartesianpoint_rotate(this.__wbg_ptr, ptr0, theta);
     }
 }
+
+const GeographicPointFinalization = (typeof FinalizationRegistry === 'undefined')
+    ? { register: () => {}, unregister: () => {} }
+    : new FinalizationRegistry(ptr => wasm.__wbg_geographicpoint_free(ptr >>> 0));
 /**
 * Represents a point using the geographic system of coordinates.
 */
@@ -404,14 +419,14 @@ export class GeographicPoint {
         ptr = ptr >>> 0;
         const obj = Object.create(GeographicPoint.prototype);
         obj.__wbg_ptr = ptr;
-
+        GeographicPointFinalization.register(obj, obj.__wbg_ptr, obj);
         return obj;
     }
 
     __destroy_into_raw() {
         const ptr = this.__wbg_ptr;
         this.__wbg_ptr = 0;
-
+        GeographicPointFinalization.unregister(this);
         return ptr;
     }
 
