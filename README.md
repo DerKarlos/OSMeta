@@ -57,6 +57,11 @@ Only the control or the gamification is added by the user to get an application.
 
 --------------------------
 
+There is an not up to date http://www.osmgo.org/OSMeta/demo.mov
+You may be able to run it here: https://derkarlos.github.io/OSMeta/
+
+--------------------------
+
 ## Concepts:
 
 Todo
