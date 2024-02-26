@@ -27,7 +27,7 @@ use super::precision::GridPrecision;
 /// define a type alias!
 ///
 /// ```
-/// # use crate::big_space::GridCell;
+/// # use super::big_space::GridCell;
 /// type GalacticGrid = GridCell<i64>;
 /// ```
 ///
