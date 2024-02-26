@@ -1738,8 +1738,7 @@ dependencies = [
 [[package]]
 name = "bevy_screen_diagnostics"
 version = "0.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eec7594e1843b11cf03bffe9e22671c2eb613bfda88b7c438e46e1686b926a8d"
+source = "git+https://github.com/oli-obk/bevy_screen_diagnostics.git#75bd779b264e3a581c2fdf17d7046ceacb64060d"
 dependencies = [
  "bevy 0.13.0",
 ]
@@ -2044,8 +2043,7 @@ dependencies = [
 [[package]]
 name = "bevy_web_asset"
 version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "434bcdbf275c2724f75e464231d7b88a5996b51a35d65873fa2699aaa9bc7d3d"
+source = "git+https://github.com/oli-obk/bevy_web_asset.git?branch=user-agent#c42541811edd91b05cf911e25de404519f05ad5c"
 dependencies = [
  "bevy 0.13.0",
  "js-sys",

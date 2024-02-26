@@ -62,7 +62,7 @@ impl<'w, P: GridPrecision> GridTransformReadOnlyItem<'w, P> {
 }
 
 /// A convenience wrapper that allows working with grid and transform easily
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct GridTransformOwned<P: GridPrecision> {
     /// Grid local transform
     pub transform: Transform,

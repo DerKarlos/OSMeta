@@ -19,14 +19,11 @@ bevy = { version = "0.13", features = ["jpeg"] }
 flate2 = "1.0.28"
 futures-core = "0.3.29"
 futures-io = "0.3.29"
-##gl am = "0"
-bevy_screen_diagnostics = "0.5" ## { git = "https://github.com/oli-obk/bevy_screen_diagnostics.git" }
+bevy_screen_diagnostics = { git = "https://github.com/oli-obk/bevy_screen_diagnostics.git" }
 globe-rs = "0.1.8"
 directories = "5.0.1"
 async-fs = "2.1.0"
-##bevy_web_asset = { git = "https://github.com/oli-obk/bevy_web_asset.git", branch = "user-agent" }  todo: what are the changes?
-bevy_web_asset = { version = "0.8" }
-##### big_space = { git = "https://github.com/oli-obk/big_space.git", branch = "world_query" }
+bevy_web_asset = { git = "https://github.com/oli-obk/bevy_web_asset.git", branch = "user-agent" }
 bevy_embedded_assets = "0.10"
 bevy_panorbit_camera = "0.14"
 

@@ -30,4 +30,4 @@ cargo fmt
 cargo check --target x86_64-pc-windows-gnu
 cargo build --target x86_64-pc-windows-gnu
 error: linking with `x86_64-w64-mingw32-gcc` failed: exit status: 1
-cargo run --target x86_64-pc-windows-gnu   (realy?)
+cargo run   --target x86_64-pc-windows-gnu   (realy?)

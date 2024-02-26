@@ -1,6 +1,6 @@
 use crate::{player::PlanetaryPosition, tilemap::TileCoord};
-use bevy::prelude::*;
 use bevy::math::DVec3;
+use bevy::prelude::*;
 use globe_rs::{CartesianPoint, GeographicPoint};
 use std::f32::consts::PI;
 
@@ -109,6 +109,8 @@ impl GeoDirTrait for GeoDir {
     }
 }
 
+pub const CLOUDS_HEIGHT: f32 = 100_000.0;
 pub const EARTH_RADIUS: f32 = 6_378_000.;
 pub const MOON_RADIUS: f32 = 01_737_400.;
 pub const MOON_ORBIT: f32 = 384_400_000.;
+pub const SHOW_SIZE: f32 = 100_000.;

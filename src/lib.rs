@@ -1,9 +1,7 @@
 //! Loads and renders a glTF file as a scene.
 
 use crate::big_space::{
-    world_query::{
-        GridTransform, GridTransformOwned,
-    },
+    world_query::{GridTransform, GridTransformOwned},
     FloatingOriginPlugin, GridCell,
 };
 use bevy::prelude::*;
@@ -96,7 +94,7 @@ pub fn main() {
     let mut camera_fov: f32 = 30.; // todo: default?  field of view, the angle widht of the world, the camera is showing
 
     let mut xr = false;
-    let mut gamification = 1; // 0: off  1: Galactica
+    let mut gamification = 2; // 0: off  1: Galactica
 
     for arg in &args {
         if arg.is_empty() {
@@ -153,11 +151,13 @@ pub fn main() {
     app.add_plugins(HttpAssetReaderPlugin {
         base_url: "gltiles.osm2world.org/glb/".into(),
     });
+
     // Offer assets via `embedded://`
     app.add_plugins(EmbeddedAssetPlugin::default());
-    app.add_plugins(bevy_web_asset::WebAssetPlugin::default(
-        //user_agent: Some("osmeta 0.1.0".into())
-    ));
+    app.add_plugins(bevy_web_asset::WebAssetPlugin {
+        user_agent: Some("osmeta 0.1.0".into()),
+    });
+
     if xr {
         #[cfg(all(feature = "xr", not(any(target_os = "macos", target_arch = "wasm32"))))]
         {
@@ -167,10 +167,12 @@ pub fn main() {
     } else {
         app.add_plugins(DefaultPlugins.build().disable::<TransformPlugin>());
     }
-    app
-        .add_plugins(FloatingOriginPlugin::<GridPrecision>::default())
+    app.add_plugins(FloatingOriginPlugin::<GridPrecision>::default())
         .insert_resource(Msaa::Sample4) // Msaa::Sample4  Msaa::default()   -- Todo: tut nichts?
-        .add_plugins(ScreenDiagnosticsPlugin {timestep: 1.0,..default()})
+        .add_plugins(ScreenDiagnosticsPlugin {
+            timestep: 1.0,
+            ..default()
+        })
         .add_plugins(ScreenFrameDiagnosticsPlugin)
         .add_plugins(ScreenEntityDiagnosticsPlugin)
         .add_plugins(sky::Plugin)
@@ -183,28 +185,25 @@ pub fn main() {
             app.add_plugins(f4control::Plugin);
         }
         CamControlMode::Fly => {
-            app
-                .add_plugins(flycontrol::Plugin)
+            app.add_plugins(flycontrol::Plugin)
                 .add_systems(Update, update_camera_orientations)
                 .add_systems(PostUpdate, compass::reposition_compass);
         }
     }
 
-    app
-        .insert_resource(StartingValues {
-            _args: args,
-            planetary_position: geo_coord.to_cartesian(),
-            view: start_view,
-            cam_control_mode,
-            xr,
-            gamification,
-        })
-
-        .add_plugins(geoview::Plugin)
-        .insert_resource(TileMap::default())
-        .add_systems(Startup, setup)
-        .add_plugins(tilemap::Plugin)
-        .run();
+    app.insert_resource(StartingValues {
+        _args: args,
+        planetary_position: geo_coord.to_cartesian(),
+        view: start_view,
+        cam_control_mode,
+        xr,
+        gamification,
+    })
+    .add_plugins(geoview::Plugin)
+    .insert_resource(TileMap::default())
+    .add_systems(Startup, setup)
+    .add_plugins(tilemap::Plugin)
+    .run();
 }
 // todo: check what is different in  oli-obk/bevy_screen_diagnostics
 fn setup(mut diags: ResMut<ScreenDiagnostics>) {

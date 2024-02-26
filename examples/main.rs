@@ -8,7 +8,7 @@ use bevy::{prelude::*, utils::petgraph::matrix_graph::Zero};
 use bevy_panorbit_camera::*; // https://docs.rs/bevy_panorbit_camera/latest/bevy_panorbit_camera/
 use globe_rs::{CartesianPoint, GeographicPoint};
 
-use glam::DVec3;
+use bevy::math::DVec3;
 
 const EARTH_RADIUS: f32 = 1.0;
 
@@ -93,12 +93,25 @@ fn setup(
     // Earth with equator and greewich meridian and markers
     let sphere = meshes.add(Sphere::new(EARTH_RADIUS).mesh().ico(SECTORS).unwrap());
 
+    let image = asset_server.load("8k_earth_daymap.jpg");
+
     commands.spawn((PbrBundle {
         mesh: sphere,
+
         material: materials.add(StandardMaterial {
-            base_color: Color::BLUE,
+            base_color_texture: Some(image.clone()),
+            base_color: Color::WHITE,
+            unlit: true,
+            cull_mode: None,
+            perceptual_roughness: 1.0,
+            fog_enabled: false,
             ..default()
         }),
+
+        //      material: materials.add(StandardMaterial {
+        //          base_color: Color::BLUE,
+        //          ..default()
+        //      }),
         ..default()
     },));
 
@@ -182,10 +195,10 @@ fn setup(
         Join,
     ));
 
-    commands.spawn(SceneBundle {
-        scene: asset_server.load("crucero_medio_valkyrie_m_1.glb#Scene0"), // xwing Galactica  1701A2 crucero_medio_valkyrie_m_1
-        ..default()
-    });
+    //    commands.spawn(SceneBundle {
+    //        scene: asset_server.load("bs_galactica1.glb#Scene0"), // xwing bs_galactica1 1701A2
+    //        ..default()
+    //    });
 
     ///// Camera & Light /////////////////////////////////////////////////////
 

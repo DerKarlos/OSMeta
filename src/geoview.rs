@@ -65,9 +65,10 @@ impl GeoView {
      * internal, util [[restore]] is called.
      * @param id  "name" of the cookie
      */
-    pub fn store(&self, id: String, views_map: &mut HashMap<String, String>) {
+    pub fn store(&self, id: KeyCode, views_map: &mut HashMap<String, String>) {
         //                                      id la lo he di vi ra fo
         //t cookie = format!("OSM2World_GeoView_{}={} {} {} {} {} {} {};samesite=strict",  //  todo? {:.2}
+        let id_string = format!("{:?}", id).to_string();
         let cookie = format!(
             "{} {} {} {} {} {} {}",
             self.geo_coord.lat,
@@ -78,10 +79,10 @@ impl GeoView {
             self.distance,
             self.camera_fov,
         );
-        println!(">>> id: {} cookie: {}", id, cookie);
+        println!(">>> id: {} cookie: {}", id_string, cookie);
 
         // html/wasm: document.cookie = cookie;
-        views_map.insert(id, cookie);
+        views_map.insert(id_string, cookie);
     }
 
     /**
@@ -238,7 +239,7 @@ fn keys_ui(
                                 GeoView::from_player(&player)
                             };
                             geo_view.distance = control_values.view.distance; // keep distance of orbid control
-                            geo_view.store(key_string, &mut views.map);
+                            geo_view.store(key, &mut views.map);
                         }
                     } else {
                         info!("*** key: {:?}", key_string);
@@ -262,9 +263,7 @@ fn keys_ui_setup(
 ) {
     // The start view is placed for Key0 and
     // all controls are set here (also the camera)
-    starting_values
-        .view
-        .store("Key0".to_string(), &mut views.map);
+    starting_values.view.store(KeyCode::Digit0, &mut views.map);
     starting_values
         .view
         .set_camera_view(&mut player, &mut control_values);

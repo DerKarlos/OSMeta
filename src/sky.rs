@@ -12,7 +12,7 @@ use std::f32::consts::*;
 
 use crate::{
     big_space::Space,
-    geocoord::{GeoCoord, EARTH_RADIUS, MOON_ORBIT, MOON_RADIUS},
+    geocoord::{GeoCoord, CLOUDS_HEIGHT, EARTH_RADIUS, MOON_ORBIT, MOON_RADIUS, SHOW_SIZE},
     geoview::{GeoView, Views},
     player::OSM_LAT_LIMIT,
     GalacticGrid, StartingValues,
@@ -86,109 +86,10 @@ fn setup(
         ..default()
     });
 
-    let sphere = meshes.add(Sphere::new(1.0).mesh()); // .ico(128).unwrap()); todo: subdivisions?
+    let sphere = meshes.add(Sphere::new(1.0).mesh().uv(128, 64) ); // todo: subdivisions?  128  // BAD!: .ico(8).unwrap()
 
-    // Stars
-    let image = server.load("embedded://8k_stars.jpg");
-    commands.spawn((
-        PbrBundle {
-            mesh: sphere.clone(),
-            material: materials.add(StandardMaterial {
-                base_color: Color::WHITE,
-                unlit: true,
-                alpha_mode: AlphaMode::Blend,
-                cull_mode: None,
-                base_color_texture: Some(image.clone()),
-                fog_enabled: false,
-                ..default()
-            }),
-            transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + 1_000_000_000_000.0)),
-            ..default()
-        },
-        NeedsTextureSetToRepeat(image),
-        NotShadowCaster,
-        GalacticGrid::ZERO,
-    ));
-
-    // Earth
-
-    let rot = Quat::from_axis_angle(Vec3::X, FRAC_PI_2);
-    let transform =
-        Transform::from_translation(Vec3::NEG_Z * EARTH_RADIUS * 1.5).with_rotation(rot);
-
-    let material = materials.add(StandardMaterial {
-        fog_enabled: false,
-        ..default()
-    });
-
-    // Rotational axis
-    let mesh = meshes.add(Cylinder::new(1.0, EARTH_RADIUS * 3.0).mesh().resolution(16));
-
-    commands.spawn((
-        PbrBundle {
-            mesh,
-            transform,
-            material: material.clone(),
-            ..default()
-        },
-        GalacticGrid::ZERO,
-    ));
-
-    // Equator
-    let mesh = meshes.add(Cylinder::new(EARTH_RADIUS + 1000.0,  1.0).mesh().resolution(64));
-
-    commands.spawn((
-        PbrBundle {
-            mesh,
-            transform: Transform::from_rotation(rot),
-            material,
-            ..default()
-        },
-        GalacticGrid::ZERO,
-    ));
-
-    // Clouds visible from earth and space
-    let image = server.load("embedded://8k_earth_clouds.jpg");
-    commands.spawn((
-        PbrBundle {
-            mesh: sphere.clone(),
-            material: materials.add(StandardMaterial {
-                base_color: Color::WHITE,
-                unlit: true,
-                alpha_mode: AlphaMode::Blend,
-                cull_mode: None,
-                base_color_texture: Some(image.clone()),
-                ..default()
-            }),
-            transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + 100000.0)),
-            ..default()
-        },
-        NotShadowCaster,
-        GalacticGrid::ZERO,
-        NeedsTextureTransparencyEqualToRed(image.clone()),
-        NeedsTextureSetToRepeat(image),
-    ));
-
-    // Sky
-    commands.spawn((
-        PbrBundle {
-            mesh: sphere.clone(),
-            material: materials.add(StandardMaterial {
-                base_color: Color::hex("000088").unwrap(),
-                unlit: true,
-                cull_mode: Some(bevy::render::render_resource::Face::Front),
-                ..default()
-            }),
-            transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + 200000.0)),
-            ..default()
-        },
-        NotShadowCaster,
-        GalacticGrid::ZERO,
-    ));
-
+    // earth ground
     let image = server.load("embedded://8k_earth_daymap.jpg");
-
-    // ground
     commands.spawn((
         PbrBundle {
             mesh: sphere.clone(),
@@ -209,77 +110,172 @@ fn setup(
         NeedsTextureSetToRepeat(image),
     ));
 
+    // Gamification
+    if starting_values.gamification >= 1 {
 
-    // moon
-    let image = server.load("embedded://8k_moon.jpg");
-
-    //let coord = pos.as_coord();
-    //let a = coord.to_geo_coord().to_cartesian();
-
-    let (grid, pos): (GalacticGrid, Vec3) = Space::translation_to_grid(Vec3{y:-MOON_ORBIT/20.,x:0.,z:0.}); // x=Atlantic? -y=Greenwich +y=America
-
-    commands.spawn((
-        PbrBundle {
-            mesh: sphere.clone(),
-            material: materials.add(StandardMaterial {
-                base_color: Color::WHITE,
-                unlit: true,
-                cull_mode: None,
-                base_color_texture: Some(image.clone()),
-                perceptual_roughness: 1.0,
-                fog_enabled: false,
+        // Blue Sky
+        commands.spawn((
+            PbrBundle {
+                mesh: sphere.clone(),
+                material: materials.add(StandardMaterial {
+                    base_color: Color::hex("000088").unwrap(),
+                    unlit: true,
+                    cull_mode: Some(bevy::render::render_resource::Face::Front),
+                    ..default()
+                }),
+                transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + CLOUDS_HEIGHT * 2.0)),
                 ..default()
-            }),
-            transform: Transform::from_scale(Vec3::splat(MOON_RADIUS))
-                .with_translation(pos), //Vec3::X * MOON_ORBIT), // X = ? Northpole? No z=Earth axis
+            },
+            NotShadowCaster,
+            GalacticGrid::ZERO,
+        ));
+
+        // Fog
+        let material = materials.add(StandardMaterial {
+            fog_enabled: false,
             ..default()
-        },
-        NotShadowCaster,
-        grid, // GalacticGrid::ZERO, // ZERO? Makes it in-exact? If yes, not relevant for the moon.
-        //        NeedsTextureSetToRepeat(image),
-    ));
+        });
 
 
-    GeoView {
-        geo_coord: GeoCoord {
-            lat: 48.1408,
-            lon: 11.5577,
-        },
-        up_view: -OSM_LAT_LIMIT,
-        elevation: 1.4,
-        distance: 4000.0,
-        ..Default::default()
+        // Clouds visible from earth and space
+        let image = server.load("embedded://8k_earth_clouds.jpg");
+        commands.spawn((
+            PbrBundle {
+                mesh: sphere.clone(),
+                material: materials.add(StandardMaterial {
+                    base_color: Color::WHITE,
+                    unlit: true,
+                    alpha_mode: AlphaMode::Blend,
+                    cull_mode: None,
+                    base_color_texture: Some(image.clone()),
+                    ..default()
+                }),
+                transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + CLOUDS_HEIGHT)),
+                ..default()
+            },
+            NotShadowCaster,
+            GalacticGrid::ZERO,
+            NeedsTextureTransparencyEqualToRed(image.clone()),
+            NeedsTextureSetToRepeat(image),
+        ));
+
+        // View below the clouds
+        GeoView {
+            geo_coord: GeoCoord {
+                lat: 48.1408,
+                lon: 11.5577,
+            },
+            up_view: -OSM_LAT_LIMIT,
+            elevation: 1.4,
+            distance: 4000.0,
+            ..Default::default()
+        }
+        .store(KeyCode::Digit8, &mut views.map);
+
+        // Rotational Earth-Axis
+        let to_north_pole = Quat::from_axis_angle(Vec3::X, FRAC_PI_2); // X is to the equator below Greenwich?
+        let transform =
+            Transform::from_translation(Vec3::NEG_Z * EARTH_RADIUS * 1.5).with_rotation(to_north_pole);
+        let mesh = meshes.add(Cylinder::new(SHOW_SIZE, EARTH_RADIUS * 3.0).mesh());
+        commands.spawn((
+            PbrBundle {
+                mesh,
+                transform,
+                material: material.clone(),
+                ..default()
+            },
+            GalacticGrid::ZERO,
+        ));
+
+        // Earth-Equator
+        let mesh = meshes.add(Cylinder::new(EARTH_RADIUS + SHOW_SIZE, SHOW_SIZE).mesh());
+        commands.spawn((
+            PbrBundle {
+                mesh,
+                transform: Transform::from_rotation(to_north_pole),
+                material,
+                ..default()
+            },
+            GalacticGrid::ZERO,
+        ));
+
+        // Moon
+        let image = server.load("embedded://8k_moon.jpg");
+        let (grid, pos): (GalacticGrid, Vec3) = Space::translation_to_grid(Vec3 {
+            x: MOON_ORBIT / 30.,
+            y: 0.,
+            z: 0.,
+        }); // x=Atlantic? -y=Greenwich +y=America
+        commands.spawn((
+            PbrBundle {
+                mesh: sphere.clone(),
+                material: materials.add(StandardMaterial {
+                    base_color: Color::WHITE,
+                    unlit: true,
+                    cull_mode: None,
+                    base_color_texture: Some(image.clone()),
+                    perceptual_roughness: 1.0,
+                    fog_enabled: false,
+                    ..default()
+                }),
+                transform: Transform::from_scale(Vec3::splat(MOON_RADIUS)).with_translation(pos), //Vec3::X * MOON_ORBIT), // X = ? Northpole? No z=Earth axis
+                ..default()
+            },
+            NotShadowCaster,
+            grid, // GalacticGrid::ZERO, // ZERO? Makes it in-exact? If yes, not relevant for the moon.
+                  //        NeedsTextureSetToRepeat(image),
+        ));
+
+        // View next to the Moon
+        GeoView {
+            geo_coord: GeoCoord {
+                lat: -0.4,
+                lon: 179.6,
+            },
+            up_view: -OSM_LAT_LIMIT,
+            elevation: MOON_ORBIT * 1.2,
+            //distance: MOON_RADIUS * 3.0,
+            ..Default::default()
+        }
+        .store(KeyCode::Digit9, &mut views.map);
+
+        // Stars
+        let image = server.load("embedded://8k_stars.jpg");
+        commands.spawn((
+            PbrBundle {
+                mesh: sphere.clone(),
+                material: materials.add(StandardMaterial {
+                    base_color: Color::WHITE,
+                    unlit: true,
+                    alpha_mode: AlphaMode::Blend,
+                    cull_mode: None,
+                    base_color_texture: Some(image.clone()),
+                    fog_enabled: false,
+                    ..default()
+                }),
+                transform: Transform::from_scale(Vec3::splat(EARTH_RADIUS + 1_000_000_000_000.0)),
+                ..default()
+            },
+            NeedsTextureSetToRepeat(image),
+            NotShadowCaster,
+            GalacticGrid::ZERO,
+        ));
+
     }
-    .store("Key8".to_string(), &mut views.map); // below the clouds
 
-    // Gamification: Galactica ////////////////////
-
-    GeoView {
-        geo_coord: GeoCoord {
-            lat: 48.1408,
-            lon: 11.5577,
-        },
-        up_view: -30.0,
-        elevation: 1.4,
-        distance: 500.,
-        ..Default::default()
-    }
-    .store("Key3".to_string(), &mut views.map); // todo:  Munic?
-
-    // View next to the Moon
-    GeoView {
-        geo_coord: GeoCoord {
-            lat: -0.4,
-            lon: 179.6,
-        },
-        up_view: -OSM_LAT_LIMIT,
-        elevation: MOON_ORBIT * 1.2,
-        //distance: MOON_RADIUS * 3.0,
-        ..Default::default()
-    }
-    .store("Key9".to_string(), &mut views.map);
-
-    if starting_values.gamification == 1 {
+    // Galactica
+    if starting_values.gamification >= 2 {
+        GeoView {
+            geo_coord: GeoCoord {
+                lat: 48.1408,
+                lon: 11.5577,
+            },
+            up_view: -30.0,
+            elevation: 1.4,
+            distance: 500.,
+            ..Default::default()
+        }
+        .store(KeyCode::Digit3, &mut views.map); // todo:  Munic?
 
         // -85.05109 -179.99821      192199840 -77.87303 27.064236 500 77
         // -85.05109    0.0006583275 192199940 -75.85857 16.502523 500 77
@@ -294,7 +290,7 @@ fn setup(
             distance: 500.,
             ..Default::default()
         };
-        view.store("Key6".to_string(), &mut views.map);
+        view.store(KeyCode::Digit6, &mut views.map);
 
         let view = GeoView {
             geo_coord: GeoCoord {
@@ -305,36 +301,33 @@ fn setup(
             ..Default::default()
         };
 
-/*
-        let gt = view.to_galactic_transform(false);
-        let pd = gt.position_double();
-        let origin = GeoCoord::from_cartesian(pd);
-        let tile_size = origin.tile_size(15);
-        info!(tile_size);
+        /*
+                let gt = view.to_galactic_transform(false);
+                let pd = gt.position_double();
+                let origin = GeoCoord::from_cartesian(pd);
+                let tile_size = origin.tile_size(15);
+                info!(tile_size);
 
-/ *                                                 zoom,                                                 coord,                                            pos.pos ,                   coord.right().to_geo_coord(),               coord.right().to_geo_coord().to_cartesian().pos ); //ää
-2024-02-08T18:50:20.137052Z  INFO osmeta::geocoord:  15, TileCoord { pos: Vec2(16384.0, 32767.992), zoom: 15 }, DVec3( 550210.5697816543, -0.0, -6354223.188470841), GeoCoord { lat: -85.051125, lon: 0.010986328 }, DVec3(-550209.7135508333, -105.5013925298749,  -6354223.261735754),
-2024-02-08T18:50:20.137101Z  INFO osmeta::geocoord:  15, TileCoord { pos: Vec2(16384.0, 32766.857), zoom: 15 }, DVec3(-550314.6419755649, -0.0, -6354214.17602738 ), GeoCoord { lat: -85.05005 , lon: 0.010986328 }, DVec3(-550329.0158086999, -105.52426845159509, -6354212.930271038),
-* /
+        / *                                                 zoom,                                                 coord,                                            pos.pos ,                   coord.right().to_geo_coord(),               coord.right().to_geo_coord().to_cartesian().pos ); //ää
+        2024-02-08T18:50:20.137052Z  INFO osmeta::geocoord:  15, TileCoord { pos: Vec2(16384.0, 32767.992), zoom: 15 }, DVec3( 550210.5697816543, -0.0, -6354223.188470841), GeoCoord { lat: -85.051125, lon: 0.010986328 }, DVec3(-550209.7135508333, -105.5013925298749,  -6354223.261735754),
+        2024-02-08T18:50:20.137101Z  INFO osmeta::geocoord:  15, TileCoord { pos: Vec2(16384.0, 32766.857), zoom: 15 }, DVec3(-550314.6419755649, -0.0, -6354214.17602738 ), GeoCoord { lat: -85.05005 , lon: 0.010986328 }, DVec3(-550329.0158086999, -105.52426845159509, -6354212.930271038),
+        * /
 
-    let pos = player.pos();
-    let origin = GeoCoord::from_cartesian(pos);
-    let tile_size = origin.tile_size(TILE_ZOOM);
+            let pos = player.pos();
+            let origin = GeoCoord::from_cartesian(pos);
+            let tile_size = origin.tile_size(TILE_ZOOM);
 
-        let coord = self.to_tile_coordinates(zoom);
-        let pos   = self.to_cartesian();
-        let xxx   =coord.right().to_geo_coord().to_cartesian().distance(*pos);
+                let coord = self.to_tile_coordinates(zoom);
+                let pos   = self.to_cartesian();
+                let xxx   =coord.right().to_geo_coord().to_cartesian().distance(*pos);
 
-    let coord = crate::tilemap::TileCoord { pos: Vec2(16384.0, 32767.992), zoom: 15 };
-    let mut pos   = coord.to_cartesian();
-    pos = pos.right();
+            let coord = crate::tilemap::TileCoord { pos: Vec2(16384.0, 32767.992), zoom: 15 };
+            let mut pos   = coord.to_cartesian();
+            pos = pos.right();
 
-*/
+        */
 
-
-
-
-        view.store("Key7".to_string(), &mut views.map);
+        view.store(KeyCode::Digit7, &mut views.map);
         let galactic_transform = view.to_galactic_transform(false);
         let transform = galactic_transform.transform;
         let cell = galactic_transform.cell;
@@ -352,7 +345,10 @@ fn setup(
             cell,
         ));
     }
+
 }
+
+// Set-Functions ////////////////
 
 fn set_texture_transparent(
     mut images: ResMut<Assets<Image>>,

@@ -117,6 +117,8 @@ TODO / DOING /DONE
 * Use as render framework: https://github.com/leetvr/hotham
 * A tiny, cross-platform (including wasm), persistent key value store: https://github.com/johanhelsing/bevy_pkv
 
+* https://mary.codes/blog/programming/translating_openstreetmaps_to_HTML5_canvas_rust_wasm/
+
 ________________________________________
 thirdroom:
 ThreeJS GLB

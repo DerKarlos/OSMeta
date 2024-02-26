@@ -13,9 +13,9 @@ use bevy_oxr::xr_input::trackers::OpenXRTrackingRoot;
 
 use crate::big_space::{FloatingOrigin, Space};
 use crate::compass::Compass;
-use crate::sky::Galactica;
 use crate::geocoord::{GeoCoord, EARTH_RADIUS};
 use crate::geoview::GeoView;
+use crate::sky::Galactica;
 use crate::GalacticGrid;
 use crate::GalacticTransform;
 use crate::GalacticTransformOwned;
@@ -220,14 +220,14 @@ fn uv_debug_texture() -> Image {
         TextureDimension::D2,
         &texture_data,
         TextureFormat::Rgba8UnormSrgb,
-        bevy::render::render_asset::RenderAssetUsages::RENDER_WORLD,        
+        bevy::render::render_asset::RenderAssetUsages::RENDER_WORLD,
     )
 }
 
 fn update_camera_speed(
     mut control_values: ResMut<ControlValues>,
-    fly_cam:    Query<GalacticTransform, (With<Control  >, Without<Galactica>)>,
-    galacticas: Query<GalacticTransform, (With<Galactica>, Without<Control  >)>,
+    fly_cam: Query<GalacticTransform, (With<Control>, Without<Galactica>)>,
+    galacticas: Query<GalacticTransform, (With<Galactica>, Without<Control>)>,
 ) {
     // Distance to Earth surface
     let pos_cam = fly_cam.single().position_double();
