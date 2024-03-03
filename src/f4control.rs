@@ -122,7 +122,7 @@ fn player_keys(
         let view = &mut control_values.view;
         let elevation_fakt = 1. + time.delta_seconds() / 1.0;
         let groundmove_fact_lat = speed * time.delta_seconds() * SPEED_DEGREE_PER_M;
-        let groundmove_fact_lon = groundmove_fact_lat / view.geo_coord.lat.to_radians().sin();
+        let groundmove_fact_lon = groundmove_fact_lat / (view.geo_coord.lat.to_radians().cos()); // todo: ok?
         let groundmove_fact = Vec2::new(groundmove_fact_lon, groundmove_fact_lat);
         let rotation_fact = time.delta_seconds() * 20.0; // delta time * degrees per second = delta degrees
 
@@ -174,7 +174,6 @@ fn player_keys(
 
         if moved {
             view.geo_coord.add_move(velocity * groundmove_fact);
-
             view.limit();
             let galactic_transform = view.to_galactic_transform(true);
             player.set_pos(galactic_transform);

@@ -31,6 +31,13 @@ impl GeoCoord {
     pub fn to_tile_coordinates(self, zoom: u8) -> TileCoord {
         let pow_zoom = 2_u32.pow(zoom.into()) as f32;
 
+        //if self.lat > OSM_LAT_LIMIT || self.lat < -OSM_LAT_LIMIT {
+        //    panic!("self.lat -> {self:?} ");
+        //}
+        //if self.lon > 360. || self.lon < 0.0 {
+        //    panic!("self.lon -> {self:?} ");
+        //}
+
         // Longitude, (Längengrad) West/East "index"
         let mut x = ((self.lon + 180.) / 360. * pow_zoom).rem_euclid(pow_zoom);
         // y: Latitude, (Breitengrad) Nort/South "index"
@@ -42,6 +49,10 @@ impl GeoCoord {
 
         // If out of bounds, wrap around the globe.
         // Note: only works if the gps coordinates weren't out of bounds enough to wrap around the planet beyond the equator.
+        // Todo: Whlat? Skip the pole and go the other side?!
+        // Funny idea but when is it usefull? Of objects are placed there? No! Ignore them.
+        // And for calculing tile_size, it is a disater!
+        // Limit to pow_zoom or 0? Ok for plus tile_size äää
         if y > pow_zoom {
             y = pow_zoom - y.rem_euclid(pow_zoom);
             x = (x + pow_zoom / 2.0).rem_euclid(pow_zoom);
@@ -112,5 +123,5 @@ impl GeoDirTrait for GeoDir {
 pub const CLOUDS_HEIGHT: f32 = 100_000.0;
 pub const EARTH_RADIUS: f32 = 6_378_000.;
 pub const MOON_RADIUS: f32 = 01_737_400.;
-pub const MOON_ORBIT: f32 = 384_400_000.;
+pub const MOON_ORBIT: f32 = 384_400_000. / 30.; //tttest
 pub const SHOW_SIZE: f32 = 100_000.;

@@ -66,6 +66,7 @@ impl GeoView {
      * @param id  "name" of the cookie
      */
     pub fn store(&self, id: KeyCode, views_map: &mut HashMap<String, String>) {
+        // todo: Add a name for the view
         //                                      id la lo he di vi ra fo
         //t cookie = format!("OSM2World_GeoView_{}={} {} {} {} {} {} {};samesite=strict",  //  todo? {:.2}
         let id_string = format!("{:?}", id).to_string();
@@ -276,7 +277,34 @@ impl bevy::prelude::Plugin for Plugin {
         // todo: Is there a OnKeyPressed instead of Update?
         // todo: the reaction is bad? Mayh be this helps: Pairing with bevy_framepace to smooth out input latency
         app.add_systems(Update, keys_ui);
-        let map = HashMap::new();
+        let mut map = HashMap::new();
+
+        // Test key 9: About the initial View at Munic
+        GeoView {
+            geo_coord: GeoCoord {
+                lat: 48.1408,
+                lon: 11.5577,
+            },
+            up_view: -30.0,
+            elevation: 1.4,
+            distance: 500.,
+            ..Default::default()
+        }
+        .store(KeyCode::Digit9, &mut map);
+
+        // Test key 8: View below the clouds at Munic
+        GeoView {
+            geo_coord: GeoCoord {
+                lat: 48.1408,
+                lon: 11.5577,
+            },
+            up_view: -OSM_LAT_LIMIT,
+            elevation: 1.4,
+            distance: 4000.0,
+            ..Default::default()
+        }
+        .store(KeyCode::Digit8, &mut map);
+
         app.insert_resource(Views { map });
         app.add_systems(PostStartup, keys_ui_setup);
     }

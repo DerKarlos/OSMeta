@@ -91,7 +91,8 @@ fn setup(
 
     ////////////////////////////////////////////////////////
     // Earth with equator and greewich meridian and markers
-    let sphere = meshes.add(Sphere::new(EARTH_RADIUS).mesh().ico(SECTORS).unwrap());
+    let sphere = meshes.add(Sphere::new(EARTH_RADIUS).mesh().uv(SECTORS, SECTORS / 2));
+    //.ico(SECTORS).unwrap());
 
     let image = asset_server.load("8k_earth_daymap.jpg");
 

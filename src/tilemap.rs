@@ -38,6 +38,20 @@ fn phytagoras(a: f32, b: f32) -> f32 {
     (a * a + b * b).sqrt()
 }
 
+fn tile_faraway(
+    tile: &TileIndex,
+    origin: TileIndex,
+    elevation: f32,
+    radius: f32,
+    tile_size: f32,
+) -> bool {
+    // let distance = (tile.distance_squared(origin) as f32).sqrt() * tile_size;
+    // phytagoras(distance, elevation) > radius
+    let distance =
+        tile.distance_squared(origin) as f32 * elevation / tile_size * elevation / tile_size;
+    distance > radius / tile_size * radius / tile_size
+}
+
 impl TileMap {
     pub fn hide_faraway_tiles(
         In((origin, radius)): In<(TileIndex, f32)>,
@@ -48,9 +62,10 @@ impl TileMap {
         for (tile, mut vis) in tiles.iter_mut() {
             // FIXME: use tile zoom level to increase view-distance for lower zoom tiles.
             let tile_size = tile.as_coord().to_geo_coord().tile_size(TILE_ZOOM);
-            let distance = (tile.distance_squared(origin) as f32).sqrt() * tile_size;
+            //let distance = (tile.distance_squared(origin) as f32).sqrt() * tile_size;
             //info!("o_e_r {:?} {:?} {:?}", distance, elevation, radius);
-            if phytagoras(distance, elevation) > radius {
+            // if phytagoras(distance, elevation) > radius {
+            if tile_faraway(tile, origin, elevation, radius, tile_size) {
                 *vis = Visibility::Hidden;
             } else {
                 *vis = Visibility::Inherited;
@@ -76,10 +91,16 @@ impl TileMap {
             for y_i in -dist_max..=dist_max {
                 let offset = IVec2::new(x_i, y_i);
                 let distance = (offset.length_squared() as f32).sqrt() * tile_size;
-                //info!("o e r {:?} {:?} {:?}",distance,elevation,radius);
+                // info!("o e r {:?} {:?} {:?}",distance,elevation,radius);
                 if phytagoras(distance, elevation) > radius {
                     continue;
                 }
+
+                //let tile_index = (*origin).as_ivec2() + offset;
+                //let tile = TileIndex{idx:tile_index.as_uvec2(), zoom:TILE_ZOOM};
+                //if tile_faraway(tile, origin, elevation, radius, tile_size) {
+                //    continue;
+                //}
 
                 let pos = origin.offset(offset);
                 let score = tilemap.get_view_tile_score(pos, offset);
@@ -244,9 +265,9 @@ impl bevy::prelude::Plugin for Plugin {
                     recompute_view_distance,
                     (
                         // Hide tiles that are now beyond the view-distance
-                        get_main_camera_position.pipe(TileMap::hide_faraway_tiles),
+                        get_main_camera_index.pipe(TileMap::hide_faraway_tiles),
                         // And load tiles that are now within the view-distance
-                        get_main_camera_position
+                        get_main_camera_index
                             .pipe(TileMap::load_next)
                             .pipe(TileMap::load),
                     ),
@@ -274,7 +295,7 @@ fn recompute_view_distance(
     }
 }
 
-fn get_main_camera_position(
+fn get_main_camera_index(
     player: crate::player::PlayerQuery,
     view_distance: Res<ViewDistance>,
 ) -> (TileIndex, f32) {

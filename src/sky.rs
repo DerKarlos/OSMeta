@@ -86,7 +86,7 @@ fn setup(
         ..default()
     });
 
-    let sphere = meshes.add(Sphere::new(1.0).mesh().uv(128, 64) ); // todo: subdivisions?  128  // BAD!: .ico(8).unwrap()
+    let sphere = meshes.add(Sphere::new(1.0).mesh().uv(128, 64)); // todo: subdivisions?  128  // BAD!: .ico(8).unwrap()
 
     // earth ground
     let image = server.load("embedded://8k_earth_daymap.jpg");
@@ -112,7 +112,6 @@ fn setup(
 
     // Gamification
     if starting_values.gamification >= 1 {
-
         // Blue Sky
         commands.spawn((
             PbrBundle {
@@ -136,7 +135,6 @@ fn setup(
             ..default()
         });
 
-
         // Clouds visible from earth and space
         let image = server.load("embedded://8k_earth_clouds.jpg");
         commands.spawn((
@@ -159,23 +157,10 @@ fn setup(
             NeedsTextureSetToRepeat(image),
         ));
 
-        // View below the clouds
-        GeoView {
-            geo_coord: GeoCoord {
-                lat: 48.1408,
-                lon: 11.5577,
-            },
-            up_view: -OSM_LAT_LIMIT,
-            elevation: 1.4,
-            distance: 4000.0,
-            ..Default::default()
-        }
-        .store(KeyCode::Digit8, &mut views.map);
-
         // Rotational Earth-Axis
         let to_north_pole = Quat::from_axis_angle(Vec3::X, FRAC_PI_2); // X is to the equator below Greenwich?
-        let transform =
-            Transform::from_translation(Vec3::NEG_Z * EARTH_RADIUS * 1.5).with_rotation(to_north_pole);
+        let transform = Transform::from_translation(Vec3::NEG_Z * EARTH_RADIUS * 1.5)
+            .with_rotation(to_north_pole);
         let mesh = meshes.add(Cylinder::new(SHOW_SIZE, EARTH_RADIUS * 3.0).mesh());
         commands.spawn((
             PbrBundle {
@@ -202,9 +187,9 @@ fn setup(
         // Moon
         let image = server.load("embedded://8k_moon.jpg");
         let (grid, pos): (GalacticGrid, Vec3) = Space::translation_to_grid(Vec3 {
-            x: MOON_ORBIT / 30.,
-            y: 0.,
-            z: 0.,
+            x: -MOON_ORBIT, // -X = Pacific +X = 0/0              Northpole? No z=Earth axis
+            y: 1000.,
+            z: 1000.,
         }); // x=Atlantic? -y=Greenwich +y=America
         commands.spawn((
             PbrBundle {
@@ -218,26 +203,25 @@ fn setup(
                     fog_enabled: false,
                     ..default()
                 }),
-                transform: Transform::from_scale(Vec3::splat(MOON_RADIUS)).with_translation(pos), //Vec3::X * MOON_ORBIT), // X = ? Northpole? No z=Earth axis
+                transform: Transform::from_scale(Vec3::splat(MOON_RADIUS)).with_translation(pos),
                 ..default()
             },
             NotShadowCaster,
-            grid, // GalacticGrid::ZERO, // ZERO? Makes it in-exact? If yes, not relevant for the moon.
-                  //        NeedsTextureSetToRepeat(image),
+            grid,
+            // NeedsTextureSetToRepeat(image),
         ));
 
-        // View next to the Moon
+        // Test key 7: View next to the Moon
         GeoView {
             geo_coord: GeoCoord {
                 lat: -0.4,
-                lon: 179.6,
+                lon: -0.4, // 179.6,
             },
             up_view: -OSM_LAT_LIMIT,
             elevation: MOON_ORBIT * 1.2,
-            //distance: MOON_RADIUS * 3.0,
             ..Default::default()
         }
-        .store(KeyCode::Digit9, &mut views.map);
+        .store(KeyCode::Digit7, &mut views.map);
 
         // Stars
         let image = server.load("embedded://8k_stars.jpg");
@@ -260,74 +244,18 @@ fn setup(
             NotShadowCaster,
             GalacticGrid::ZERO,
         ));
-
     }
 
     // Galactica
     if starting_values.gamification >= 2 {
-        GeoView {
-            geo_coord: GeoCoord {
-                lat: 48.1408,
-                lon: 11.5577,
-            },
-            up_view: -30.0,
-            elevation: 1.4,
-            distance: 500.,
-            ..Default::default()
-        }
-        .store(KeyCode::Digit3, &mut views.map); // todo:  Munic?
-
-        // -85.05109 -179.99821      192199840 -77.87303 27.064236 500 77
-        // -85.05109    0.0006583275 192199940 -75.85857 16.502523 500 77
         let view = GeoView {
-            geo_coord: GeoCoord {
-                lat: -85.05109,
-                lon: 0.0006583275,
-            },
-            elevation: 192199840.,
-            direction: -75.85857,
-            up_view: 16.502523,
-            distance: 500.,
-            ..Default::default()
-        };
-        view.store(KeyCode::Digit6, &mut views.map);
-
-        let view = GeoView {
-            geo_coord: GeoCoord {
-                lat: -OSM_LAT_LIMIT,
-                lon: 180.0,
-            },
+            geo_coord: GeoCoord { lat: 0.1, lon: 0.2 },
             elevation: MOON_ORBIT / 2.0,
             ..Default::default()
         };
 
-        /*
-                let gt = view.to_galactic_transform(false);
-                let pd = gt.position_double();
-                let origin = GeoCoord::from_cartesian(pd);
-                let tile_size = origin.tile_size(15);
-                info!(tile_size);
-
-        / *                                                 zoom,                                                 coord,                                            pos.pos ,                   coord.right().to_geo_coord(),               coord.right().to_geo_coord().to_cartesian().pos ); //ää
-        2024-02-08T18:50:20.137052Z  INFO osmeta::geocoord:  15, TileCoord { pos: Vec2(16384.0, 32767.992), zoom: 15 }, DVec3( 550210.5697816543, -0.0, -6354223.188470841), GeoCoord { lat: -85.051125, lon: 0.010986328 }, DVec3(-550209.7135508333, -105.5013925298749,  -6354223.261735754),
-        2024-02-08T18:50:20.137101Z  INFO osmeta::geocoord:  15, TileCoord { pos: Vec2(16384.0, 32766.857), zoom: 15 }, DVec3(-550314.6419755649, -0.0, -6354214.17602738 ), GeoCoord { lat: -85.05005 , lon: 0.010986328 }, DVec3(-550329.0158086999, -105.52426845159509, -6354212.930271038),
-        * /
-
-            let pos = player.pos();
-            let origin = GeoCoord::from_cartesian(pos);
-            let tile_size = origin.tile_size(TILE_ZOOM);
-
-                let coord = self.to_tile_coordinates(zoom);
-                let pos   = self.to_cartesian();
-                let xxx   =coord.right().to_geo_coord().to_cartesian().distance(*pos);
-
-            let coord = crate::tilemap::TileCoord { pos: Vec2(16384.0, 32767.992), zoom: 15 };
-            let mut pos   = coord.to_cartesian();
-            pos = pos.right();
-
-        */
-
-        view.store(KeyCode::Digit7, &mut views.map);
+        // Test key 6: at (inside) the Galactica
+        view.store(KeyCode::Digit6, &mut views.map);
         let galactic_transform = view.to_galactic_transform(false);
         let transform = galactic_transform.transform;
         let cell = galactic_transform.cell;
@@ -344,8 +272,21 @@ fn setup(
             Galactica,
             cell,
         ));
-    }
 
+        // Test key 5: below Galactica
+        let view = GeoView {
+            geo_coord: GeoCoord {
+                lat: 0.1023688,
+                lon: 0.20474587,
+            },
+            elevation: 6406666.,
+            direction: -143.79845,
+            up_view: 0.7181056,
+            distance: 500.,
+            ..Default::default()
+        };
+        view.store(KeyCode::Digit5, &mut views.map);
+    }
 }
 
 // Set-Functions ////////////////
